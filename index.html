@@ -105,20 +105,8 @@
     }
 
     /* Custom Cursor */
-    @media(hover:none), (max-width:768px) { #cursor-dot { display:none !important; opacity:0 !important; pointer-events:none !important; } }
-    #cursor-dot {
-      position: fixed;
-      top: 0;
-      left: 0;
-      transform: translate(-50%, -50%);
-      width: 8px;
-      height: 8px;
-      background: #FF6B2B;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 999999;
-      transition: width 0.2s, height 0.2s, background 0.2s;
-    }
+     }
+    
 
     #cursor-ring {
       position: fixed;
@@ -165,9 +153,7 @@
       opacity: 1;
     }
 
-    .hover-card #cursor-dot {
-      opacity: 0;
-    }
+    .hover-card 
 
     /* Layout Helpers */
     .container {
@@ -1936,7 +1922,6 @@
 <body data-cursor="default">
 
   <div class="scroll-progress" id="scrollProgress"></div>
-  <div id="cursor-dot" style="display:none"></div>
   <div id="cursor-ring"><span id="cursor-text">VIEW</span></div>
 
   <!-- NAV -->
@@ -3010,10 +2995,6 @@
     });
 
     // ------------------- Advanced Cursor & Magnetic Buttons -------------------
-    const cursorDot = document.getElementById('cursor-dot');
-    // Only show cursor on desktop with mouse
-    const isDesktop = !window.matchMedia('(hover: none)').matches && window.innerWidth > 768;
-    if (isDesktop && cursorDot) cursorDot.style.display = 'block';
     const cursorRing = document.getElementById('cursor-ring');
 
     let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
@@ -3029,9 +3010,6 @@
       // Instant follow for dot
       dotX = mouseX;
       dotY = mouseY;
-      if (cursorDot) {
-        cursorDot.style.left = `${dotX}px`;
-        cursorDot.style.top = `${dotY}px`;
       }
 
       // Smooth follow for ring
