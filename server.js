@@ -153,7 +153,14 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
               { email, displayName: name },
               { email: process.env.GMAIL_USER || 'danny@neuralflowai.io', displayName: 'Danny Boehmer' },
             ],
+            conferenceData: {
+              createRequest: {
+                requestId: `neuralflow-${Date.now()}`,
+                conferenceSolutionKey: { type: 'hangoutsMeet' },
+              },
+            },
           },
+        conferenceDataVersion: 1,
         });
         results.calendar = true;
         console.log(`✅ Calendar event created for ${name}`);
