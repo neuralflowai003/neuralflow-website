@@ -26,7 +26,8 @@ const oauth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_u
 const TOKEN_PATH = path.join(__dirname, 'google-token.json');
 if (process.env.GOOGLE_REFRESH_TOKEN) {
   oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
-  console.log('✅ Google Calendar connected (env var)');
+  // Pre-warm the access token so first calendar call doesn't block
+  oauth2Client.getAccessToken().then(() => console.log('✅ Google Calendar connected + token pre-warmed')).catch(e => console.log('⚠️ Calendar pre-warm failed:', e.message));
 } else if (fs.existsSync(TOKEN_PATH)) {
   const token = JSON.parse(fs.readFileSync(TOKEN_PATH));
   oauth2Client.setCredentials(token);
