@@ -3249,9 +3249,16 @@
           }
         }
       });
-    }, { threshold: 0.15 });
+    }, { threshold: 0.05 });
 
     document.querySelectorAll('.reveal, .reveal-slide-right, .stat-box').forEach(el => observer.observe(el));
+    
+    // On mobile, immediately show all reveal elements
+    if (window.innerWidth <= 768) {
+      document.querySelectorAll('.reveal, .reveal-slide-right, .stat-box').forEach(el => {
+        el.classList.add('visible');
+      });
+    }
 
     // Set Year
     document.getElementById('year').innerText = new Date().getFullYear();
