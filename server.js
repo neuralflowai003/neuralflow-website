@@ -291,7 +291,7 @@ Keep responses concise (2-3 sentences). Pricing starts at $2,500 — always offe
     let reply = response.content[0].text;
 
     // Check if ARIA wants to book
-    const bookMatch = reply.match(/BOOK:(\{[\s\S]*?\})/)
+    const bookMatch = reply.match(/BOOK:(\{[^{}]*\})/);
     if (bookMatch && slots) {
       try {
         const bookData = JSON.parse(bookMatch[1]);
