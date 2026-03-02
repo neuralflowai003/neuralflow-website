@@ -238,30 +238,39 @@ app.post('/api/chat', async (req, res) => {
     if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Messages array required' });
 
     // Parse any date hint from the conversation
-    const allText = messages.map(m => m.content).join(' ').toLowerCase();
+    // Only look at the LAST user message to avoid picking up ARIA's previous date mentions
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
     let searchFromDate = null;
-    
-    // Detect month mentions like "april", "march 25", "next month", "in 3 weeks"
-    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-    for (const [i, month] of monthNames.entries()) {
-      if (allText.includes(month)) {
-        const d = new Date();
-        d.setMonth(i);
-        if (d < new Date()) d.setFullYear(d.getFullYear() + 1);
-        d.setDate(1);
-        searchFromDate = d.toISOString().split('T')[0];
-        break;
-      }
-    }
-    if (allText.match(/next\s+month/)) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+    const today = new Date();
+
+    if (lastUserMsg.match(/few weeks|couple weeks|2-3 weeks|a few weeks/)) {
+      const d = new Date(); d.setDate(d.getDate() + 14);
       searchFromDate = d.toISOString().split('T')[0];
-    }
-    if (allText.match(/in\s+(\d+)\s+weeks?/)) {
-      const weeks = parseInt(allText.match(/in\s+(\d+)\s+weeks?/)[1]);
+    } else if (lastUserMsg.match(/in\s+(\d+)\s+weeks?/)) {
+      const weeks = parseInt(lastUserMsg.match(/in\s+(\d+)\s+weeks?/)[1]);
       const d = new Date(); d.setDate(d.getDate() + weeks * 7);
       searchFromDate = d.toISOString().split('T')[0];
+    } else if (lastUserMsg.match(/next month/)) {
+      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+      searchFromDate = d.toISOString().split('T')[0];
+    } else if (lastUserMsg.match(/in\s+(\d+)\s+months?/)) {
+      const months = parseInt(lastUserMsg.match(/in\s+(\d+)\s+months?/)[1]);
+      const d = new Date(); d.setMonth(d.getMonth() + months);
+      searchFromDate = d.toISOString().split('T')[0];
+    } else {
+      const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+      for (const [i, month] of monthNames.entries()) {
+        if (lastUserMsg.includes(month)) {
+          const d = new Date();
+          d.setMonth(i);
+          if (d <= today) d.setFullYear(d.getFullYear() + 1);
+          d.setDate(1);
+          searchFromDate = d.toISOString().split('T')[0];
+          break;
+        }
+      }
     }
+
 
     // Fetch live availability searching up to 365 days out from detected date
     const slots = await getAvailableSlots(365, searchFromDate);
@@ -286,7 +295,7 @@ BOOK:{"slotIndex": N, "name": "Their Full Name", "email": "their@email.com", "co
 Then say: "Perfect! Booking that now — you will get a calendar invite at [email] shortly! 🎉"
 
 
-SCHEDULING FLEXIBILITY: Danny's calendar is open up to a full year out. If a client mentions they are busy, on vacation, or wants a specific week or month — always say "No problem! Here are slots around that time:" and show the available slots below. The slots are already filtered to match their requested timeframe.
+SCHEDULING FLEXIBILITY: Danny's calendar is open up to a full year out. If a client mentions they are busy, on vacation, or wants a specific week or month — always say "No problem! Here are slots around that time:" and show ONLY the numbered slots listed below. NEVER invent or make up dates. ONLY use the exact slot labels provided in the AVAILABLE SLOTS list. The slots are already filtered to match their timeframe.
 
 NEVER skip the BOOK command when a slot is chosen. NEVER ask for extra confirmation after they have already said yes to a slot. Act immediately and book it.
 
