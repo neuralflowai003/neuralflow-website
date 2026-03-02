@@ -553,6 +553,7 @@
       margin-bottom: 20px;
       text-transform: none;
     }
+    @media(max-width:768px) { body .hero-headline { white-space:normal !important; font-size:clamp(1.8rem,7vw,3rem) !important; letter-spacing:-1px !important; } }
 
     .line-1 {
       color: #fff;
@@ -3159,7 +3160,8 @@
         // Respawn particles to fill new dimensions
         particles = [];
         for (let i = 0; i < 4; i++) particles.push(new Particle(true));
-        for (let i = 0; i < 282; i++) particles.push(new Particle());
+        const particleCount = window.innerWidth < 768 ? 80 : 282;
+        for (let i = 0; i < particleCount; i++) particles.push(new Particle());
       }
       window.addEventListener('resize', resizeCanvas);
 
@@ -3213,7 +3215,7 @@
               ctx.moveTo(particles[i].x, particles[i].y);
               ctx.lineTo(particles[j].x, particles[j].y);
 
-              const alpha = 0.4 * (1 - dist / 200);
+              const alpha = (window.innerWidth < 768 ? 0.15 : 0.4) * (1 - dist / 200);
               if (dist < 80) {
                 ctx.strokeStyle = `rgba(255, 107, 26, ${alpha + 0.12})`;
               } else {
