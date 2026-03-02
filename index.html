@@ -105,7 +105,7 @@
     }
 
     /* Custom Cursor */
-    @media(max-width:768px) { #cursor-dot { display:none !important; } }
+    @media(hover:none), (max-width:768px) { #cursor-dot { display:none !important; opacity:0 !important; pointer-events:none !important; } }
     #cursor-dot {
       position: fixed;
       top: 0;
@@ -2692,6 +2692,13 @@
 
     /* ── Mobile Polish ── */
     @media(max-width:768px) {
+      /* Capabilities cards */
+      .tilt-card { padding:28px 24px !important; }
+      .services-grid { grid-template-columns:1fr !important; gap:16px !important; }
+      /* What We Build cards */
+      .build-card { min-width:260px !important; max-width:260px !important; padding:20px !important; }
+      .build-card h3 { font-size:14px !important; }
+      .build-card p { font-size:12px !important; }
       .proof-section { padding:60px 0 !important; }
       .quotes-ticker-wrap { margin:0 0 40px; }
       .tcard { padding:24px; }
