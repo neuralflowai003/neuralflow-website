@@ -191,7 +191,7 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
           <p>Hi ${name},</p>
           <p>Your free 1-hour consultation with Danny Boehmer is booked. A Google Meet link has been sent to your calendar.</p>
           <div style="background:#16161a;border:1px solid #2a2a35;border-radius:8px;padding:20px;margin:20px 0;">
-            <p style="margin:0 0 8px;"><strong>📅 When:</strong> ${slotLabel}</p>
+            <p style="margin:0 0 8px;"><strong>📅 When:</strong> ${slotLabel.includes('EST') ? slotLabel : slotLabel + ' EST'}</p>
             <p style="margin:0 0 8px;"><strong>🏢 Company:</strong> ${company}</p>
             <p style="margin:0;"><strong>⏱️ Duration:</strong> 1 hour</p>
           </div>
