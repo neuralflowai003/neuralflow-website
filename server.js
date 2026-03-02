@@ -1,0 +1,350 @@
+require('dotenv').config();
+const express = require('express');
+const Anthropic = require('@anthropic-ai/sdk');
+const cors = require('cors');
+const path = require('path');
+const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
+const fs = require('fs');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// ─── Anthropic ───────────────────────────────────────────────────────────────
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ─── Google OAuth2 ───────────────────────────────────────────────────────────
+const client_id = process.env.GOOGLE_CLIENT_ID;
+const client_secret = process.env.GOOGLE_CLIENT_SECRET;
+const redirect_uri = process.env.NODE_ENV === 'production'
+  ? 'https://neuralflow-api.up.railway.app/oauth/callback'
+  : 'http://localhost:3000/oauth/callback';
+
+const oauth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
+
+// Load credentials — from env var (production) or local file (development)
+const TOKEN_PATH = path.join(__dirname, 'google-token.json');
+if (process.env.GOOGLE_REFRESH_TOKEN) {
+  oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+  console.log('✅ Google Calendar connected (env var)');
+} else if (fs.existsSync(TOKEN_PATH)) {
+  const token = JSON.parse(fs.readFileSync(TOKEN_PATH));
+  oauth2Client.setCredentials(token);
+  console.log('✅ Google Calendar connected (local file)');
+} else {
+  console.log('⚠️  Google Calendar not authorized yet — visit /oauth/start');
+}
+
+// ─── Nodemailer ───────────────────────────────────────────────────────────────
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER || 'danny@neuralflowai.io',
+    pass: process.env.GMAIL_PASS || '',
+  },
+});
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+// ─── OAuth Flow ───────────────────────────────────────────────────────────────
+app.get('/oauth/start', (req, res) => {
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: ['https://www.googleapis.com/auth/calendar'],
+  });
+  res.redirect(url);
+});
+
+app.get('/oauth/callback', async (req, res) => {
+  const { code } = req.query;
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+    console.log('✅ Google Calendar authorized! Refresh token:', tokens.refresh_token);
+    res.send('<h2>✅ Google Calendar connected! You can close this tab.</h2><script>setTimeout(()=>window.close(),2000)</script>');
+  } catch (e) {
+    res.status(500).send('Auth failed: ' + e.message);
+  }
+});
+
+// ─── Get Availability ────────────────────────────────────────────────────────
+async function getAvailableSlots(daysAhead = 90, startFromDate = null) {
+  if (!fs.existsSync(TOKEN_PATH)) return null;
+  try {
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+    const now = startFromDate ? new Date(startFromDate) : new Date();
+    const end = new Date(now);
+    end.setDate(end.getDate() + daysAhead);
+
+    // Get busy times
+    const freeBusy = await calendar.freebusy.query({
+      requestBody: {
+        timeMin: now.toISOString(),
+        timeMax: end.toISOString(),
+        items: [{ id: 'primary' }],
+      },
+    });
+
+    const busy = freeBusy.data.calendars.primary.busy || [];
+
+    // Generate available 1-hour slots Mon-Fri 9am-5pm EST
+    const slots = [];
+    const d = startFromDate ? new Date(startFromDate) : new Date();
+    d.setHours(0, 0, 0, 0);
+
+    for (let i = startFromDate ? 0 : 1; i <= daysAhead && slots.length < 6; i++) {
+      const day = new Date(d);
+      day.setDate(day.getDate() + i);
+      const dow = day.getDay();
+      if (dow === 0 || dow === 6) continue; // skip weekends
+
+      const hours = [9, 10, 11, 13, 14, 15, 16];
+      for (const h of hours) {
+        const slotStart = new Date(day);
+        slotStart.setHours(h, 0, 0, 0);
+        const slotEnd = new Date(slotStart);
+        slotEnd.setHours(h + 1, 0, 0, 0);
+
+        // Check if slot overlaps with busy time
+        const isBusy = busy.some(b => {
+          const bs = new Date(b.start);
+          const be = new Date(b.end);
+          return slotStart < be && slotEnd > bs;
+        });
+
+        if (!isBusy && slotStart > now) {
+          const label = slotStart.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+            + ' at ' + slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' EST';
+          slots.push({ label, start: slotStart.toISOString(), end: slotEnd.toISOString() });
+          if (slots.length >= 6) break;
+        }
+      }
+    }
+    return slots;
+  } catch (e) {
+    console.error('Calendar availability error:', e.message);
+    return null;
+  }
+}
+
+// ─── Book Appointment ────────────────────────────────────────────────────────
+async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
+  const results = { calendar: false, emailLead: false, emailDanny: false };
+
+  // 1. Create Google Calendar event
+  if (fs.existsSync(TOKEN_PATH)) {
+    try {
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      await calendar.events.insert({
+        calendarId: 'primary',
+        sendUpdates: 'all',
+        requestBody: {
+          summary: `NeuralFlow Consultation — ${name} (${company})`,
+          description: `🤖 Booked via ARIA — NeuralFlow AI Receptionist\n\n👤 CLIENT DETAILS\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n📋 WHAT THEY WANT TO BUILD\n${notes ? notes.split('|')[0] : 'See chat transcript'}\n\n🔥 PAIN POINTS & PROBLEMS THEY'RE SOLVING\n${notes ? (notes.split('|')[1] || 'See chat transcript') : 'See chat transcript'}\n\n⚡ PREP NOTES\n- Review pain points above before the call\n- Come prepared with relevant solutions & case studies\n- Pricing starts at $2,500 — tailor proposal to their scope`,
+          start: { dateTime: slotStart, timeZone: 'America/New_York' },
+          end: { dateTime: slotEnd, timeZone: 'America/New_York' },
+          attendees: [
+            { email, displayName: name },
+            { email: process.env.GMAIL_USER || 'danny@neuralflowai.io', displayName: 'Danny Boehmer' },
+          ],
+          conferenceData: {
+            createRequest: { requestId: Date.now().toString(), conferenceSolutionKey: { type: 'hangoutsMeet' } }
+          },
+        },
+        conferenceDataVersion: 1,
+      });
+      results.calendar = true;
+      console.log(`✅ Calendar event created for ${name}`);
+    } catch (e) {
+      console.error('Calendar booking error:', e.message);
+    }
+  }
+
+  // 2. Email confirmation to lead
+  try {
+    await transporter.sendMail({
+      from: `"Danny @ NeuralFlow" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `✅ Your NeuralFlow Consultation is Confirmed!`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0a0a0f;color:#e8e8f0;padding:40px;border-radius:12px;">
+          <h1 style="color:#FF6B1A;">NeuralFlow</h1>
+          <h2>Your Consultation is Confirmed! 🎉</h2>
+          <p>Hi ${name},</p>
+          <p>Your free 1-hour consultation with Danny Boehmer is booked. A Google Meet link has been sent to your calendar.</p>
+          <div style="background:#16161a;border:1px solid #2a2a35;border-radius:8px;padding:20px;margin:20px 0;">
+            <p style="margin:0 0 8px;"><strong>📅 When:</strong> ${slotLabel}</p>
+            <p style="margin:0 0 8px;"><strong>🏢 Company:</strong> ${company}</p>
+            <p style="margin:0;"><strong>⏱️ Duration:</strong> 1 hour</p>
+          </div>
+          <p>Talk soon,</p>
+          <p><strong>Danny Boehmer</strong><br/>Founder, NeuralFlow<br/><a href="https://neuralflowai.io" style="color:#FF6B1A;">neuralflowai.io</a></p>
+        </div>
+      `,
+    });
+    results.emailLead = true;
+  } catch (e) { console.error('Lead email error:', e.message); }
+
+  // 3. Notify Danny
+  try {
+    await transporter.sendMail({
+      from: `"NeuralFlow ARIA" <${process.env.GMAIL_USER}>`,
+      to: process.env.GMAIL_USER,
+      subject: `🔥 New Consultation — ${name} from ${company} — ${slotLabel}`,
+      html: `<h2>New Consultation Booked! 🤖</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Company:</strong> ${company}</p>
+        <p><strong>Time:</strong> ${slotLabel}</p>`,
+    });
+    results.emailDanny = true;
+  } catch (e) { console.error('Danny email error:', e.message); }
+
+  return results;
+}
+
+// ─── Get Availability API ─────────────────────────────────────────────────────
+app.get('/api/availability', async (req, res) => {
+  const { date } = req.query; // optional: ?date=2026-03-20
+  const slots = await getAvailableSlots(90, date || null);
+  res.json({ slots });
+});
+
+// ─── Book API ─────────────────────────────────────────────────────────────────
+app.post('/api/book', async (req, res) => {
+  const { name, email, company, slotStart, slotEnd, slotLabel, notes } = req.body;
+  if (!name || !email || !slotStart) return res.status(400).json({ error: 'Missing fields' });
+  const results = await bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes });
+  res.json({ success: true, results });
+});
+
+// ─── ARIA Chat ───────────────────────────────────────────────────────────────
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { messages } = req.body;
+    if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Messages array required' });
+
+    // Parse any date hint from the conversation
+    const allText = messages.map(m => m.content).join(' ').toLowerCase();
+    let searchFromDate = null;
+    
+    // Detect month mentions like "april", "march 25", "next month", "in 3 weeks"
+    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    for (const [i, month] of monthNames.entries()) {
+      if (allText.includes(month)) {
+        const d = new Date();
+        d.setMonth(i);
+        if (d < new Date()) d.setFullYear(d.getFullYear() + 1);
+        d.setDate(1);
+        searchFromDate = d.toISOString().split('T')[0];
+        break;
+      }
+    }
+    if (allText.match(/next\s+month/)) {
+      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+      searchFromDate = d.toISOString().split('T')[0];
+    }
+    if (allText.match(/in\s+(\d+)\s+weeks?/)) {
+      const weeks = parseInt(allText.match(/in\s+(\d+)\s+weeks?/)[1]);
+      const d = new Date(); d.setDate(d.getDate() + weeks * 7);
+      searchFromDate = d.toISOString().split('T')[0];
+    }
+
+    // Fetch live availability searching up to 365 days out from detected date
+    const slots = await getAvailableSlots(365, searchFromDate);
+    const slotsText = slots && slots.length > 0
+      ? `\n\nAVAILABLE SLOTS${searchFromDate ? ` around requested timeframe` : ''} (from Danny's live Google Calendar — up to 1 year out):\n${slots.map((s, i) => `${i + 1}. ${s.label}`).join('\n')}\n\nIf the client requests a different timeframe, acknowledge and show slots from that period. You have access to Danny's full calendar for the entire year.\n\nWhen client confirms a slot, respond with EXACTLY this:\nBOOK:{"slotIndex": N, "name": "Full Name", "email": "email@example.com", "company": "Company", "notes": "What they want to build|Their pain points and problems they are trying to solve"}\n(N = 0-based index of chosen slot. Fill notes with real details from the conversation — be specific)`
+      : '\n\nCalendar not connected — collect info and Danny will follow up.';
+
+    const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company at neuralflowai.io. Danny Boehmer is the founder.
+
+Your goal: qualify leads and book free 1-hour consultations directly in this chat. No links, no redirects — book it right here.
+
+CONVERSATION FLOW:
+1. Greet warmly, ask what brings them to NeuralFlow
+2. Ask about their business and challenges
+3. Explain relevant services (AI Consulting, Workflow Automation, Custom Apps, AI Receptionists, Lead Gen, Dashboards)
+4. When they're interested, ask: Full name, Email address, Company name
+5. Show them the available slots and ask which works best
+6. Once they pick a slot, confirm and trigger the booking
+
+BOOKING: When client confirms a slot, respond with EXACTLY this format on its own line:
+BOOK:{"slotIndex": N, "name": "Full Name", "email": "email@example.com", "company": "Company Name"}
+Then say: "Perfect! I'm booking that now — you'll get a calendar invite at [email] in just a moment! 🎉"
+
+Keep responses concise (2-3 sentences max). Pricing starts at $2,500 — always offer free consultation for exact quote. Be warm and professional.${slotsText}`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 600,
+      system: systemPrompt,
+      messages,
+    });
+
+    let reply = response.content[0].text;
+
+    // Check if ARIA wants to book
+    const bookMatch = reply.match(/BOOK:(\{.*?\})/s);
+    if (bookMatch && slots) {
+      try {
+        const bookData = JSON.parse(bookMatch[1]);
+        const slot = slots[bookData.slotIndex] || slots[0];
+        await bookAppointment({
+          name: bookData.name,
+          email: bookData.email,
+          company: bookData.company,
+          notes: bookData.notes || '',
+          slotStart: slot.start,
+          slotEnd: slot.end,
+          slotLabel: slot.label,
+        });
+        reply = reply.replace(/BOOK:\{.*?\}/s, '').trim();
+        return res.json({ reply, booked: true });
+      } catch (e) {
+        console.error('Booking parse error:', e);
+      }
+    }
+
+    res.json({ reply });
+  } catch (error) {
+    console.error('Anthropic error:', error.message);
+    res.status(500).json({ error: 'AI error' });
+  }
+});
+
+// ─── Contact Form ─────────────────────────────────────────────────────────────
+app.post('/api/contact', async (req, res) => {
+  try {
+    const { name, email, scope } = req.body;
+    if (!name || !email || !scope) return res.status(400).json({ error: 'Missing fields' });
+
+    await transporter.sendMail({
+      from: `"NeuralFlow Website" <${process.env.GMAIL_USER}>`,
+      to: process.env.GMAIL_USER,
+      subject: `🔥 New Contact Form — ${name}`,
+      html: `<h2>New Contact Form 📬</h2><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Scope:</strong> ${scope}</p>`,
+    });
+
+    await transporter.sendMail({
+      from: `"Danny @ NeuralFlow" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
+      html: `<div style="font-family:sans-serif;max-width:600px;background:#0a0a0f;color:#e8e8f0;padding:40px;border-radius:12px;">
+        <h1 style="color:#FF6B1A;">NeuralFlow</h1>
+        <p>Hi ${name.split(' ')[0]}, thanks for reaching out — I'll get back to you within 24 hours!</p>
+        <p><strong>Danny Boehmer</strong><br/>Founder, NeuralFlow</p></div>`,
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Contact form error:', error.message);
+    res.status(500).json({ error: 'Failed to send' });
+  }
+});
+
+app.listen(port, () => console.log(`NeuralFlow server running at http://localhost:${port}`));

@@ -1,0 +1,24 @@
+{
+  "name": "neuralflow-tracker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^4.22.1",
+    "googleapis": "^171.4.0",
+    "nodemailer": "^8.0.1"
+  },
+  "devDependencies": {
+    "electron": "^40.6.1"
+  }
+}
