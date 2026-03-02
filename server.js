@@ -276,7 +276,7 @@ app.post('/api/chat', async (req, res) => {
     const slots = await getAvailableSlots(365, searchFromDate);
     const slotsText = slots && slots.length > 0
       ? `\n\nAVAILABLE SLOTS${searchFromDate ? ` around requested timeframe` : ''} (from Danny's live Google Calendar — up to 1 year out):\n${slots.map((s, i) => `${i + 1}. ${s.label}`).join('\n')}\n\nIf the client requests a different timeframe, acknowledge and show slots from that period. You have access to Danny's full calendar for the entire year.\n\nWhen client confirms a slot, respond with EXACTLY this:\nBOOK:{"slotIndex": N, "name": "Full Name", "email": "email@example.com", "company": "Company", "notes": "What they want to build|Their pain points and problems they are trying to solve"}\n(N = 0-based index of chosen slot. Fill notes with real details from the conversation — be specific)`
-      : '\n\nCalendar not connected — collect info and Danny will follow up.';
+      : '\n\nCALENDAR UNAVAILABLE: Do NOT invent or make up any dates or times. Tell the client: "Let me check Danny\'s calendar and get back to you — can I get your email so we can confirm a time?" Then collect their contact info.';
 
     const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company at neuralflowai.io. Danny Boehmer is the founder.
 
