@@ -3011,6 +3011,10 @@
 
     // ------------------- Advanced Cursor & Magnetic Buttons -------------------
     const cursorDot = document.getElementById('cursor-dot');
+    // Hide cursor on touch/mobile devices
+    if (window.matchMedia('(hover: none)').matches || window.innerWidth <= 768) {
+      if (cursorDot) cursorDot.style.display = 'none';
+    }
     const cursorRing = document.getElementById('cursor-ring');
 
     let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
