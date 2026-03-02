@@ -273,7 +273,9 @@ app.post('/api/chat', async (req, res) => {
 
 
     // Fetch live availability searching up to 365 days out from detected date
+    console.log('🗓️ Date search:', { lastUserMsg: lastUserMsg.slice(0,100), searchFromDate });
     const slots = await getAvailableSlots(365, searchFromDate);
+    console.log('📅 Slots returned:', slots ? slots.map(s=>s.label) : 'NULL');
     const slotsText = slots && slots.length > 0
       ? `\n\n===REAL CALENDAR SLOTS - USE ONLY THESE EXACT DATES AND TIMES===\n${slots.map((s, i) => `${i + 1}. ${s.label}`).join('\n')}\n===END OF SLOTS===\n\nCRITICAL: You MUST ONLY present the exact slots listed above. NEVER invent, modify, or suggest any other dates or times. These are the ONLY real available times from Danny's live calendar today (${new Date().toDateString()}).\n\nWhen client confirms a slot, respond with:\nBOOK:{"slotIndex": N, "name": "Full Name", "email": "email@example.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = 0-based index)`
       : '\n\nCALENDAR UNAVAILABLE: Do NOT invent or make up any dates or times. Tell the client: "Let me check Danny\'s calendar and get back to you — can I get your email so we can confirm a time?" Then collect their contact info.';
