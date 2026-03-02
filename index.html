@@ -210,6 +210,14 @@
       transform: translateX(0);
     }
 
+    /* Force all animations visible on mobile */
+    @media(max-width:768px) {
+      .reveal, .reveal-slide-right, .stat-box {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+
     /* Magnetic Buttons with Liquid Fill */
     .btn {
       display: inline-flex;
