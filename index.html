@@ -2471,6 +2471,7 @@
   <!-- HOW IT WORKS -->
   <style>
     .hiw-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:80px; align-items:start; }
+    @media(max-width:768px) { .hiw-grid { grid-template-columns:1fr !important; gap:20px; } }
     .hiw-card { background:#16161a; border:1px solid #2a2a35; border-radius:20px; padding:36px 28px; cursor:pointer; transition:border-color 0.3s, transform 0.3s; position:relative; overflow:hidden; }
     .hiw-card:hover { border-color:#FF6B1A; transform:translateY(-4px); }
     .hiw-card.expanded { border-color:#FF6B1A; }
