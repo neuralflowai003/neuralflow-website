@@ -330,7 +330,9 @@ Keep responses concise (2-3 sentences). Pricing starts at $2,500 — always offe
     if (bookMatch && slots) {
       try {
         const bookData = JSON.parse(bookMatch[1]);
-        const slot = slots[bookData.slotIndex] || slots[0];
+        // ARIA numbers slots from 1, array is 0-based — subtract 1
+        const slotIdx = Math.max(0, (bookData.slotIndex || 1) - 1);
+        const slot = slots[slotIdx] || slots[0];
         await bookAppointment({
           name: bookData.name,
           email: bookData.email,
