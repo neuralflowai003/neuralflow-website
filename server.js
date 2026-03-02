@@ -8,7 +8,7 @@ const { google } = require('googleapis');
 const fs = require('fs');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
