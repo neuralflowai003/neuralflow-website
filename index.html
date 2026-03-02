@@ -1936,7 +1936,7 @@
 <body data-cursor="default">
 
   <div class="scroll-progress" id="scrollProgress"></div>
-  <div id="cursor-dot"></div>
+  <div id="cursor-dot" style="display:none"></div>
   <div id="cursor-ring"><span id="cursor-text">VIEW</span></div>
 
   <!-- NAV -->
@@ -3011,10 +3011,9 @@
 
     // ------------------- Advanced Cursor & Magnetic Buttons -------------------
     const cursorDot = document.getElementById('cursor-dot');
-    // Hide cursor on touch/mobile devices
-    if (window.matchMedia('(hover: none)').matches || window.innerWidth <= 768) {
-      if (cursorDot) cursorDot.style.display = 'none';
-    }
+    // Only show cursor on desktop with mouse
+    const isDesktop = !window.matchMedia('(hover: none)').matches && window.innerWidth > 768;
+    if (isDesktop && cursorDot) cursorDot.style.display = 'block';
     const cursorRing = document.getElementById('cursor-ring');
 
     let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
