@@ -137,28 +137,33 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
   const results = { calendar: false, emailLead: false, emailDanny: false };
 
   // 1. Create Google Calendar event
+  // Create calendar event in background (non-blocking)
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
-    try {
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-      await calendar.events.insert({
-        calendarId: 'primary',
-        sendUpdates: 'all',
-        requestBody: {
-          summary: `NeuralFlow Consultation — ${name} (${company})`,
-          description: `🤖 Booked via ARIA\n\n👤 CLIENT\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n📋 WHAT THEY WANT\n${notes ? notes.split('|')[0] : 'See chat'}\n\n🔥 PAIN POINTS\n${notes ? (notes.split('|')[1] || 'See chat') : 'See chat'}\n\n⚡ PREP\n- Review above before the call\n- Pricing starts at $2,500`,
-          start: { dateTime: slotStart, timeZone: 'America/New_York' },
-          end: { dateTime: slotEnd, timeZone: 'America/New_York' },
-          attendees: [
-            { email, displayName: name },
-            { email: process.env.GMAIL_USER || 'danny@neuralflowai.io', displayName: 'Danny Boehmer' },
-          ],
-        },
-      });
-      results.calendar = true;
-      console.log(`✅ Calendar event created for ${name}`);
-    } catch (e) {
-      console.error('Calendar booking error:', e.message);
-    }
+    const calendarPromise = (async () => {
+      try {
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        await calendar.events.insert({
+          calendarId: 'primary',
+          sendUpdates: 'all',
+          requestBody: {
+            summary: `NeuralFlow Consultation — ${name} (${company})`,
+            description: `🤖 Booked via ARIA\n\n👤 CLIENT\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n📋 WHAT THEY WANT\n${notes ? notes.split('|')[0] : 'See chat'}\n\n🔥 PAIN POINTS\n${notes ? (notes.split('|')[1] || 'See chat') : 'See chat'}\n\n⚡ PREP\n- Pricing starts at $2,500`,
+            start: { dateTime: slotStart, timeZone: 'America/New_York' },
+            end: { dateTime: slotEnd, timeZone: 'America/New_York' },
+            attendees: [
+              { email, displayName: name },
+              { email: process.env.GMAIL_USER || 'danny@neuralflowai.io', displayName: 'Danny Boehmer' },
+            ],
+          },
+        });
+        results.calendar = true;
+        console.log(`✅ Calendar event created for ${name}`);
+      } catch (e) {
+        console.error('Calendar booking error:', e.message);
+      }
+    })();
+    // Don't await — fire and forget, emails send immediately
+    calendarPromise.catch(e => console.error('Calendar bg error:', e.message));
   }
 
   // 2. Email confirmation to lead
