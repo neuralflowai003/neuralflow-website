@@ -140,7 +140,8 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
     try {
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-      await calendar.events.insert({
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Calendar timeout')), 8000));
+      await Promise.race([calendar.events.insert({
         calendarId: 'primary',
         sendUpdates: 'all',
         requestBody: {
@@ -152,12 +153,9 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
             { email, displayName: name },
             { email: process.env.GMAIL_USER || 'danny@neuralflowai.io', displayName: 'Danny Boehmer' },
           ],
-          conferenceData: {
-            createRequest: { requestId: Date.now().toString(), conferenceSolutionKey: { type: 'hangoutsMeet' } }
-          },
         },
-        conferenceDataVersion: 1,
       });
+      ), timeout]);
       results.calendar = true;
       console.log(`✅ Calendar event created for ${name}`);
     } catch (e) {
