@@ -106,9 +106,9 @@ async function getAvailableSlots(daysAhead = 90, startFromDate = null) {
       const hours = [9, 10, 11, 13, 14, 15, 16];
       for (const h of hours) {
         const slotStart = new Date(day);
-        slotStart.setHours(h, 0, 0, 0);
+          slotStart.setUTCHours(h + 5, 0, 0, 0); // EST = UTC-5
         const slotEnd = new Date(slotStart);
-        slotEnd.setHours(h + 1, 0, 0, 0);
+          slotEnd.setUTCHours(h + 6, 0, 0, 0); // EST = UTC-5
 
         // Check if slot overlaps with busy time
         const isBusy = busy.some(b => {
@@ -118,7 +118,7 @@ async function getAvailableSlots(daysAhead = 90, startFromDate = null) {
         });
 
         if (!isBusy && slotStart > now) {
-          const label = slotStart.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+          const label = slotStart.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'America/New_York' })
             + ' at ' + slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' EST';
           slots.push({ label, start: slotStart.toISOString(), end: slotEnd.toISOString() });
           if (slots.length >= 6) break;
