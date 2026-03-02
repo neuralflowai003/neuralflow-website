@@ -16,9 +16,9 @@
     "dotenv": "^17.3.1",
     "express": "^4.22.1",
     "googleapis": "^171.4.0",
-    "nodemailer": "^8.0.1"
+    "nodemailer": "^8.0.1",
+    "resend": "^6.9.3"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }

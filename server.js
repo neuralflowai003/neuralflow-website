@@ -3,7 +3,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const cors = require('cors');
 const path = require('path');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { google } = require('googleapis');
 const fs = require('fs');
 
@@ -36,14 +36,12 @@ if (process.env.GOOGLE_REFRESH_TOKEN) {
   console.log('⚠️  Google Calendar not authorized yet — visit /oauth/start');
 }
 
-// ─── Nodemailer ───────────────────────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER || 'danny@neuralflowai.io',
-    pass: process.env.GMAIL_PASS || '',
-  },
-});
+// ─── Resend Email ─────────────────────────────────────────────────────────────
+const resend = new Resend(process.env.RESEND_API_KEY);
+async function sendEmail({ from, to, subject, html }) {
+  const { error } = await resend.emails.send({ from, to, subject, html });
+  if (error) throw new Error(error.message);
+}
 
 app.use(cors());
 app.use(express.json());
@@ -169,8 +167,8 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
 
   // 2. Email confirmation to lead
   try {
-    await transporter.sendMail({
-      from: `"Danny @ NeuralFlow" <${process.env.GMAIL_USER}>`,
+    await sendEmail({
+      from: "NeuralFlow <onboarding@resend.dev>",
       to: email,
       subject: `✅ Your NeuralFlow Consultation is Confirmed!`,
       html: `
@@ -197,8 +195,8 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
     const gcalStart = new Date(slotStart).toISOString().replace(/[-:]/g,'').replace('.000','');
     const gcalEnd = new Date(slotEnd).toISOString().replace(/[-:]/g,'').replace('.000','');
     const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('NeuralFlow Consultation — ' + name)}&dates=${gcalStart}Z/${gcalEnd}Z&details=${encodeURIComponent('Client: ' + name + '\nEmail: ' + email + '\nCompany: ' + company + '\n\nWhat they want: ' + (notes ? notes.split('|')[0] : '') + '\nPain points: ' + (notes ? notes.split('|')[1] || '' : ''))}&add=${encodeURIComponent(email)}`;
-    await transporter.sendMail({
-      from: `"NeuralFlow ARIA" <${process.env.GMAIL_USER}>`,
+    await sendEmail({
+      from: "NeuralFlow ARIA <onboarding@resend.dev>",
       to: process.env.GMAIL_USER,
       subject: `🔥 New Consultation — ${name} from ${company} — ${slotLabel}`,
       html: `<div style="font-family:sans-serif;max-width:600px;">
@@ -338,15 +336,15 @@ app.post('/api/contact', async (req, res) => {
     const { name, email, scope } = req.body;
     if (!name || !email || !scope) return res.status(400).json({ error: 'Missing fields' });
 
-    await transporter.sendMail({
-      from: `"NeuralFlow Website" <${process.env.GMAIL_USER}>`,
+    await sendEmail({
+      from: "NeuralFlow <onboarding@resend.dev>",
       to: process.env.GMAIL_USER,
       subject: `🔥 New Contact Form — ${name}`,
       html: `<h2>New Contact Form 📬</h2><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Scope:</strong> ${scope}</p>`,
     });
 
-    await transporter.sendMail({
-      from: `"Danny @ NeuralFlow" <${process.env.GMAIL_USER}>`,
+    await sendEmail({
+      from: "NeuralFlow <onboarding@resend.dev>",
       to: email,
       subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
       html: `<div style="font-family:sans-serif;max-width:600px;background:#0a0a0f;color:#e8e8f0;padding:40px;border-radius:12px;">
