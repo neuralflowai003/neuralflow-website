@@ -105,8 +105,20 @@
     }
 
     /* Custom Cursor */
-     }
-    
+    @media(hover:none), (pointer:coarse) { #cursor-dot { display:none !important; } }
+    #cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      transform: translate(-50%, -50%);
+      width: 8px;
+      height: 8px;
+      background: #FF6B2B;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 999999;
+      transition: width 0.2s, height 0.2s, background 0.2s;
+    }
 
     #cursor-ring {
       position: fixed;
@@ -153,7 +165,9 @@
       opacity: 1;
     }
 
-    .hover-card 
+    .hover-card #cursor-dot {
+      opacity: 0;
+    }
 
     /* Layout Helpers */
     .container {
@@ -1930,6 +1944,7 @@
 <body data-cursor="default">
 
   <div class="scroll-progress" id="scrollProgress"></div>
+  <div id="cursor-dot"></div>
   <div id="cursor-ring"><span id="cursor-text">VIEW</span></div>
 
   <!-- NAV -->
@@ -2467,6 +2482,7 @@
   <style>
     .hiw-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:80px; align-items:start; }
     @media(max-width:768px) { .hiw-grid { grid-template-columns:1fr !important; gap:20px; } }
+    @media(max-width:768px) { .hiw-grid { grid-template-columns:1fr !important; gap:20px; } }
     .hiw-card { background:#16161a; border:1px solid #2a2a35; border-radius:20px; padding:36px 28px; cursor:pointer; transition:border-color 0.3s, transform 0.3s; position:relative; overflow:hidden; }
     .hiw-card:hover { border-color:#FF6B1A; transform:translateY(-4px); }
     .hiw-card.expanded { border-color:#FF6B1A; }
@@ -2720,6 +2736,31 @@
     .qtick { font-size:15px; font-weight:600; color:#e8e8f0; font-style:italic; letter-spacing:0.3px; }
     .qtick-dot { color:#FF6B1A; font-size:10px; }
     @keyframes quotesTicker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+    /* ── Mobile Polish ── */
+    @media(max-width:768px) {
+      /* Capabilities cards */
+      .tilt-card { padding:28px 24px !important; }
+      .services-grid { grid-template-columns:1fr !important; gap:16px !important; }
+      /* What We Build cards */
+      .build-card { min-width:260px !important; max-width:260px !important; padding:20px !important; }
+      .build-card h3 { font-size:14px !important; }
+      .build-card p { font-size:12px !important; }
+      .proof-section { padding:60px 0 !important; }
+      .quotes-ticker-wrap { margin:0 0 40px; }
+      .tcard { padding:24px; }
+      .tcard-body { font-size:14px; }
+      .contact-layout { gap:40px !important; }
+      .contact-section { padding:60px 0 !important; }
+      input, textarea { font-size:16px !important; }
+      .hero { padding:120px 20px 80px !important; }
+      .hero-sub { font-size:1rem; max-width:100%; }
+      .hero-actions { flex-direction:column; width:100%; }
+      .hero-actions a, .hero-actions button { width:100%; justify-content:center; }
+      .stat-number { font-size:2.5rem; }
+      .section-title { font-size:2rem !important; }
+      .chat-window { width:calc(100vw - 40px) !important; right:20px !important; bottom:80px !important; }
+    }
   </style>
   <section class="proof-section">
     <div class="container">
@@ -3003,6 +3044,7 @@
     });
 
     // ------------------- Advanced Cursor & Magnetic Buttons -------------------
+    const cursorDot = document.getElementById('cursor-dot');
     const cursorRing = document.getElementById('cursor-ring');
 
     let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
@@ -3018,6 +3060,9 @@
       // Instant follow for dot
       dotX = mouseX;
       dotY = mouseY;
+      if (cursorDot) {
+        cursorDot.style.left = `${dotX}px`;
+        cursorDot.style.top = `${dotY}px`;
       }
 
       // Smooth follow for ring
@@ -3257,16 +3302,9 @@
           }
         }
       });
-    }, { threshold: 0.05 });
+    }, { threshold: 0.15 });
 
     document.querySelectorAll('.reveal, .reveal-slide-right, .stat-box').forEach(el => observer.observe(el));
-    
-    // On mobile, immediately show all reveal elements
-    if (window.innerWidth <= 768) {
-      document.querySelectorAll('.reveal, .reveal-slide-right, .stat-box').forEach(el => {
-        el.classList.add('visible');
-      });
-    }
 
     // Set Year
     document.getElementById('year').innerText = new Date().getFullYear();
