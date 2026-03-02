@@ -194,15 +194,23 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
 
   // 3. Notify Danny
   try {
+    const gcalStart = new Date(slotStart).toISOString().replace(/[-:]/g,'').replace('.000','');
+    const gcalEnd = new Date(slotEnd).toISOString().replace(/[-:]/g,'').replace('.000','');
+    const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('NeuralFlow Consultation — ' + name)}&dates=${gcalStart}Z/${gcalEnd}Z&details=${encodeURIComponent('Client: ' + name + '\nEmail: ' + email + '\nCompany: ' + company + '\n\nWhat they want: ' + (notes ? notes.split('|')[0] : '') + '\nPain points: ' + (notes ? notes.split('|')[1] || '' : ''))}&add=${encodeURIComponent(email)}`;
     await transporter.sendMail({
       from: `"NeuralFlow ARIA" <${process.env.GMAIL_USER}>`,
       to: process.env.GMAIL_USER,
       subject: `🔥 New Consultation — ${name} from ${company} — ${slotLabel}`,
-      html: `<h2>New Consultation Booked! 🤖</h2>
+      html: `<div style="font-family:sans-serif;max-width:600px;">
+        <h2>🤖 New Consultation Booked via ARIA!</h2>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Company:</strong> ${company}</p>
-        <p><strong>Time:</strong> ${slotLabel}</p>`,
+        <p><strong>Time:</strong> ${slotLabel}</p>
+        <p><strong>What they want:</strong> ${notes ? notes.split('|')[0] : 'See chat'}</p>
+        <p><strong>Pain points:</strong> ${notes ? (notes.split('|')[1] || 'See chat') : 'See chat'}</p>
+        <p style="margin-top:24px;"><a href="${gcalLink}" style="background:#FF6B1A;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;">➕ Add to Google Calendar</a></p>
+        </div>`,
     });
     results.emailDanny = true;
   } catch (e) { console.error('Danny email error:', e.message); }
