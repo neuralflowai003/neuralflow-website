@@ -74,7 +74,7 @@ app.get('/oauth/callback', async (req, res) => {
 
 // ─── Get Availability ────────────────────────────────────────────────────────
 async function getAvailableSlots(daysAhead = 90, startFromDate = null) {
-  if (!fs.existsSync(TOKEN_PATH)) return null;
+  if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
   try {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     const now = startFromDate ? new Date(startFromDate) : new Date();
@@ -137,7 +137,7 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
   const results = { calendar: false, emailLead: false, emailDanny: false };
 
   // 1. Create Google Calendar event
-  if (fs.existsSync(TOKEN_PATH)) {
+  if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
     try {
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
       await calendar.events.insert({
