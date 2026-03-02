@@ -168,7 +168,7 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
   // 2. Email confirmation to lead
   try {
     await sendEmail({
-      from: "NeuralFlow <onboarding@resend.dev>",
+      from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
       to: email,
       subject: `✅ Your NeuralFlow Consultation is Confirmed!`,
       html: `
@@ -196,7 +196,7 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
     const gcalEnd = new Date(slotEnd).toISOString().replace(/[-:]/g,'').replace('.000','');
     const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('NeuralFlow Consultation — ' + name)}&dates=${gcalStart}Z/${gcalEnd}Z&details=${encodeURIComponent('Client: ' + name + '\nEmail: ' + email + '\nCompany: ' + company + '\n\nWhat they want: ' + (notes ? notes.split('|')[0] : '') + '\nPain points: ' + (notes ? notes.split('|')[1] || '' : ''))}&add=${encodeURIComponent(email)}`;
     await sendEmail({
-      from: "NeuralFlow ARIA <onboarding@resend.dev>",
+      from: "NeuralFlow ARIA <danny@neuralflowai.io>",
       to: process.env.GMAIL_USER,
       subject: `🔥 New Consultation — ${name} from ${company} — ${slotLabel}`,
       html: `<div style="font-family:sans-serif;max-width:600px;">
@@ -337,14 +337,14 @@ app.post('/api/contact', async (req, res) => {
     if (!name || !email || !scope) return res.status(400).json({ error: 'Missing fields' });
 
     await sendEmail({
-      from: "NeuralFlow <onboarding@resend.dev>",
+      from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
       to: process.env.GMAIL_USER,
       subject: `🔥 New Contact Form — ${name}`,
       html: `<h2>New Contact Form 📬</h2><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Scope:</strong> ${scope}</p>`,
     });
 
     await sendEmail({
-      from: "NeuralFlow <onboarding@resend.dev>",
+      from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
       to: email,
       subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
       html: `<div style="font-family:sans-serif;max-width:600px;background:#0a0a0f;color:#e8e8f0;padding:40px;border-radius:12px;">
