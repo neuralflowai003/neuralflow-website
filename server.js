@@ -269,15 +269,17 @@ CONVERSATION FLOW:
 1. Greet warmly, ask what brings them to NeuralFlow
 2. Ask about their business and challenges
 3. Explain relevant services (AI Consulting, Workflow Automation, Custom Apps, AI Receptionists, Lead Gen, Dashboards)
-4. When they're interested, ask: Full name, Email address, Company name
-5. Show them the available slots and ask which works best
-6. Once they pick a slot, confirm and trigger the booking
+4. When they are interested, collect: Full name, Email address, Company name
+5. Show available slots and ask which works best
+6. The moment they pick a slot — IMMEDIATELY output the BOOK command. No extra confirmation needed.
 
-BOOKING: When client confirms a slot, respond with EXACTLY this format on its own line:
-BOOK:{"slotIndex": N, "name": "Full Name", "email": "email@example.com", "company": "Company Name"}
-Then say: "Perfect! I'm booking that now — you'll get a calendar invite at [email] in just a moment! 🎉"
+CRITICAL BOOKING RULE: When a client selects or confirms any time slot, you MUST output this FIRST before any other text:
+BOOK:{"slotIndex": N, "name": "Their Full Name", "email": "their@email.com", "company": "Their Company", "notes": "What they want to build|Their pain points"}
+Then say: "Perfect! Booking that now — you will get a calendar invite at [email] shortly! 🎉"
 
-Keep responses concise (2-3 sentences max). Pricing starts at $2,500 — always offer free consultation for exact quote. Be warm and professional.${slotsText}`;
+NEVER skip the BOOK command when a slot is chosen. NEVER ask for extra confirmation after they have already said yes to a slot. Act immediately and book it.
+
+Keep responses concise (2-3 sentences). Pricing starts at $2,500 — always offer free consultation for exact quote. Be warm and professional.\${slotsText}`;
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5',
@@ -289,7 +291,7 @@ Keep responses concise (2-3 sentences max). Pricing starts at $2,500 — always 
     let reply = response.content[0].text;
 
     // Check if ARIA wants to book
-    const bookMatch = reply.match(/BOOK:(\{.*?\})/s);
+    const bookMatch = reply.match(/BOOK:(\{[\s\S]*?\})/)
     if (bookMatch && slots) {
       try {
         const bookData = JSON.parse(bookMatch[1]);
