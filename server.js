@@ -37,7 +37,7 @@ if (process.env.GOOGLE_REFRESH_TOKEN) {
 }
 
 // ─── Resend Email ─────────────────────────────────────────────────────────────
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 'placeholder');
 async function sendEmail({ from, to, subject, html }) {
   const { error } = await resend.emails.send({ from, to, subject, html });
   if (error) throw new Error(error.message);
