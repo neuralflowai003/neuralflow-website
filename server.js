@@ -160,7 +160,7 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
               },
             },
           },
-        conferenceDataVersion: 1,
+          conferenceDataVersion: 1,
         });
         results.calendar = true;
         console.log(`✅ Calendar event created for ${name}`);
