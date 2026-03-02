@@ -140,13 +140,12 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
     try {
       const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Calendar timeout')), 8000));
-      await Promise.race([calendar.events.insert({
+      await calendar.events.insert({
         calendarId: 'primary',
         sendUpdates: 'all',
         requestBody: {
           summary: `NeuralFlow Consultation — ${name} (${company})`,
-          description: `🤖 Booked via ARIA — NeuralFlow AI Receptionist\n\n👤 CLIENT DETAILS\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n📋 WHAT THEY WANT TO BUILD\n${notes ? notes.split('|')[0] : 'See chat transcript'}\n\n🔥 PAIN POINTS & PROBLEMS THEY'RE SOLVING\n${notes ? (notes.split('|')[1] || 'See chat transcript') : 'See chat transcript'}\n\n⚡ PREP NOTES\n- Review pain points above before the call\n- Come prepared with relevant solutions & case studies\n- Pricing starts at $2,500 — tailor proposal to their scope`,
+          description: `🤖 Booked via ARIA\n\n👤 CLIENT\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n📋 WHAT THEY WANT\n${notes ? notes.split('|')[0] : 'See chat'}\n\n🔥 PAIN POINTS\n${notes ? (notes.split('|')[1] || 'See chat') : 'See chat'}\n\n⚡ PREP\n- Review above before the call\n- Pricing starts at $2,500`,
           start: { dateTime: slotStart, timeZone: 'America/New_York' },
           end: { dateTime: slotEnd, timeZone: 'America/New_York' },
           attendees: [
@@ -155,7 +154,6 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
           ],
         },
       });
-      ), timeout]);
       results.calendar = true;
       console.log(`✅ Calendar event created for ${name}`);
     } catch (e) {
