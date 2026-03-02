@@ -105,7 +105,6 @@
     }
 
     /* Custom Cursor */
-    @media(hover:none), (pointer:coarse) { #cursor-dot { display:none !important; } }
     #cursor-dot {
       position: fixed;
       top: 0;
@@ -222,14 +221,6 @@
     .reveal-slide-right.visible {
       opacity: 1;
       transform: translateX(0);
-    }
-
-    /* Force all animations visible on mobile */
-    @media(max-width:768px) {
-      .reveal, .reveal-slide-right, .stat-box {
-        opacity: 1 !important;
-        transform: none !important;
-      }
     }
 
     /* Magnetic Buttons with Liquid Fill */
@@ -561,7 +552,6 @@
       margin-bottom: 20px;
       text-transform: none;
     }
-    @media(max-width:768px) { body .hero-headline { white-space:normal !important; font-size:clamp(1.8rem,7vw,3rem) !important; letter-spacing:-1px !important; } }
 
     .line-1 {
       color: #fff;
@@ -2481,8 +2471,6 @@
   <!-- HOW IT WORKS -->
   <style>
     .hiw-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:80px; align-items:start; }
-    @media(max-width:768px) { .hiw-grid { grid-template-columns:1fr !important; gap:20px; } }
-    @media(max-width:768px) { .hiw-grid { grid-template-columns:1fr !important; gap:20px; } }
     .hiw-card { background:#16161a; border:1px solid #2a2a35; border-radius:20px; padding:36px 28px; cursor:pointer; transition:border-color 0.3s, transform 0.3s; position:relative; overflow:hidden; }
     .hiw-card:hover { border-color:#FF6B1A; transform:translateY(-4px); }
     .hiw-card.expanded { border-color:#FF6B1A; }
@@ -2699,68 +2687,11 @@
     .tcard-stars { display:flex; gap:3px; margin-bottom:16px; }
     .tcard-stars span { color:#FF6B1A; font-size:14px; }
     .proof-label { text-align:center; font-size:12px; color:#6b6b80; text-transform:uppercase; letter-spacing:3px; font-weight:700; margin-bottom:20px; }
-
-    /* ── Mobile Polish ── */
-    @media(max-width:768px) {
-      /* Capabilities cards */
-      .tilt-card { padding:28px 24px !important; }
-      .services-grid { grid-template-columns:1fr !important; gap:16px !important; }
-      /* What We Build cards */
-      .build-card { min-width:260px !important; max-width:260px !important; padding:20px !important; }
-      .build-card h3 { font-size:14px !important; }
-      .build-card p { font-size:12px !important; }
-      .proof-section { padding:60px 0 !important; }
-      .quotes-ticker-wrap { margin:0 0 40px; }
-      .tcard { padding:24px; }
-      .tcard-body { font-size:14px; }
-      .contact-layout { gap:40px !important; }
-      .contact-text h2 { font-size:2rem; }
-      .contact-section { padding:60px 0 !important; }
-      .contact-form-wrap { padding:32px 24px !important; }
-      input, textarea { font-size:16px !important; } /* Prevents iOS zoom */
-      .nav-cta { padding:10px 20px; font-size:13px; }
-      .hero { padding:120px 20px 80px !important; }
-      .hero-headline { font-size:2.4rem !important; white-space:normal !important; line-height:1.1 !important; }
-      .hero-sub { font-size:1rem; max-width:100%; }
-      .hero-actions { flex-direction:column; width:100%; }
-      .hero-actions a, .hero-actions button { width:100%; justify-content:center; }
-      .stat-number { font-size:2.5rem; }
-      .about-section { padding:60px 0 !important; }
-      .section-title { font-size:2rem !important; }
-      .footer-brand p { font-size:13px; }
-      .footer-links { flex-direction:column; gap:12px; }
-      .chat-window { width:calc(100vw - 40px) !important; right:20px !important; bottom:80px !important; }
-    }
     .quotes-ticker-wrap { overflow:hidden; margin:0 0 80px; border-top:1px solid #1e1e28; border-bottom:1px solid #1e1e28; padding:18px 0; }
     .quotes-ticker-track { display:flex; align-items:center; gap:32px; width:max-content; animation:quotesTicker 28s linear infinite; white-space:nowrap; }
     .qtick { font-size:15px; font-weight:600; color:#e8e8f0; font-style:italic; letter-spacing:0.3px; }
     .qtick-dot { color:#FF6B1A; font-size:10px; }
     @keyframes quotesTicker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
-
-    /* ── Mobile Polish ── */
-    @media(max-width:768px) {
-      /* Capabilities cards */
-      .tilt-card { padding:28px 24px !important; }
-      .services-grid { grid-template-columns:1fr !important; gap:16px !important; }
-      /* What We Build cards */
-      .build-card { min-width:260px !important; max-width:260px !important; padding:20px !important; }
-      .build-card h3 { font-size:14px !important; }
-      .build-card p { font-size:12px !important; }
-      .proof-section { padding:60px 0 !important; }
-      .quotes-ticker-wrap { margin:0 0 40px; }
-      .tcard { padding:24px; }
-      .tcard-body { font-size:14px; }
-      .contact-layout { gap:40px !important; }
-      .contact-section { padding:60px 0 !important; }
-      input, textarea { font-size:16px !important; }
-      .hero { padding:120px 20px 80px !important; }
-      .hero-sub { font-size:1rem; max-width:100%; }
-      .hero-actions { flex-direction:column; width:100%; }
-      .hero-actions a, .hero-actions button { width:100%; justify-content:center; }
-      .stat-number { font-size:2.5rem; }
-      .section-title { font-size:2rem !important; }
-      .chat-window { width:calc(100vw - 40px) !important; right:20px !important; bottom:80px !important; }
-    }
   </style>
   <section class="proof-section">
     <div class="container">
@@ -3194,8 +3125,7 @@
         // Respawn particles to fill new dimensions
         particles = [];
         for (let i = 0; i < 4; i++) particles.push(new Particle(true));
-        const particleCount = window.innerWidth < 768 ? 80 : 282;
-        for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+        for (let i = 0; i < 282; i++) particles.push(new Particle());
       }
       window.addEventListener('resize', resizeCanvas);
 
@@ -3249,7 +3179,7 @@
               ctx.moveTo(particles[i].x, particles[i].y);
               ctx.lineTo(particles[j].x, particles[j].y);
 
-              const alpha = (window.innerWidth < 768 ? 0.15 : 0.4) * (1 - dist / 200);
+              const alpha = 0.4 * (1 - dist / 200);
               if (dist < 80) {
                 ctx.strokeStyle = `rgba(255, 107, 26, ${alpha + 0.12})`;
               } else {
