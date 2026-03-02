@@ -2689,6 +2689,31 @@
     .tcard-stars { display:flex; gap:3px; margin-bottom:16px; }
     .tcard-stars span { color:#FF6B1A; font-size:14px; }
     .proof-label { text-align:center; font-size:12px; color:#6b6b80; text-transform:uppercase; letter-spacing:3px; font-weight:700; margin-bottom:20px; }
+
+    /* ── Mobile Polish ── */
+    @media(max-width:768px) {
+      .proof-section { padding:60px 0 !important; }
+      .quotes-ticker-wrap { margin:0 0 40px; }
+      .tcard { padding:24px; }
+      .tcard-body { font-size:14px; }
+      .contact-layout { gap:40px !important; }
+      .contact-text h2 { font-size:2rem; }
+      .contact-section { padding:60px 0 !important; }
+      .contact-form-wrap { padding:32px 24px !important; }
+      input, textarea { font-size:16px !important; } /* Prevents iOS zoom */
+      .nav-cta { padding:10px 20px; font-size:13px; }
+      .hero { padding:120px 20px 80px !important; }
+      .hero-headline { font-size:2.4rem !important; white-space:normal !important; line-height:1.1 !important; }
+      .hero-sub { font-size:1rem; max-width:100%; }
+      .hero-actions { flex-direction:column; width:100%; }
+      .hero-actions a, .hero-actions button { width:100%; justify-content:center; }
+      .stat-number { font-size:2.5rem; }
+      .about-section { padding:60px 0 !important; }
+      .section-title { font-size:2rem !important; }
+      .footer-brand p { font-size:13px; }
+      .footer-links { flex-direction:column; gap:12px; }
+      .chat-window { width:calc(100vw - 40px) !important; right:20px !important; bottom:80px !important; }
+    }
     .quotes-ticker-wrap { overflow:hidden; margin:0 0 80px; border-top:1px solid #1e1e28; border-bottom:1px solid #1e1e28; padding:18px 0; }
     .quotes-ticker-track { display:flex; align-items:center; gap:32px; width:max-content; animation:quotesTicker 28s linear infinite; white-space:nowrap; }
     .qtick { font-size:15px; font-weight:600; color:#e8e8f0; font-style:italic; letter-spacing:0.3px; }
