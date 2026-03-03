@@ -260,23 +260,6 @@ app.post('/api/book', async (req, res) => {
 });
 
 // ─── ARIA Chat ───────────────────────────────────────────────────────────────
-app.get('/api/debug', async (req, res) => {
-  const KEY = process.env.OPENROUTER_API_KEY;
-  let orTest = 'not tested';
-  if (KEY) {
-    try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'anthropic/claude-haiku-4-5:beta', max_tokens: 10, messages: [{role:'user',content:'hi'}] })
-      });
-      const d = await r.json();
-      orTest = d.choices?.[0]?.message?.content || JSON.stringify(d).slice(0,100);
-    } catch(e) { orTest = 'fetch error: ' + e.message; }
-  }
-  res.json({ anthropicKey: !!process.env.ANTHROPIC_API_KEY, openrouterKey: !!KEY, openrouterTest: orTest });
-});
-
 app.post('/api/chat', async (req, res) => {
   try {
     const { messages, conversationId } = req.body;
