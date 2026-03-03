@@ -184,17 +184,17 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
       to: email,
       subject: `✅ Your NeuralFlow Consultation is Confirmed!`,
       html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0a0a0f;color:#e8e8f0;padding:40px;border-radius:12px;">
-          <h1 style="color:#FF6B1A;">NeuralFlow</h1>
-          <h2>Your Consultation is Confirmed! 🎉</h2>
-          <p>Hi ${name},</p>
-          <p>Your free 1-hour consultation with Danny Boehmer is booked.</p>
-          <div style="background:#16161a;border:1px solid #2a2a35;border-radius:8px;padding:20px;margin:20px 0;">
-            <p style="margin:0 0 8px;"><strong>📅 When:</strong> ${slotLabel.includes('EST') ? slotLabel : slotLabel + ' EST'}</p>
-            <p style="margin:0 0 8px;"><strong>⏱️ Duration:</strong> 1 hour</p>
-            <p style="margin:0;"><strong>📹 Google Meet:</strong> <a href="${meetLink || '#'}" style="color:#FF6B1A;">${meetLink || 'Link will be sent separately'}</a></p>
+        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#0a0a0f;color:#ffffff;padding:48px 40px;border-radius:12px;">
+          <h1 style="margin:0 0 32px;font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">Neural<span style="color:#FF6B1A;">Flow</span></h1>
+          <h2 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#ffffff;">Your Consultation is Confirmed</h2>
+          <p style="margin:0 0 24px;color:#a0a0b0;">Hi ${name},</p>
+          <p style="margin:0 0 28px;color:#a0a0b0;">Your 1-hour consultation with Danny Boehmer is booked. We look forward to speaking with you.</p>
+          <div style="background:#16161a;border:1px solid #2a2a35;border-radius:10px;padding:24px;margin:0 0 32px;">
+            <p style="margin:0 0 14px;color:#ffffff;"><strong>When</strong><br/><span style="color:#a0a0b0;">${slotLabel.includes('EST') ? slotLabel : slotLabel + ' EST'}</span></p>
+            <p style="margin:0 0 14px;color:#ffffff;"><strong>Duration</strong><br/><span style="color:#a0a0b0;">1 hour</span></p>
+            <p style="margin:0;color:#ffffff;"><strong>Google Meet</strong><br/><a href="${meetLink || '#'}" style="color:#FF6B1A;text-decoration:none;">${meetLink || 'Link coming shortly'}</a></p>
           </div>
-          <p>Talk soon,<br/><strong>Danny Boehmer</strong><br/>Founder, NeuralFlow</p>
+          <p style="margin:0;color:#a0a0b0;">Talk soon,<br/><strong style="color:#ffffff;">Danny Boehmer</strong><br/>Founder, NeuralFlow</p>
         </div>
       `,
     });
