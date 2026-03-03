@@ -137,8 +137,9 @@ async function getAvailableSlots(daysAhead = 30, startFromDate = null) {
         });
 
         if (!isBusy && slotStart > now) {
+          const tzAbbr = isDST ? 'EDT' : 'EST';
           const label = slotStart.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'America/New_York' })
-            + ' at ' + slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' EST';
+            + ' at ' + slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ' + tzAbbr;
           slots.push({ label, start: slotStart.toISOString(), end: slotEnd.toISOString() });
           if (slots.length >= 6) break;
         }
@@ -526,7 +527,8 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
                  lockedSlots.find(s => s.label.includes(bookData.slotLabel?.split(' at ')[1] || ''));
         }
         slot = slot || lockedSlots[0];
-        console.log('📌 Booking slot:', slot?.label, '| ARIA said slotIndex:', bookData.slotIndex, '| Array index used:', slotIdx, '| Label ARIA gave:', bookData.slotLabel);
+        const slotNY = slot?.start ? new Date(slot.start).toLocaleString('en-US', { timeZone: 'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true }) : 'unknown';
+        console.log('📌 Booking slot:', slot?.label, '| NY time:', slotNY, '| UTC:', slot?.start, '| ARIA index:', bookData.slotIndex, '| Label:', bookData.slotLabel);
         await bookAppointment({
           name: bookData.name,
           email: bookData.email,
