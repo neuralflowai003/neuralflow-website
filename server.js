@@ -438,12 +438,27 @@ Then say: "Perfect! Booking that now — you will get a calendar invite at [emai
 NEVER skip the BOOK command. NEVER ask for extra confirmation after they say yes.
 Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professional.${slotsText}`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 600,
-      system: systemPrompt,
-      messages,
-    });
+    let response;
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      try {
+        response = await anthropic.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 600,
+          system: systemPrompt,
+          messages,
+        });
+        break; // success
+      } catch (err) {
+        const isOverloaded = err?.status === 529 || err?.message?.includes('overloaded');
+        const isRetryable = isOverloaded || err?.status === 529 || err?.status >= 500;
+        if (isRetryable && attempt < 4) {
+          console.log(`⚠️ Anthropic overloaded (attempt ${attempt}/4), retrying in ${attempt * 3}s...`);
+          await new Promise(r => setTimeout(r, attempt * 3000));
+        } else {
+          throw err;
+        }
+      }
+    }
 
     let reply = response.content[0].text;
 
