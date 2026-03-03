@@ -354,8 +354,8 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
       slots.forEach((slot, i) => {
         const num = i + 1;
         reply = reply.replace(
-          new RegExp(`(\n\\s*)${num}\\.[^\n]*(AM|PM)[^\n]*`, 'g'),
-          `$1${num}. ${slot.label}`
+          new RegExp('(\\n\\s*)' + num + '\\.[^\\n]*(AM|PM)[^\\n]*', 'g'),
+          '$1' + num + '. ' + slot.label
         );
       });
     }
