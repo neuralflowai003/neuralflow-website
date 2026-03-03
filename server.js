@@ -334,53 +334,64 @@ app.post('/api/chat', async (req, res) => {
       const d = new Date(); d.setMonth(d.getMonth() + m);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
     } else {
-      // Check for specific month name
-      for (const [i, month] of monthNames.entries()) {
-        if (lastUserMsg.includes(month)) {
-          const d = new Date(); d.setMonth(i);
-          if (d <= new Date()) d.setFullYear(d.getFullYear() + 1);
-          d.setDate(1);
-          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-          break;
+      // Specific date first: "March 10", "March 10th", "the 10th", "10th"
+      const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
+      if (dateMatch) {
+        const monthStr = dateMatch[1];
+        const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
+        if (dayNum >= 1 && dayNum <= 31) {
+          const d = new Date();
+          if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
+          d.setDate(Math.max(1, dayNum - 1));
+          if (d < new Date()) d.setMonth(d.getMonth() + 1);
+          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 5;
         }
       }
-      // Specific date: "March 10", "March 10th", "the 10th", "10th"
+      // Vague month reference only (no specific day): "sometime in April", "April works"
+      // Do NOT trigger if user already gave a specific date above
       if (!searchFromDate) {
-        const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
-        if (dateMatch) {
-          const monthStr = dateMatch[1];
-          const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
-          if (dayNum >= 1 && dayNum <= 31) {
-            const d = new Date();
-            if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
-            d.setDate(Math.max(1, dayNum - 1));
-            if (d < new Date()) d.setMonth(d.getMonth() + 1);
-            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 5;
+        for (const [i, month] of monthNames.entries()) {
+          if (lastUserMsg.includes(month)) {
+            const d = new Date(); d.setMonth(i);
+            if (d <= new Date()) d.setFullYear(d.getFullYear() + 1);
+            d.setDate(1);
+            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+            break;
           }
         }
       }
     }
 
-    // Fetch fresh slots when user specifies a timeframe.
-    // If no timeframe in this message and we already have slots for this convo — reuse them.
-    // This prevents "yes book it" from fetching a different date range and losing the agreed slot.
     const lockedEntry = conversationSlots.get(convId);
     let slots;
-    if (!searchFromDate && lockedEntry) {
-      // No new timeframe — reuse cached slots (user is confirming or continuing)
-      slots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > new Date());
-      console.log('🔒 Reusing cached slots:', slots.map(s => s.label));
-      if (slots.length === 0) {
-        slots = await getAvailableSlots(daysWindow, null);
-        console.log('⚠️ Cache expired — fetched fresh');
+
+    if (lockedEntry) {
+      // We already have slots for this conversation — check if any are still valid
+      const validCached = lockedEntry.slots.filter(s => s.start && new Date(s.start) > new Date());
+      
+      // Check if cached slots actually cover the date the user is asking about
+      let cachedCoversDate = true;
+      if (searchFromDate && validCached.length > 0) {
+        const target = new Date(searchFromDate + 'T12:00:00');
+        target.setDate(target.getDate() + 1); // the actual day (searchFromDate is day-1)
+        const targetStr = target.toDateString();
+        cachedCoversDate = validCached.some(s => new Date(s.start).toDateString() === targetStr);
+      }
+
+      if (validCached.length > 0 && cachedCoversDate) {
+        slots = validCached;
+        console.log('🔒 Reusing cached slots:', slots.map(s => s.label));
+      } else {
+        // Cache doesn't cover requested date or is empty — fetch fresh
+        slots = await getAvailableSlots(daysWindow, searchFromDate);
+        console.log('📅 Re-fetching slots from:', searchFromDate || 'now', '| window:', daysWindow);
+        if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
       }
     } else {
-      // New timeframe or first message — fetch fresh
+      // First message — fetch fresh
       slots = await getAvailableSlots(daysWindow, searchFromDate);
-      console.log('📅 Fresh slots fetched from:', searchFromDate || 'now', '| window:', daysWindow, '| count:', slots?.length || 0);
-    }
-    if (slots?.length > 0) {
-      conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+      console.log('📅 Fresh slots from:', searchFromDate || 'now', '| window:', daysWindow, '| count:', slots?.length || 0);
+      if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     }
 
     // Filter out slots reserved by other active conversations
