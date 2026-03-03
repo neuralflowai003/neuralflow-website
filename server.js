@@ -138,15 +138,15 @@ async function getAvailableSlots(daysAhead = 30, startFromDate = null) {
 async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
   const results = { calendar: false, emailLead: false, emailDanny: false };
 
-  // 1. Create Google Calendar event (blocking so we get the Meet link)
+  // 1. Create Google Calendar event with 5s timeout, grab Meet link if available
   let meetLink = null;
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        console.log(`📅 Calendar attempt ${attempt} for ${name}`);
-        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-        await oauth2Client.getAccessToken();
-        const event = await calendar.events.insert({
+    try {
+      console.log(`📅 Creating calendar event for ${name}`);
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      await oauth2Client.getAccessToken();
+      const event = await Promise.race([
+        calendar.events.insert({
           calendarId: 'primary',
           sendUpdates: 'none',
           conferenceDataVersion: 1,
@@ -160,20 +160,19 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
             ],
             conferenceData: {
               createRequest: {
-                requestId: `nf-${Date.now()}-${attempt}`,
+                requestId: `nf-${Date.now()}`,
                 conferenceSolutionKey: { type: 'hangoutsMeet' },
               },
             },
           },
-        });
-        meetLink = event.data?.hangoutLink || null;
-        results.calendar = true;
-        console.log(`✅ Calendar event created for ${name} — Meet: ${meetLink || 'pending'}`);
-        break;
-      } catch (e) {
-        console.error(`❌ Calendar attempt ${attempt} failed: ${e.message}`);
-        if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt));
-      }
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Calendar timeout')), 5000))
+      ]);
+      meetLink = event.data?.hangoutLink || null;
+      results.calendar = true;
+      console.log(`✅ Calendar event created for ${name} — Meet: ${meetLink || 'pending'}`);
+    } catch (e) {
+      console.error(`❌ Calendar failed: ${e.message} — emails will still send`);
     }
   }
 
