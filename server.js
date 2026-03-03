@@ -361,10 +361,9 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // SIMPLE: always fetch fresh slots. No caching complexity.
-    // Google Calendar is the source of truth. Claude picks the slot by label.
-    const slots = await getAvailableSlots(daysWindow, searchFromDate);
-    console.log('📅 Fresh slots fetched from:', searchFromDate || 'now', '| window:', daysWindow);
+    // SIMPLE: always fetch fresh slots. Google Calendar is source of truth.
+    let slots = await getAvailableSlots(daysWindow, searchFromDate);
+    console.log('📅 Fresh slots fetched from:', searchFromDate || 'now', '| window:', daysWindow, '| count:', slots?.length || 0);
     if (slots?.length > 0) {
       conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     }
@@ -376,7 +375,6 @@ app.post('/api/chat', async (req, res) => {
         console.log(`⏳ ${slots.length - available.length} slot(s) held by other conversations — filtered out`);
       }
       slots = available;
-      // Reserve these slots for this conversation now that we're showing them
       reserveSlots(slots, convId);
     }
     console.log('🔍 Slots count:', slots?.length || 0);
