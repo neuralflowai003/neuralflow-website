@@ -83,13 +83,13 @@ app.get('/oauth/callback', async (req, res) => {
 });
 
 // ─── Get Availability ────────────────────────────────────────────────────────
-async function getAvailableSlots(daysAhead = 30, startFromDate = null) {
+async function getAvailableSlots(daysAhead = 90, startFromDate = null) {
   if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
   try {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     const now = startFromDate ? new Date(startFromDate) : new Date();
     const end = new Date(now);
-    end.setDate(end.getDate() + daysAhead);
+    end.setDate(end.getDate() + daysAhead); // 90 days out
 
     // Get busy times
     const freeBusy = await calendar.freebusy.query({
