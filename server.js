@@ -336,7 +336,10 @@ BOOK:{"slotIndex": N, "slotLabel": "EXACT label from slot list", "name": "Full N
 Then say: "Perfect! Booking that now — you will get a calendar invite at [email] shortly!"
 
 NEVER skip the BOOK command. NEVER ask for extra confirmation after they say yes.
-Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professional.\${slotsText}\`;
+Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professional.${slotsText}`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5',
       max_tokens: 600,
       system: systemPrompt,
       messages,
