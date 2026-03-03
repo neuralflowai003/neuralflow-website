@@ -272,6 +272,8 @@ app.post('/api/chat', async (req, res) => {
     let searchFromDate = null;
     let daysWindow = 4; // default: show next 3 days of slots
     const today = new Date();
+    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    let specificDateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+)?(\d{1,2})(?:st|nd|rd|th)?/) || null;
 
     // Detect timeframe from last user message
     if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?|a couple/)) {
@@ -298,8 +300,7 @@ app.post('/api/chat', async (req, res) => {
       daysWindow = 7;
     } else {
       // Check for specific date like "March 25th", "25th", "the 25th"
-      const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-      const specificDateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+)?(\d{1,2})(?:st|nd|rd|th)?/);
+      // specificDateMatch already declared above
       
       if (specificDateMatch) {
         const dayNum = parseInt(specificDateMatch[2]);
