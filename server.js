@@ -13,13 +13,13 @@ const port = process.env.PORT || 8080;
 // Conversation slot store — locks slots the moment they are shown to a user
 // Key: conversationId (sent from frontend), Value: { slots, fetchedAt }
 const conversationSlots = new Map();
-// Clean up old conversations after 2 hours
+// Clean up old conversations after 30 minutes
 setInterval(() => {
-  const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+  const thirtyMinAgo = Date.now() - 30 * 60 * 1000;
   for (const [key, val] of conversationSlots.entries()) {
-    if (val.fetchedAt < twoHoursAgo) conversationSlots.delete(key);
+    if (val.fetchedAt < thirtyMinAgo) conversationSlots.delete(key);
   }
-}, 30 * 60 * 1000);
+}, 10 * 60 * 1000);
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -373,9 +373,21 @@ app.post('/api/chat', async (req, res) => {
     }
 
     if (lockedEntry && isConfirming && !isExplicitlyDifferent) {
-      // Client is confirming — always use locked slots
-      slots = lockedEntry.slots;
-      console.log('🔒 Reusing locked slots (client confirming):', slots.map(s=>s.label));
+      // Client is confirming — use locked slots but filter out any that have now passed
+      const now2 = new Date();
+      const validSlots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > now2);
+      if (validSlots.length === 0) {
+        // All locked slots have passed — force fresh fetch
+        console.log('⚠️ All locked slots expired — fetching fresh slots');
+        slots = await getAvailableSlots(daysWindow, null);
+        if (slots && slots.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+      } else {
+        slots = validSlots;
+        if (validSlots.length < lockedEntry.slots.length) {
+          conversationSlots.set(convId, { slots: validSlots, fetchedAt: Date.now() });
+        }
+        console.log('🔒 Reusing locked slots (client confirming):', slots.map(s=>s.label));
+      }
     } else if (hasNewTimeframe && (!lockedEntry || dateOutsideLockedRange || isExplicitlyDifferent)) {
       // New timeframe requested outside current locked range — re-fetch and re-lock
       slots = await getAvailableSlots(daysWindow, searchFromDate);
@@ -385,9 +397,16 @@ app.post('/api/chat', async (req, res) => {
         console.log('🔒 Slots re-locked for:', searchFromDate);
       }
     } else if (lockedEntry) {
-      // Use existing locked slots
-      slots = lockedEntry.slots;
-      console.log('🔒 Reusing locked slots:', slots.map(s=>s.label));
+      // Use existing locked slots, but filter out past ones
+      const now3 = new Date();
+      slots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > now3);
+      if (slots.length === 0) {
+        console.log('⚠️ Cached slots all expired — fetching fresh');
+        slots = await getAvailableSlots(daysWindow, null);
+        if (slots && slots.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+      } else {
+        console.log('🔒 Reusing locked slots:', slots.map(s=>s.label));
+      }
     } else {
       // No timeframe, no lock — fetch default next available
       slots = await getAvailableSlots(daysWindow, null);
