@@ -10,6 +10,9 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Session slot cache — stores slots shown to user so booking uses same list
+const slotCache = new Map(); // key: session_id or first-user-msg hash
+
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -287,10 +290,23 @@ app.post('/api/chat', async (req, res) => {
 
     // Fetch live availability searching up to 365 days out from detected date
     console.log('🗓️ Date search:', { lastUserMsg: lastUserMsg.slice(0,100), searchFromDate });
-    const slots = await getAvailableSlots(30, searchFromDate);
-    console.log('📅 Slots returned:', slots ? slots.map(s=>s.label) : 'NULL');
+    // Use cached slots if available (ensures booking uses same slots shown to user)
+    const cacheKey = messages[0]?.content?.slice(0, 50) || 'default';
+    let slots;
+    if (slotCache.has(cacheKey)) {
+      slots = slotCache.get(cacheKey);
+      console.log('📅 Using cached slots:', slots.map(s=>s.label));
+    } else {
+      slots = await getAvailableSlots(30, searchFromDate);
+      console.log('📅 Slots returned:', slots ? slots.map(s=>s.label) : 'NULL');
+      if (slots && slots.length > 0) {
+        slotCache.set(cacheKey, slots);
+        // Clear cache after 1 hour
+        setTimeout(() => slotCache.delete(cacheKey), 60 * 60 * 1000);
+      }
+    }
     const slotsText = slots && slots.length > 0
-      ? `\n\n[DANNY'S REAL AVAILABLE TIMES — TODAY IS ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}]\n${slots.map((s, i) => `SLOT ${i+1}: ${s.label}`).join('\n')}\n[END OF AVAILABLE TIMES]\n\nYOU MUST ONLY SHOW THE SLOTS LISTED ABOVE. Do not invent or suggest any other dates. These come directly from Danny's live Google Calendar right now. When presenting options to the client, read them exactly as written above.\n\nWhen client picks a slot number, respond with:\nBOOK:{"slotIndex": N, "name": "Full Name", "email": "their@email.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = the slot number they picked)`
+      ? `\n\n[DANNY'S REAL AVAILABLE TIMES — TODAY IS ${new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}]\n${slots.map((s, i) => `SLOT ${i+1}: ${s.label}`).join('\n')}\n[END OF AVAILABLE TIMES]\n\nYOU MUST ONLY SHOW THE SLOTS LISTED ABOVE. Do not invent or suggest any other dates. These come directly from Danny's live Google Calendar right now. When presenting options to the client, read them exactly as written above.\n\nWhen client picks a slot number, respond with:\nBOOK:{"slotIndex": N, "name": "Full Name", "email": "their@email.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = the slot number they picked, also include slotLabel: the exact label text of that slot)`
       : '\n\nCALENDAR UNAVAILABLE: Do NOT invent or make up any dates or times. Tell the client: "Let me check Danny\'s calendar and get back to you — can I get your email so we can confirm a time?" Then collect their contact info.';
 
     const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company at neuralflowai.io. Danny Boehmer is the founder.
@@ -330,9 +346,17 @@ Keep responses concise (2-3 sentences). Pricing starts at $2,500 — always offe
     if (bookMatch && slots) {
       try {
         const bookData = JSON.parse(bookMatch[1]);
-        // ARIA numbers slots from 1, array is 0-based — subtract 1
-        const slotIdx = Math.max(0, (bookData.slotIndex || 1) - 1);
-        const slot = slots[slotIdx] || slots[0];
+        // Try to match by label first (most reliable), then fall back to index
+        let slot;
+        if (bookData.slotLabel) {
+          slot = slots.find(s => s.label === bookData.slotLabel);
+        }
+        if (!slot) {
+          // ARIA numbers slots from 1, array is 0-based — subtract 1
+          const slotIdx = Math.max(0, (bookData.slotIndex || 1) - 1);
+          slot = slots[slotIdx] || slots[0];
+        }
+        console.log('📌 Booking slot:', slot?.label, '| Index:', bookData.slotIndex, '| Label match:', bookData.slotLabel);
         await bookAppointment({
           name: bookData.name,
           email: bookData.email,
