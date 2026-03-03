@@ -314,46 +314,43 @@ app.post('/api/chat', async (req, res) => {
     const lockedEntry = conversationSlots.get(convId);
     const wantsDifferentTime = lastUserMsg.match(/different|another time|another date|instead|rather|change|reschedule|not work|how about|what about/);
 
-    // Detect if user is requesting a timeframe that's clearly outside locked range
-    // Only re-fetch for broad timeframe shifts (weeks/months out), not slot picks
     const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
     let searchFromDate = null;
     let daysWindow = 7;
 
-    // Only parse timeframe for RE-FETCH decisions — not for slot selection (Claude handles that)
-    if (!lockedEntry || wantsDifferentTime) {
-      if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?/)) {
-        const d = new Date(); d.setDate(d.getDate() + 14);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-      } else if (lastUserMsg.match(/next week/)) {
-        const d = new Date(); d.setDate(d.getDate() + 7);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-      } else if (lastUserMsg.match(/in\s+(\d+)\s+weeks?/)) {
-        const w = parseInt(lastUserMsg.match(/in\s+(\d+)\s+weeks?/)[1]);
-        const d = new Date(); d.setDate(d.getDate() + w * 7);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-      } else if (lastUserMsg.match(/next month/)) {
-        const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-      } else if (lastUserMsg.match(/in\s+(\d+)\s+months?/)) {
-        const m = parseInt(lastUserMsg.match(/in\s+(\d+)\s+months?/)[1]);
-        const d = new Date(); d.setMonth(d.getMonth() + m);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-      } else {
-        // Check for month name (e.g. "sometime in April", "April works")
-        for (const [i, month] of monthNames.entries()) {
-          if (lastUserMsg.includes(month)) {
-            const d = new Date(); d.setMonth(i);
-            if (d <= new Date()) d.setFullYear(d.getFullYear() + 1);
-            d.setDate(1);
-            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-            break;
-          }
+    // Always parse timeframe intent — needed to detect if user wants a date outside locked range
+    if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?/)) {
+      const d = new Date(); d.setDate(d.getDate() + 14);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+    } else if (lastUserMsg.match(/next week/)) {
+      const d = new Date(); d.setDate(d.getDate() + 7);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+    } else if (lastUserMsg.match(/in\s+(\d+)\s+weeks?/)) {
+      const w = parseInt(lastUserMsg.match(/in\s+(\d+)\s+weeks?/)[1]);
+      const d = new Date(); d.setDate(d.getDate() + w * 7);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+    } else if (lastUserMsg.match(/next month/)) {
+      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+    } else if (lastUserMsg.match(/in\s+(\d+)\s+months?/)) {
+      const m = parseInt(lastUserMsg.match(/in\s+(\d+)\s+months?/)[1]);
+      const d = new Date(); d.setMonth(d.getMonth() + m);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+    } else {
+      // Month name: "sometime in April", "April works"
+      for (const [i, month] of monthNames.entries()) {
+        if (lastUserMsg.includes(month)) {
+          const d = new Date(); d.setMonth(i);
+          if (d <= new Date()) d.setFullYear(d.getFullYear() + 1);
+          d.setDate(1);
+          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+          break;
         }
-        // Check for specific date like "March 10", "the 10th", "March 10th"
-        // Only for re-fetch — if they say "march 10 at 2" we fetch around march 10
-        const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}))|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
-        if (dateMatch && !lockedEntry) {
+      }
+      // Specific date: "March 10", "March 10th", "the 10th", "10th"
+      if (!searchFromDate) {
+        const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
+        if (dateMatch) {
           const today2 = new Date();
           const monthStr = dateMatch[1];
           const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
@@ -361,18 +358,30 @@ app.post('/api/chat', async (req, res) => {
             const d = new Date();
             if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
             d.setDate(Math.max(1, dayNum - 1));
-            if (d < today2) { d.setMonth(d.getMonth() + 1); }
+            if (d < today2) d.setMonth(d.getMonth() + 1);
             searchFromDate = d.toISOString().split('T')[0]; daysWindow = 5;
           }
         }
       }
     }
 
+    // Check if the requested date falls within already-locked slots
+    let dateInLockedRange = false;
+    if (lockedEntry && searchFromDate) {
+      const reqDate = new Date(searchFromDate + 'T12:00:00');
+      const lockedDates = lockedEntry.slots.map(s => new Date(s.start));
+      const earliest = lockedDates.reduce((a, b) => a < b ? a : b, lockedDates[0]);
+      const latest = lockedDates.reduce((a, b) => a > b ? a : b, lockedDates[0]);
+      // Add buffer: ±2 days either side of locked range
+      dateInLockedRange = reqDate >= new Date(earliest.getTime() - 2*86400000) &&
+                          reqDate <= new Date(latest.getTime() + 2*86400000);
+    }
+
     let slots;
     const now = new Date();
 
-    if (lockedEntry && !wantsDifferentTime && !searchFromDate) {
-      // Use locked slots, filter out expired
+    if (lockedEntry && !wantsDifferentTime && (!searchFromDate || dateInLockedRange)) {
+      // Use locked slots — date is within range or no new date requested
       slots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > now);
       if (slots.length === 0) {
         console.log('⚠️ All locked slots expired — fetching fresh');
@@ -381,12 +390,13 @@ app.post('/api/chat', async (req, res) => {
       } else {
         console.log('🔒 Reusing locked slots:', slots.map(s => s.label));
       }
-    } else if (searchFromDate || wantsDifferentTime || !lockedEntry) {
+    } else {
+      // Re-fetch: new date outside locked range, explicit "different time", or no locks yet
       slots = await getAvailableSlots(daysWindow, searchFromDate);
-      console.log('📅 Fetching slots from:', searchFromDate || 'now', '| window:', daysWindow);
+      console.log('📅 Fetching slots from:', searchFromDate || 'now', '| window:', daysWindow, '| reason:', wantsDifferentTime ? 'different-time' : searchFromDate ? 'date-outside-range' : 'no-lock');
       if (slots?.length > 0) {
         conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-        console.log('🔒 Slots locked');
+        console.log('🔒 Slots locked:', slots.map(s => s.label));
       }
     }
 
