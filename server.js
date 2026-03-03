@@ -21,6 +21,43 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
+// Slot reservation store — temporarily holds slots shown to active users
+// Key: slotStart ISO string, Value: { convId, reservedAt }
+const reservedSlots = new Map();
+// Release reservations after 10 minutes
+setInterval(() => {
+  const tenMinAgo = Date.now() - 10 * 60 * 1000;
+  for (const [key, val] of reservedSlots.entries()) {
+    if (val.reservedAt < tenMinAgo) reservedSlots.delete(key);
+  }
+}, 2 * 60 * 1000);
+
+function reserveSlots(slots, convId) {
+  for (const slot of slots) {
+    if (slot.start) {
+      // Only reserve if not already reserved by a different conversation
+      const existing = reservedSlots.get(slot.start);
+      if (!existing || existing.convId === convId) {
+        reservedSlots.set(slot.start, { convId, reservedAt: Date.now() });
+      }
+    }
+  }
+}
+
+function releaseReservation(slotStart, convId) {
+  const existing = reservedSlots.get(slotStart);
+  if (existing?.convId === convId) reservedSlots.delete(slotStart);
+}
+
+function filterReservedSlots(slots, convId) {
+  return slots.filter(slot => {
+    if (!slot.start) return true;
+    const reservation = reservedSlots.get(slot.start);
+    // Allow if: not reserved, OR reserved by this same conversation
+    return !reservation || reservation.convId === convId;
+  });
+}
+
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -353,6 +390,16 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
+    // Filter out slots reserved by other active conversations
+    if (slots?.length > 0) {
+      const available = filterReservedSlots(slots, convId);
+      if (available.length < slots.length) {
+        console.log(`⏳ ${slots.length - available.length} slot(s) held by other conversations — filtered out`);
+      }
+      slots = available;
+      // Reserve these slots for this conversation now that we're showing them
+      reserveSlots(slots, convId);
+    }
     console.log('🔍 Slots count:', slots?.length || 0);
     const slotsText = slots && slots.length > 0
       ? `\n\n[DANNY'S REAL AVAILABLE TIMES]\n${slots.map((s, i) => `SLOT ${i+1}: ${s.label}`).join('\n')}\n[END OF AVAILABLE TIMES]\n\nWhen showing slots to the client, copy them EXACTLY as: "SLOT 1: Wednesday, Mar 4 at 2:00 PM EST" — use the full date, never say 'tomorrow' or 'next Monday'.\n\nCRITICAL SLOT RULES:\n1. Show slot labels EXACTLY as written above — do NOT convert to relative dates like "tomorrow" or "next Monday". Show "Wednesday, Mar 4 at 2:00 PM EST" verbatim.\n2. Never invent, add, or rephrase any slot.\n3. When client picks a slot, use that EXACT slot number from the list above.\n\nWhen client picks a slot number, respond with:\nBOOK:{"slotIndex": N, "slotLabel": "EXACT label text from the slot list", "name": "Full Name", "email": "their@email.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = slot number they picked, slotLabel = copied exactly from the list above)`
@@ -512,6 +559,9 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
           slotEnd: slot.end,
           slotLabel: slot.label,
         });
+        // Release reservation — slot is now booked on Google Calendar
+        // (freebusy will filter it out for all future conversations)
+        releaseReservation(slot.start, convId);
         reply = reply.replace(/BOOK:\{.*?\}/s, '').trim();
         return res.json({ reply, booked: true });
       } catch (e) {
