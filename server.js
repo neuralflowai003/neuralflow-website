@@ -309,7 +309,7 @@ app.post('/api/chat', async (req, res) => {
           if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
           d.setDate(dayNum); // start FROM the requested date, not day before
           if (d < new Date()) d.setMonth(d.getMonth() + 1);
-          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
+          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1; // only fetch that specific day
         }
       }
       // Vague month reference only (no specific day): "sometime in April", "April works"
