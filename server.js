@@ -403,7 +403,7 @@ app.post('/api/chat', async (req, res) => {
     }
     console.log('🔍 Slots count:', slots?.length || 0);
     const slotsText = slots && slots.length > 0
-      ? `\n\n[DANNY'S REAL AVAILABLE TIMES]\n${slots.map((s, i) => `SLOT ${i+1}: ${s.label}`).join('\n')}\n[END OF AVAILABLE TIMES]\n\nWhen showing slots to the client, copy them EXACTLY as: "SLOT 1: Wednesday, Mar 4 at 2:00 PM EST" — use the full date, never say 'tomorrow' or 'next Monday'.\n\nCRITICAL SLOT RULES:\n1. Show slot labels EXACTLY as written above — do NOT convert to relative dates like "tomorrow" or "next Monday". Show "Wednesday, Mar 4 at 2:00 PM EST" verbatim.\n2. Never invent, add, or rephrase any slot.\n3. When client picks a slot, use that EXACT slot number from the list above.\n\nWhen client picks a slot number, respond with:\nBOOK:{"slotIndex": N, "slotLabel": "EXACT label text from the slot list", "name": "Full Name", "email": "their@email.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = slot number they picked, slotLabel = copied exactly from the list above)`
+      ? `\n\n[DANNY'S REAL AVAILABLE TIMES]\n${slots.map((s, i) => `SLOT ${i+1}: ${s.label}`).join('\n')}\n[END OF AVAILABLE TIMES]\n\nCRITICAL — show slots EXACTLY like this, copy-paste verbatim:\n1. Tuesday, Mar 10 at 10:00 AM EDT\n2. Tuesday, Mar 10 at 11:00 AM EDT\n\nDO NOT reformat, shorten, or rephrase slot labels. Copy them character-for-character from the list above. Never say "10:00 AM - 11:00 AM ET" or any other format. Always use the exact label text.\n\nWhen client picks a slot, respond with:\nBOOK:{"slotIndex": N, "slotLabel": "EXACT label text copied from slot list above", "name": "Full Name", "email": "their@email.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = the slot number the client picked, 1-based)`
       : '\n\nCALENDAR UNAVAILABLE: Do NOT invent or make up any dates or times. Tell the client: "Let me check Danny\'s calendar and get back to you — can I get your email so we can confirm a time?" Then collect their contact info.';
 
     const nowEastern = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
@@ -500,19 +500,27 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
 
     let reply = response.content[0].text;
 
-    // Only enforce slot labels if ARIA is actually presenting a full numbered slot list
-    // Must have at least 2 numbered time entries to qualify as a slot presentation
-    const looksLikeSlotList = slots && slots.length > 0 &&
-      /\n\s*1\..*?(AM|PM)/i.test(reply) &&
-      /\n\s*2\..*?(AM|PM)/i.test(reply);
-
-    if (looksLikeSlotList) {
+    // Enforce exact slot labels any time ARIA lists times
+    // Catches numbered lists (1. ...) and bullet lists (- ...)
+    if (slots && slots.length > 0 && /(AM|PM)/i.test(reply)) {
       slots.forEach((slot, i) => {
         const num = i + 1;
+        // Replace numbered: "1. <anything with AM/PM>"
         reply = reply.replace(
-          new RegExp('(\\n\\s*)' + num + '\\.[^\\n]*(AM|PM)[^\\n]*', 'g'),
+          new RegExp('(\\n|^)(\\s*' + num + '\\.[^\\n]*(AM|PM)[^\\n]*)', 'gm'),
           '$1' + num + '. ' + slot.label
         );
+        // Replace bullets: "- <anything with AM/PM>" (only first N bullets)
+      });
+      // Also replace any bullet lines containing times with correct labels
+      let bulletIdx = 0;
+      reply = reply.replace(/(\n|^)(\s*[-•]\s*)([^\n]*(AM|PM)[^\n]*)/gm, (match, nl, bullet, content) => {
+        if (bulletIdx < slots.length) {
+          const label = slots[bulletIdx].label;
+          bulletIdx++;
+          return nl + bullet + label;
+        }
+        return match;
       });
     }
 
