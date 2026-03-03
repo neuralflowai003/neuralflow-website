@@ -273,7 +273,22 @@ app.post('/api/chat', async (req, res) => {
     let daysWindow = 4; // default: show next 3 days of slots
     const today = new Date();
     const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-    let specificDateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+)?(\d{1,2})(?:st|nd|rd|th)?/) || null;
+    // Match a specific date: must have a month name OR an ordinal suffix (1st/2nd/10th)
+    // A bare number like "2" in "at 2" should NOT be treated as a date
+    let specificDateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:(?<!\bat\s)(\d{1,2})(?:st|nd|rd|th))/) || null;
+    // Normalize to [fullMatch, monthStr, dayNum] format
+    if (specificDateMatch) {
+      if (specificDateMatch[1]) {
+        // month + day matched
+        specificDateMatch[2] = specificDateMatch[2]; // dayNum already in [2]
+      } else if (specificDateMatch[3]) {
+        // ordinal-only match: e.g. "10th"
+        specificDateMatch[1] = undefined;
+        specificDateMatch[2] = specificDateMatch[3];
+      } else {
+        specificDateMatch = null; // no valid date match
+      }
+    }
 
     // Detect timeframe from last user message
     if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?|a couple/)) {
@@ -344,8 +359,19 @@ app.post('/api/chat', async (req, res) => {
     else if (lastUserMsg.match(/afternoon|noon|12pm|1pm|2pm|3pm|12 pm|1 pm|2 pm|3 pm/)) timePreference = 'afternoon';
     else if (lastUserMsg.match(/evening|4pm|5pm|6pm|4 pm|5 pm|6 pm/)) timePreference = 'evening';
     else {
-      const timeMatch = lastUserMsg.match(/(\d{1,2})\s*(?:am|pm)/);
-      if (timeMatch) timePreference = timeMatch[0].replace(/\s/g,'');
+      // Match explicit "Npm" or "N am/pm"
+      const timeMatch = lastUserMsg.match(/(\d{1,2})\s*(?:am|pm)/i);
+      if (timeMatch) {
+        timePreference = timeMatch[0].replace(/\s/g,'').toLowerCase();
+      } else {
+        // Match bare "at N" where N is 1-12 — treat as PM during business hours (9am-4pm window)
+        const atTimeMatch = lastUserMsg.match(/\bat\s+(\d{1,2})\b/);
+        if (atTimeMatch) {
+          const hr = parseInt(atTimeMatch[1]);
+          if (hr >= 1 && hr <= 8) timePreference = `${hr}pm`; // 1–8 = PM
+          else if (hr >= 9 && hr <= 12) timePreference = `${hr}am`; // 9–12 = AM (could be noon)
+        }
+      }
     }
     if (timePreference) console.log('⏰ Time preference detected:', timePreference);
 
@@ -558,15 +584,21 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
         const bookData = JSON.parse(bookMatch[1]);
         // Always use locked conversation slots — this guarantees we book exactly what was shown
         const lockedSlots = conversationSlots.get(convId)?.slots || slots;
-        // Primary: use slotIndex into locked slots (ARIA counts from 1, array is 0-based)
-        const slotIdx = Math.max(0, (bookData.slotIndex || 1) - 1);
-        let slot = lockedSlots[slotIdx];
-        // Backup: label match if index fails
-        if (!slot && bookData.slotLabel) {
-          slot = lockedSlots.find(s => s.label === bookData.slotLabel) || 
-                 lockedSlots.find(s => s.label.includes(bookData.slotLabel?.split(' at ')[1] || ''));
+        // PRIMARY: match by slotLabel first — most reliable since ARIA copies it verbatim
+        let slot = null;
+        if (bookData.slotLabel) {
+          slot = lockedSlots.find(s => s.label === bookData.slotLabel) ||
+                 lockedSlots.find(s => s.label.includes(bookData.slotLabel?.split(' at ')[1] || '~~')) ||
+                 lockedSlots.find(s => bookData.slotLabel?.includes(s.label?.split(' at ')[1] || '~~'));
         }
-        slot = slot || lockedSlots[0];
+        // FALLBACK: use slotIndex if label match failed (ARIA counts from 1, array is 0-based)
+        if (!slot) {
+          const slotIdx = Math.max(0, (bookData.slotIndex || 1) - 1);
+          slot = lockedSlots[slotIdx];
+          console.log('⚠️ Label match failed, falling back to index:', slotIdx, '→', slot?.label);
+        }
+        // LAST RESORT: first slot (should never reach here)
+        if (!slot) slot = lockedSlots[0];
         const slotNY = slot?.start ? new Date(slot.start).toLocaleString('en-US', { timeZone: 'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true }) : 'unknown';
         console.log('📌 Booking slot:', slot?.label, '| NY time:', slotNY, '| UTC:', slot?.start, '| ARIA index:', bookData.slotIndex, '| Label:', bookData.slotLabel);
         await bookAppointment({
