@@ -361,9 +361,24 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // SIMPLE: always fetch fresh slots. Google Calendar is source of truth.
-    let slots = await getAvailableSlots(daysWindow, searchFromDate);
-    console.log('📅 Fresh slots fetched from:', searchFromDate || 'now', '| window:', daysWindow, '| count:', slots?.length || 0);
+    // Fetch fresh slots when user specifies a timeframe.
+    // If no timeframe in this message and we already have slots for this convo — reuse them.
+    // This prevents "yes book it" from fetching a different date range and losing the agreed slot.
+    const lockedEntry = conversationSlots.get(convId);
+    let slots;
+    if (!searchFromDate && lockedEntry) {
+      // No new timeframe — reuse cached slots (user is confirming or continuing)
+      slots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > new Date());
+      console.log('🔒 Reusing cached slots:', slots.map(s => s.label));
+      if (slots.length === 0) {
+        slots = await getAvailableSlots(daysWindow, null);
+        console.log('⚠️ Cache expired — fetched fresh');
+      }
+    } else {
+      // New timeframe or first message — fetch fresh
+      slots = await getAvailableSlots(daysWindow, searchFromDate);
+      console.log('📅 Fresh slots fetched from:', searchFromDate || 'now', '| window:', daysWindow, '| count:', slots?.length || 0);
+    }
     if (slots?.length > 0) {
       conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     }
