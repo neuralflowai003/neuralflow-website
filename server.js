@@ -346,25 +346,46 @@ app.post('/api/chat', async (req, res) => {
     const hasNewTimeframe = searchFromDate !== null;
     let slots;
 
-    if (lockedEntry && !isExplicitlyDifferent) {
-      // Already shown slots — always reuse them. Client mentioning a date is confirming, not re-requesting.
+    // Determine if user is confirming a booking vs requesting a new timeframe
+    const isConfirming = lastUserMsg.match(/^(yes|yeah|yep|sure|ok|okay|that works|perfect|great|sounds good|slot [0-9]|book it|confirm|go ahead|let's do|let's go)/i);
+    
+    // Check if requested date is outside currently locked slots range
+    let dateOutsideLockedRange = false;
+    if (lockedEntry && hasNewTimeframe && searchFromDate) {
+      const lockedDates = lockedEntry.slots.map(s => s.start ? new Date(s.start).toDateString() : '');
+      const requestedDate = new Date(searchFromDate);
+      const lockedStart = lockedEntry.slots[0]?.start ? new Date(lockedEntry.slots[0].start) : null;
+      const lockedEnd = lockedEntry.slots[lockedEntry.slots.length-1]?.start ? new Date(lockedEntry.slots[lockedEntry.slots.length-1].start) : null;
+      if (lockedStart && lockedEnd) {
+        dateOutsideLockedRange = requestedDate < new Date(lockedStart.getTime() - 86400000) || requestedDate > new Date(lockedEnd.getTime() + 86400000);
+      } else {
+        dateOutsideLockedRange = true;
+      }
+    }
+
+    if (lockedEntry && isConfirming && !isExplicitlyDifferent) {
+      // Client is confirming — always use locked slots
       slots = lockedEntry.slots;
-      console.log('🔒 Reusing locked slots (never re-lock on confirmation):', slots.map(s=>s.label));
-    } else if (hasNewTimeframe) {
-      // First time asking for a specific timeframe, OR explicitly requesting different time
+      console.log('🔒 Reusing locked slots (client confirming):', slots.map(s=>s.label));
+    } else if (hasNewTimeframe && (!lockedEntry || dateOutsideLockedRange || isExplicitlyDifferent)) {
+      // New timeframe requested outside current locked range — re-fetch and re-lock
       slots = await getAvailableSlots(daysWindow, searchFromDate);
       console.log('📅 Fetching slots from:', searchFromDate, '| window:', daysWindow, 'days');
       if (slots && slots.length > 0) {
         conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-        console.log('🔒 Slots locked for conversation:', convId.slice(0,30));
+        console.log('🔒 Slots re-locked for:', searchFromDate);
       }
+    } else if (lockedEntry) {
+      // Use existing locked slots
+      slots = lockedEntry.slots;
+      console.log('🔒 Reusing locked slots:', slots.map(s=>s.label));
     } else {
-      // No timeframe specified — fetch next available slots
+      // No timeframe, no lock — fetch default next available
       slots = await getAvailableSlots(daysWindow, null);
       console.log('📅 Default slots fetched:', slots ? slots.map(s=>s.label) : 'NULL');
       if (slots && slots.length > 0) {
         conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-        console.log('🔒 Slots locked for conversation:', convId.slice(0,30));
+        console.log('🔒 Slots locked (default)');
       }
     }
     // Filter by time preference if specified
