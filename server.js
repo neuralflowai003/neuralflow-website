@@ -479,7 +479,7 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
 
     // Try Anthropic first (3 attempts), then fall back to OpenRouter
     const callAnthropic = async () => {
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
         try {
           return await anthropic.messages.create({
             model: 'claude-haiku-4-5',
@@ -488,13 +488,9 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
             messages,
           });
         } catch (err) {
-          const isOverloaded = err?.status === 529 || err?.message?.includes('overloaded');
-          if (isOverloaded && attempt < 3) {
-            console.log(`⚠️ Anthropic overloaded (attempt ${attempt}/3), retrying in ${attempt * 2}s...`);
-            await new Promise(r => setTimeout(r, attempt * 2000));
-          } else {
-            throw err;
-          }
+          console.log(`⚠️ Anthropic attempt ${attempt} failed: ${err?.status} ${err?.message?.slice(0,60)}`);
+          if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+          else throw err;
         }
       }
     };
