@@ -552,7 +552,7 @@
       margin-bottom: 20px;
       text-transform: none;
     }
-    @media(max-width:768px) { body .hero-headline { white-space:normal !important; font-size:clamp(1.6rem,6vw,2.5rem) !important; letter-spacing:-1px !important; text-align:center !important; } }
+    @media(max-width:768px) { body .hero-headline { white-space:normal !important; font-size:clamp(2.2rem,8vw,3rem) !important; letter-spacing:-1px !important; text-align:center !important; } }
 
     .line-1 {
       color: #fff;
@@ -2667,6 +2667,14 @@
     .qtick { font-size:15px; font-weight:600; color:#e8e8f0; font-style:italic; letter-spacing:0.3px; }
     .qtick-dot { color:#FF6B1A; font-size:10px; }
     @keyframes quotesTicker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+    @media(max-width:768px) {
+      .hero-actions { display:flex !important; flex-direction:column !important; align-items:center !important; gap:12px !important; width:100% !important; }
+      .hero-actions .btn { width:auto !important; min-width:200px !important; max-width:260px !important; padding:14px 28px !important; font-size:13px !important; justify-content:center !important; text-align:center !important; }
+      .hero-sub { text-align:center !important; font-size:0.95rem !important; }
+    }
+
+    @media(max-width:768px) { #cursor-dot, #cursor-ring { display:none !important; opacity:0 !important; } }
   </style>
   <section class="proof-section">
     <div class="container">
