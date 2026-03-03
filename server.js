@@ -357,7 +357,10 @@ app.post('/api/chat', async (req, res) => {
     let slots;
 
     // Determine if user is confirming a booking vs requesting a new timeframe
-    const isConfirming = lastUserMsg.match(/^(yes|yeah|yep|sure|ok|okay|that works|perfect|great|sounds good|slot [0-9]|book it|confirm|go ahead|let's do|let's go)/i);
+    // IMPORTANT: only treat as confirmation if message has NO specific date in it
+    // If they say "yes, April 21st" — that's a NEW request, not confirming March 6
+    const hasSpecificDate = specificDateMatch !== null;
+    const isConfirming = !hasSpecificDate && !hasNewTimeframe && lastUserMsg.match(/^(yes|yeah|yep|sure|ok|okay|that works|perfect|great|sounds good|slot [0-9]|book it|confirm|go ahead|let's do|let's go|number [0-9])/i);
     
     // Check if requested date is outside currently locked slots range
     let dateOutsideLockedRange = false;
