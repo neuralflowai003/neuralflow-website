@@ -339,29 +339,29 @@ app.post('/api/chat', async (req, res) => {
     if (timePreference) console.log('⏰ Time preference detected:', timePreference);
 
     // Slot locking logic:
-    // - If user requests a NEW timeframe (couple weeks, next month etc) → fetch fresh slots for that window
-    // - If slots already locked for this conversation → reuse them (guarantees booking = what was shown)
-    // - First time showing slots → fetch and lock them
-    const hasNewTimeframe = searchFromDate !== null; // only true when user explicitly requested different time
+    // RULE: Once slots are locked for a conversation, NEVER re-fetch unless client explicitly asks for a different timeframe
+    // "explicitly different" = they use words like "different", "another", "instead", "rather", "change" OR mention a NEW timeframe after already seeing slots
     const lockedEntry = conversationSlots.get(convId);
+    const isExplicitlyDifferent = lastUserMsg.match(/different|another time|another date|instead|rather|change|reschedule|move it|not work/);
+    const hasNewTimeframe = searchFromDate !== null;
     let slots;
 
-    if (hasNewTimeframe) {
-      // User wants a different timeframe — fetch fresh and re-lock
+    if (lockedEntry && !isExplicitlyDifferent) {
+      // Already shown slots — always reuse them. Client mentioning a date is confirming, not re-requesting.
+      slots = lockedEntry.slots;
+      console.log('🔒 Reusing locked slots (never re-lock on confirmation):', slots.map(s=>s.label));
+    } else if (hasNewTimeframe) {
+      // First time asking for a specific timeframe, OR explicitly requesting different time
       slots = await getAvailableSlots(daysWindow, searchFromDate);
-      console.log('📅 New timeframe slots:', slots ? slots.map(s=>s.label) : 'NULL', '| from:', searchFromDate);
+      console.log('📅 Fetching slots from:', searchFromDate, '| window:', daysWindow, 'days');
       if (slots && slots.length > 0) {
         conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
         console.log('🔒 Slots locked for conversation:', convId.slice(0,30));
       }
-    } else if (lockedEntry) {
-      // Reuse locked slots — this is the key to consistency
-      slots = lockedEntry.slots;
-      console.log('🔒 Using locked slots for conversation:', slots.map(s=>s.label));
     } else {
-      // First time — fetch and lock
+      // No timeframe specified — fetch next available slots
       slots = await getAvailableSlots(daysWindow, null);
-      console.log('📅 Initial slots fetched:', slots ? slots.map(s=>s.label) : 'NULL');
+      console.log('📅 Default slots fetched:', slots ? slots.map(s=>s.label) : 'NULL');
       if (slots && slots.length > 0) {
         conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
         console.log('🔒 Slots locked for conversation:', convId.slice(0,30));
