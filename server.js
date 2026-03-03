@@ -342,9 +342,9 @@ app.post('/api/chat', async (req, res) => {
         if (dayNum >= 1 && dayNum <= 31) {
           const d = new Date();
           if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
-          d.setDate(Math.max(1, dayNum - 1));
+          d.setDate(dayNum); // start FROM the requested date, not day before
           if (d < new Date()) d.setMonth(d.getMonth() + 1);
-          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 5;
+          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
         }
       }
       // Vague month reference only (no specific day): "sometime in April", "April works"
@@ -372,9 +372,7 @@ app.post('/api/chat', async (req, res) => {
       // Check if cached slots actually cover the date the user is asking about
       let cachedCoversDate = true;
       if (searchFromDate && validCached.length > 0) {
-        const target = new Date(searchFromDate + 'T12:00:00');
-        target.setDate(target.getDate() + 1); // the actual day (searchFromDate is day-1)
-        const targetStr = target.toDateString();
+        const targetStr = new Date(searchFromDate + 'T12:00:00').toDateString();
         cachedCoversDate = validCached.some(s => new Date(s.start).toDateString() === targetStr);
       }
 
