@@ -266,209 +266,94 @@ app.post('/api/chat', async (req, res) => {
     if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Messages array required' });
     const convId = conversationId || messages[0]?.content?.slice(0, 60) || 'default';
 
-    // Parse date preference from the LAST user message only
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
-    const allUserMsgs = messages.filter(m => m.role === 'user').map(m => m.content.toLowerCase()).join(' ');
-    let searchFromDate = null;
-    let daysWindow = 4; // default: show next 3 days of slots
-    const today = new Date();
-    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-    // Normalize word ordinals to numbers: "second" → "2nd", "third" → "3rd", etc.
-    const wordOrdinals = {'first':'1st','second':'2nd','third':'3rd','fourth':'4th','fifth':'5th','sixth':'6th','seventh':'7th','eighth':'8th','ninth':'9th','tenth':'10th','eleventh':'11th','twelfth':'12th','thirteenth':'13th','fourteenth':'14th','fifteenth':'15th','sixteenth':'16th','seventeenth':'17th','eighteenth':'18th','nineteenth':'19th','twentieth':'20th','twenty-first':'21st','twenty-second':'22nd','twenty-third':'23rd','twenty-fourth':'24th','twenty-fifth':'25th','twenty-sixth':'26th','twenty-seventh':'27th','twenty-eighth':'28th','twenty-ninth':'29th','thirtieth':'30th','thirty-first':'31st'};
-    let normalizedMsg = lastUserMsg;
-    for (const [word, num] of Object.entries(wordOrdinals)) {
-      normalizedMsg = normalizedMsg.replace(new RegExp('\\b' + word + '\\b', 'gi'), num);
-    }
-    // Match a specific date: must have a month name OR an ordinal suffix (1st/2nd/10th)
-    // A bare number like "2" in "at 2" should NOT be treated as a date
-    let specificDateMatch = normalizedMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:(?<!\bat\s)(\d{1,2})(?:st|nd|rd|th))/) || null;
-    // Normalize to [fullMatch, monthStr, dayNum] format
-    if (specificDateMatch) {
-      if (specificDateMatch[1]) {
-        // month + day matched
-        specificDateMatch[2] = specificDateMatch[2]; // dayNum already in [2]
-      } else if (specificDateMatch[3]) {
-        // ordinal-only match: e.g. "10th"
-        specificDateMatch[1] = undefined;
-        specificDateMatch[2] = specificDateMatch[3];
-      } else {
-        specificDateMatch = null; // no valid date match
-      }
-    }
 
-    // Detect timeframe from last user message
-    if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?|a couple/)) {
-      const d = new Date(); d.setDate(d.getDate() + 14);
-      searchFromDate = d.toISOString().split('T')[0];
-      daysWindow = 5;
-    } else if (lastUserMsg.match(/next week/)) {
-      const d = new Date(); d.setDate(d.getDate() + 7);
-      searchFromDate = d.toISOString().split('T')[0];
-      daysWindow = 5;
-    } else if (lastUserMsg.match(/in\s+(\d+)\s+weeks?/)) {
-      const weeks = parseInt(lastUserMsg.match(/in\s+(\d+)\s+weeks?/)[1]);
-      const d = new Date(); d.setDate(d.getDate() + weeks * 7);
-      searchFromDate = d.toISOString().split('T')[0];
-      daysWindow = 5;
-    } else if (lastUserMsg.match(/next month/)) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
-      searchFromDate = d.toISOString().split('T')[0];
-      daysWindow = 7;
-    } else if (lastUserMsg.match(/in\s+(\d+)\s+months?/)) {
-      const months = parseInt(lastUserMsg.match(/in\s+(\d+)\s+months?/)[1]);
-      const d = new Date(); d.setMonth(d.getMonth() + months);
-      searchFromDate = d.toISOString().split('T')[0];
-      daysWindow = 7;
-    } else {
-      // Check for specific date like "March 25th", "25th", "the 25th"
-      // specificDateMatch already declared above
-      
-      if (specificDateMatch) {
-        const dayNum = parseInt(specificDateMatch[2]);
-        const monthStr = specificDateMatch[1];
-        const d = new Date();
-        
-        if (monthStr) {
-          // Has month name + day: "March 25th"
-          d.setMonth(monthNames.indexOf(monthStr));
-          d.setDate(dayNum);
-          if (d < today) d.setFullYear(d.getFullYear() + 1);
-        } else if (dayNum >= 1 && dayNum <= 31) {
-          // Just a day number: "the 25th"
-          d.setDate(dayNum);
-          if (d < today) d.setMonth(d.getMonth() + 1);
-        }
-        
-        // Start search 1 day before, window of 5 days around the date
-        d.setDate(d.getDate() - 1);
-        searchFromDate = d.toISOString().split('T')[0];
-        daysWindow = 5;
+    // ── Slot fetch strategy ──────────────────────────────────────────────────
+    // Simple rule: lock slots once fetched. Only re-fetch if user explicitly
+    // wants a DIFFERENT timeframe (different month, week, etc.) that falls
+    // outside what we already have. Let Claude handle ALL natural language
+    // understanding of dates/times — never try to parse intent with regex.
+
+    const lockedEntry = conversationSlots.get(convId);
+    const wantsDifferentTime = lastUserMsg.match(/different|another time|another date|instead|rather|change|reschedule|not work|how about|what about/);
+
+    // Detect if user is requesting a timeframe that's clearly outside locked range
+    // Only re-fetch for broad timeframe shifts (weeks/months out), not slot picks
+    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    let searchFromDate = null;
+    let daysWindow = 7;
+
+    // Only parse timeframe for RE-FETCH decisions — not for slot selection (Claude handles that)
+    if (!lockedEntry || wantsDifferentTime) {
+      if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?/)) {
+        const d = new Date(); d.setDate(d.getDate() + 14);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+      } else if (lastUserMsg.match(/next week/)) {
+        const d = new Date(); d.setDate(d.getDate() + 7);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+      } else if (lastUserMsg.match(/in\s+(\d+)\s+weeks?/)) {
+        const w = parseInt(lastUserMsg.match(/in\s+(\d+)\s+weeks?/)[1]);
+        const d = new Date(); d.setDate(d.getDate() + w * 7);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+      } else if (lastUserMsg.match(/next month/)) {
+        const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+      } else if (lastUserMsg.match(/in\s+(\d+)\s+months?/)) {
+        const m = parseInt(lastUserMsg.match(/in\s+(\d+)\s+months?/)[1]);
+        const d = new Date(); d.setMonth(d.getMonth() + m);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
       } else {
-        // Check for just month names (no specific day)
+        // Check for month name (e.g. "sometime in April", "April works")
         for (const [i, month] of monthNames.entries()) {
           if (lastUserMsg.includes(month)) {
-            const d = new Date();
-            d.setMonth(i);
-            if (d <= today) d.setFullYear(d.getFullYear() + 1);
+            const d = new Date(); d.setMonth(i);
+            if (d <= new Date()) d.setFullYear(d.getFullYear() + 1);
             d.setDate(1);
-            searchFromDate = d.toISOString().split('T')[0];
-            daysWindow = 10;
+            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
             break;
+          }
+        }
+        // Check for specific date like "March 10", "the 10th", "March 10th"
+        // Only for re-fetch — if they say "march 10 at 2" we fetch around march 10
+        const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}))|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
+        if (dateMatch && !lockedEntry) {
+          const today2 = new Date();
+          const monthStr = dateMatch[1];
+          const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
+          if (dayNum >= 1 && dayNum <= 31) {
+            const d = new Date();
+            if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
+            d.setDate(Math.max(1, dayNum - 1));
+            if (d < today2) { d.setMonth(d.getMonth() + 1); }
+            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 5;
           }
         }
       }
     }
 
-    // Detect time preference from last user message
-    let timePreference = null;
-    if (lastUserMsg.match(/morning|9am|10am|11am|9 am|10 am|11 am/)) timePreference = 'morning';
-    else if (lastUserMsg.match(/afternoon|noon|12pm|1pm|2pm|3pm|12 pm|1 pm|2 pm|3 pm/)) timePreference = 'afternoon';
-    else if (lastUserMsg.match(/evening|4pm|5pm|6pm|4 pm|5 pm|6 pm/)) timePreference = 'evening';
-    else {
-      // Match explicit "Npm" or "N am/pm"
-      const timeMatch = lastUserMsg.match(/(\d{1,2})\s*(?:am|pm)/i);
-      if (timeMatch) {
-        timePreference = timeMatch[0].replace(/\s/g,'').toLowerCase();
-      } else {
-        // Match bare "at N" where N is 1-12 — treat as PM during business hours (9am-4pm window)
-        const atTimeMatch = lastUserMsg.match(/\bat\s+(\d{1,2})\b/);
-        if (atTimeMatch) {
-          const hr = parseInt(atTimeMatch[1]);
-          if (hr >= 1 && hr <= 8) timePreference = `${hr}pm`; // 1–8 = PM
-          else if (hr >= 9 && hr <= 12) timePreference = `${hr}am`; // 9–12 = AM (could be noon)
-        }
-      }
-    }
-    if (timePreference) console.log('⏰ Time preference detected:', timePreference);
-
-    // Slot locking logic:
-    // RULE: Once slots are locked for a conversation, NEVER re-fetch unless client explicitly asks for a different timeframe
-    // "explicitly different" = they use words like "different", "another", "instead", "rather", "change" OR mention a NEW timeframe after already seeing slots
-    const lockedEntry = conversationSlots.get(convId);
-    const isExplicitlyDifferent = lastUserMsg.match(/different|another time|another date|instead|rather|change|reschedule|move it|not work/);
-    const hasNewTimeframe = searchFromDate !== null;
     let slots;
+    const now = new Date();
 
-    // Determine if user is confirming a booking vs requesting a new timeframe
-    // IMPORTANT: only treat as confirmation if message has NO specific date in it
-    // If they say "yes, April 21st" — that's a NEW request, not confirming March 6
-    const hasSpecificDate = specificDateMatch !== null;
-    const isConfirming = !hasSpecificDate && !hasNewTimeframe && lastUserMsg.match(/^(yes|yeah|yep|sure|ok|okay|that works|perfect|great|sounds good|slot [0-9]|book it|confirm|go ahead|let's do|let's go|number [0-9])/i);
-    
-    // Check if requested date is outside currently locked slots range
-    let dateOutsideLockedRange = false;
-    if (lockedEntry && hasNewTimeframe && searchFromDate) {
-      const lockedDates = lockedEntry.slots.map(s => s.start ? new Date(s.start).toDateString() : '');
-      const requestedDate = new Date(searchFromDate);
-      const lockedStart = lockedEntry.slots[0]?.start ? new Date(lockedEntry.slots[0].start) : null;
-      const lockedEnd = lockedEntry.slots[lockedEntry.slots.length-1]?.start ? new Date(lockedEntry.slots[lockedEntry.slots.length-1].start) : null;
-      if (lockedStart && lockedEnd) {
-        dateOutsideLockedRange = requestedDate < new Date(lockedStart.getTime() - 86400000) || requestedDate > new Date(lockedEnd.getTime() + 86400000);
-      } else {
-        dateOutsideLockedRange = true;
-      }
-    }
-
-    if (lockedEntry && isConfirming && !isExplicitlyDifferent) {
-      // Client is confirming — use locked slots but filter out any that have now passed
-      const now2 = new Date();
-      const validSlots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > now2);
-      if (validSlots.length === 0) {
-        // All locked slots have passed — force fresh fetch
-        console.log('⚠️ All locked slots expired — fetching fresh slots');
-        slots = await getAvailableSlots(daysWindow, null);
-        if (slots && slots.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-      } else {
-        slots = validSlots;
-        if (validSlots.length < lockedEntry.slots.length) {
-          conversationSlots.set(convId, { slots: validSlots, fetchedAt: Date.now() });
-        }
-        console.log('🔒 Reusing locked slots (client confirming):', slots.map(s=>s.label));
-      }
-    } else if (hasNewTimeframe && (!lockedEntry || dateOutsideLockedRange || isExplicitlyDifferent)) {
-      // New timeframe requested outside current locked range — re-fetch and re-lock
-      slots = await getAvailableSlots(daysWindow, searchFromDate);
-      console.log('📅 Fetching slots from:', searchFromDate, '| window:', daysWindow, 'days');
-      if (slots && slots.length > 0) {
-        conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-        console.log('🔒 Slots re-locked for:', searchFromDate);
-      }
-    } else if (lockedEntry) {
-      // Use existing locked slots, but filter out past ones
-      const now3 = new Date();
-      slots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > now3);
+    if (lockedEntry && !wantsDifferentTime && !searchFromDate) {
+      // Use locked slots, filter out expired
+      slots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > now);
       if (slots.length === 0) {
-        console.log('⚠️ Cached slots all expired — fetching fresh');
-        slots = await getAvailableSlots(daysWindow, null);
-        if (slots && slots.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+        console.log('⚠️ All locked slots expired — fetching fresh');
+        slots = await getAvailableSlots(7, null);
+        if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
       } else {
-        console.log('🔒 Reusing locked slots:', slots.map(s=>s.label));
+        console.log('🔒 Reusing locked slots:', slots.map(s => s.label));
       }
-    } else {
-      // No timeframe, no lock — fetch default next available
-      slots = await getAvailableSlots(daysWindow, null);
-      console.log('📅 Default slots fetched:', slots ? slots.map(s=>s.label) : 'NULL');
-      if (slots && slots.length > 0) {
+    } else if (searchFromDate || wantsDifferentTime || !lockedEntry) {
+      slots = await getAvailableSlots(daysWindow, searchFromDate);
+      console.log('📅 Fetching slots from:', searchFromDate || 'now', '| window:', daysWindow);
+      if (slots?.length > 0) {
         conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-        console.log('🔒 Slots locked (default)');
+        console.log('🔒 Slots locked');
       }
     }
-    // Filter by time preference if specified
-    if (timePreference && slots && slots.length > 0) {
-      const filtered = slots.filter(s => {
-        const label = s.label.toLowerCase();
-        if (timePreference === 'morning') return label.match(/[89]:[0-9][0-9] am|1[01]:[0-9][0-9] am/);
-        if (timePreference === 'afternoon') return label.match(/12:[0-9][0-9] pm|1:[0-9][0-9] pm|2:[0-9][0-9] pm|3:[0-9][0-9] pm/);
-        if (timePreference === 'evening') return label.match(/4:[0-9][0-9] pm|5:[0-9][0-9] pm|6:[0-9][0-9] pm/);
-        // Specific time like "2pm"
-        return label.includes(timePreference.replace('pm',' pm').replace('am',' am'));
-      });
-      if (filtered.length > 0) {
-        slots = filtered;
-        console.log('⏰ Filtered to', filtered.length, 'slots matching time preference:', timePreference);
-      }
-    }
-    console.log('🔍 Slots count:', slots ? slots.length : 0);
+
+    console.log('🔍 Slots count:', slots?.length || 0);
     const slotsText = slots && slots.length > 0
       ? `\n\n[DANNY'S REAL AVAILABLE TIMES]\n${slots.map((s, i) => `SLOT ${i+1}: ${s.label}`).join('\n')}\n[END OF AVAILABLE TIMES]\n\nWhen showing slots to the client, copy them EXACTLY as: "SLOT 1: Wednesday, Mar 4 at 2:00 PM EST" — use the full date, never say 'tomorrow' or 'next Monday'.\n\nCRITICAL SLOT RULES:\n1. Show slot labels EXACTLY as written above — do NOT convert to relative dates like "tomorrow" or "next Monday". Show "Wednesday, Mar 4 at 2:00 PM EST" verbatim.\n2. Never invent, add, or rephrase any slot.\n3. When client picks a slot, use that EXACT slot number from the list above.\n\nWhen client picks a slot number, respond with:\nBOOK:{"slotIndex": N, "slotLabel": "EXACT label text from the slot list", "name": "Full Name", "email": "their@email.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = slot number they picked, slotLabel = copied exactly from the list above)`
       : '\n\nCALENDAR UNAVAILABLE: Do NOT invent or make up any dates or times. Tell the client: "Let me check Danny\'s calendar and get back to you — can I get your email so we can confirm a time?" Then collect their contact info.';
@@ -590,21 +475,32 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
         const bookData = JSON.parse(bookMatch[1]);
         // Always use locked conversation slots — this guarantees we book exactly what was shown
         const lockedSlots = conversationSlots.get(convId)?.slots || slots;
-        // PRIMARY: match by slotLabel first — most reliable since ARIA copies it verbatim
         let slot = null;
+
+        // PRIMARY: exact label match — ARIA copies the label verbatim from the system prompt
         if (bookData.slotLabel) {
-          slot = lockedSlots.find(s => s.label === bookData.slotLabel) ||
-                 lockedSlots.find(s => s.label.includes(bookData.slotLabel?.split(' at ')[1] || '~~')) ||
-                 lockedSlots.find(s => bookData.slotLabel?.includes(s.label?.split(' at ')[1] || '~~'));
+          slot = lockedSlots.find(s => s.label === bookData.slotLabel);
+          // Fuzzy: match on the "date at time" portion (strips EDT/EST variance)
+          if (!slot) {
+            const labelCore = bookData.slotLabel.replace(/\s+(EDT|EST)$/i, '').trim();
+            slot = lockedSlots.find(s => s.label.replace(/\s+(EDT|EST)$/i, '').trim() === labelCore);
+          }
+          // Fuzzy: match on just the time + date portion
+          if (!slot && bookData.slotLabel.includes(' at ')) {
+            const timePart = bookData.slotLabel.split(' at ')[1]?.replace(/\s+(EDT|EST)$/i,'').trim();
+            const datePart = bookData.slotLabel.split(' at ')[0]?.trim();
+            slot = lockedSlots.find(s => s.label.includes(datePart) && s.label.includes(timePart));
+          }
         }
-        // FALLBACK: use slotIndex if label match failed (ARIA counts from 1, array is 0-based)
-        if (!slot) {
-          const slotIdx = Math.max(0, (bookData.slotIndex || 1) - 1);
+
+        // FALLBACK: slotIndex (ARIA counts from 1, array is 0-based)
+        if (!slot && bookData.slotIndex) {
+          const slotIdx = Math.max(0, bookData.slotIndex - 1);
           slot = lockedSlots[slotIdx];
-          console.log('⚠️ Label match failed, falling back to index:', slotIdx, '→', slot?.label);
+          console.log('⚠️ Label match failed — using index', slotIdx, '→', slot?.label);
         }
-        // LAST RESORT: first slot (should never reach here)
-        if (!slot) slot = lockedSlots[0];
+
+        if (!slot) slot = lockedSlots[0]; // last resort
         const slotNY = slot?.start ? new Date(slot.start).toLocaleString('en-US', { timeZone: 'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true }) : 'unknown';
         console.log('📌 Booking slot:', slot?.label, '| NY time:', slotNY, '| UTC:', slot?.start, '| ARIA index:', bookData.slotIndex, '| Label:', bookData.slotLabel);
         await bookAppointment({
