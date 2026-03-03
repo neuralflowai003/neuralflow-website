@@ -273,9 +273,15 @@ app.post('/api/chat', async (req, res) => {
     let daysWindow = 4; // default: show next 3 days of slots
     const today = new Date();
     const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    // Normalize word ordinals to numbers: "second" → "2nd", "third" → "3rd", etc.
+    const wordOrdinals = {'first':'1st','second':'2nd','third':'3rd','fourth':'4th','fifth':'5th','sixth':'6th','seventh':'7th','eighth':'8th','ninth':'9th','tenth':'10th','eleventh':'11th','twelfth':'12th','thirteenth':'13th','fourteenth':'14th','fifteenth':'15th','sixteenth':'16th','seventeenth':'17th','eighteenth':'18th','nineteenth':'19th','twentieth':'20th','twenty-first':'21st','twenty-second':'22nd','twenty-third':'23rd','twenty-fourth':'24th','twenty-fifth':'25th','twenty-sixth':'26th','twenty-seventh':'27th','twenty-eighth':'28th','twenty-ninth':'29th','thirtieth':'30th','thirty-first':'31st'};
+    let normalizedMsg = lastUserMsg;
+    for (const [word, num] of Object.entries(wordOrdinals)) {
+      normalizedMsg = normalizedMsg.replace(new RegExp('\\b' + word + '\\b', 'gi'), num);
+    }
     // Match a specific date: must have a month name OR an ordinal suffix (1st/2nd/10th)
     // A bare number like "2" in "at 2" should NOT be treated as a date
-    let specificDateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:(?<!\bat\s)(\d{1,2})(?:st|nd|rd|th))/) || null;
+    let specificDateMatch = normalizedMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:(?<!\bat\s)(\d{1,2})(?:st|nd|rd|th))/) || null;
     // Normalize to [fullMatch, monthStr, dayNum] format
     if (specificDateMatch) {
       if (specificDateMatch[1]) {
