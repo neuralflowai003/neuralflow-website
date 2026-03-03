@@ -138,47 +138,43 @@ async function getAvailableSlots(daysAhead = 30, startFromDate = null) {
 async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
   const results = { calendar: false, emailLead: false, emailDanny: false };
 
-  // 1. Create Google Calendar event
-  // Create calendar event in background (non-blocking)
+  // 1. Create Google Calendar event (blocking so we get the Meet link)
+  let meetLink = null;
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
-    const calendarPromise = (async () => {
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-          console.log(`📅 Calendar attempt ${attempt} for ${name}`);
-          const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-          // Refresh token before writing
-          await oauth2Client.getAccessToken();
-          const event = await calendar.events.insert({
-            calendarId: 'primary',
-            sendUpdates: 'all',
-            conferenceDataVersion: 1,
-            requestBody: {
-              summary: `NeuralFlow Consultation — ${name} (${company})`,
-              description: `🤖 Booked via ARIA\n\n👤 CLIENT\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n📋 WHAT THEY WANT\n${notes ? notes.split('|')[0] : 'See chat'}\n\n🔥 PAIN POINTS\n${notes ? (notes.split('|')[1] || 'See chat') : 'See chat'}\n\n⚡ PREP\n- Pricing starts at $2,500`,
-              start: { dateTime: slotStart, timeZone: 'America/New_York' },
-              end: { dateTime: slotEnd, timeZone: 'America/New_York' },
-              attendees: [
-                { email, displayName: name },
-                { email: process.env.GMAIL_USER || 'danny@neuralflowai.io', displayName: 'Danny Boehmer' },
-              ],
-              conferenceData: {
-                createRequest: {
-                  requestId: `nf-${Date.now()}-${attempt}`,
-                  conferenceSolutionKey: { type: 'hangoutsMeet' },
-                },
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`📅 Calendar attempt ${attempt} for ${name}`);
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        await oauth2Client.getAccessToken();
+        const event = await calendar.events.insert({
+          calendarId: 'primary',
+          sendUpdates: 'none',
+          conferenceDataVersion: 1,
+          requestBody: {
+            summary: `NeuralFlow Consultation — ${name} (${company})`,
+            description: `🤖 Booked via ARIA\n\n👤 CLIENT\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n📋 WHAT THEY WANT\n${notes ? notes.split('|')[0] : 'See chat'}\n\n🔥 PAIN POINTS\n${notes ? (notes.split('|')[1] || 'See chat') : 'See chat'}\n\n⚡ PREP\n- Pricing starts at $2,500`,
+            start: { dateTime: slotStart, timeZone: 'America/New_York' },
+            end: { dateTime: slotEnd, timeZone: 'America/New_York' },
+            attendees: [
+              { email: process.env.GMAIL_USER || 'danny@neuralflowai.io', displayName: 'Danny Boehmer' },
+            ],
+            conferenceData: {
+              createRequest: {
+                requestId: `nf-${Date.now()}-${attempt}`,
+                conferenceSolutionKey: { type: 'hangoutsMeet' },
               },
             },
-          });
-          results.calendar = true;
-          console.log(`✅ Calendar event created for ${name} — Meet: ${event.data?.hangoutLink || 'pending'}`);
-          break;
-        } catch (e) {
-          console.error(`❌ Calendar attempt ${attempt} failed: ${e.message}`);
-          if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt));
-        }
+          },
+        });
+        meetLink = event.data?.hangoutLink || null;
+        results.calendar = true;
+        console.log(`✅ Calendar event created for ${name} — Meet: ${meetLink || 'pending'}`);
+        break;
+      } catch (e) {
+        console.error(`❌ Calendar attempt ${attempt} failed: ${e.message}`);
+        if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt));
       }
-    })();
-    calendarPromise.catch(e => console.error('Calendar bg error:', e.message));
+    }
   }
 
   // 2. Email confirmation to lead
@@ -192,13 +188,13 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
           <h1 style="color:#FF6B1A;">NeuralFlow</h1>
           <h2>Your Consultation is Confirmed! 🎉</h2>
           <p>Hi ${name},</p>
-          <p>Your free 1-hour consultation with Danny Boehmer is booked. A Google Meet link has been sent to your calendar.</p>
+          <p>Your free 1-hour consultation with Danny Boehmer is booked.</p>
           <div style="background:#16161a;border:1px solid #2a2a35;border-radius:8px;padding:20px;margin:20px 0;">
             <p style="margin:0 0 8px;"><strong>📅 When:</strong> ${slotLabel.includes('EST') ? slotLabel : slotLabel + ' EST'}</p>
-            <p style="margin:0;"><strong>⏱️ Duration:</strong> 1 hour</p>
+            <p style="margin:0 0 8px;"><strong>⏱️ Duration:</strong> 1 hour</p>
+            <p style="margin:0;"><strong>📹 Google Meet:</strong> <a href="${meetLink || '#'}" style="color:#FF6B1A;">${meetLink || 'Link will be sent separately'}</a></p>
           </div>
-          <p>Talk soon,</p>
-          <p><strong>Danny Boehmer</strong><br/>Founder, NeuralFlow<br/><a href="https://neuralflowai.io" style="color:#FF6B1A;">neuralflowai.io</a></p>
+          <p>Talk soon,<br/><strong>Danny Boehmer</strong><br/>Founder, NeuralFlow</p>
         </div>
       `,
     });
