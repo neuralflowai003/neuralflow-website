@@ -3108,7 +3108,7 @@
         // Respawn particles to fill new dimensions
         particles = [];
         for (let i = 0; i < 4; i++) particles.push(new Particle(true));
-        const particleCount = window.innerWidth < 768 ? 40 : 282;
+        const particleCount = window.innerWidth < 768 ? 40 : 340;
         for (let i = 0; i < particleCount; i++) particles.push(new Particle());
       }
       window.addEventListener('resize', resizeCanvas);
