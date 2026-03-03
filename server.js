@@ -511,13 +511,13 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
           'X-Title': 'NeuralFlow ARIA',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-haiku-4-5',
+          model: 'anthropic/claude-haiku-4-5:beta',
           max_tokens: 600,
           messages: [{ role: 'system', content: systemPrompt }, ...messages],
         }),
       });
-      if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(`OpenRouter error: ${res.status} - ${JSON.stringify(data)}`);
       // Normalize to Anthropic SDK format
       return { content: [{ text: data.choices[0].message.content }] };
     };
