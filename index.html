@@ -3240,6 +3240,8 @@
     let isChatOpen = false;
     let hasOpened = false;
     let conversationHistory = []; // Anthropic message history
+    // Unique ID for this chat session — locks slots to this conversation
+    const conversationId = 'conv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
 
     const openMessage = "Hi! 👋 I'm ARIA, NeuralFlow's AI receptionist. I'm here to answer your questions and help you explore how we can automate and scale your business. What brings you here today?";
 
@@ -3297,7 +3299,7 @@
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: conversationHistory })
+          body: JSON.stringify({ messages: conversationHistory, conversationId })
         });
 
         if (!response.ok) throw new Error('Network response was not ok');

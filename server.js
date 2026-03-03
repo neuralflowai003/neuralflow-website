@@ -10,8 +10,16 @@ const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Session slot cache — stores slots shown to user so booking uses same list
-const slotCache = new Map(); // key: session_id or first-user-msg hash
+// Conversation slot store — locks slots the moment they are shown to a user
+// Key: conversationId (sent from frontend), Value: { slots, fetchedAt }
+const conversationSlots = new Map();
+// Clean up old conversations after 2 hours
+setInterval(() => {
+  const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+  for (const [key, val] of conversationSlots.entries()) {
+    if (val.fetchedAt < twoHoursAgo) conversationSlots.delete(key);
+  }
+}, 30 * 60 * 1000);
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -244,8 +252,9 @@ app.post('/api/book', async (req, res) => {
 // ─── ARIA Chat ───────────────────────────────────────────────────────────────
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { messages, conversationId } = req.body;
     if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Messages array required' });
+    const convId = conversationId || messages[0]?.content?.slice(0, 60) || 'default';
 
     // Parse date preference from the LAST user message only
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
@@ -293,20 +302,33 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // Fetch slots — always bypass cache when user specifies a new timeframe
-    const hasNewTimeframe = lastUserMsg.match(/week|month|couple|few|january|february|march|april|may|june|july|august|september|october|november|december/);
-    const cacheKey = messages[0]?.content?.slice(0, 50) || 'default';
-    const fullCacheKey = cacheKey + (searchFromDate || 'default');
+    // Slot locking logic:
+    // - If user requests a NEW timeframe (couple weeks, next month etc) → fetch fresh slots for that window
+    // - If slots already locked for this conversation → reuse them (guarantees booking = what was shown)
+    // - First time showing slots → fetch and lock them
+    const hasNewTimeframe = searchFromDate !== null; // only true when user explicitly requested different time
+    const lockedEntry = conversationSlots.get(convId);
     let slots;
-    if (!hasNewTimeframe && slotCache.has(fullCacheKey)) {
-      slots = slotCache.get(fullCacheKey);
-      console.log('📅 Using cached slots:', slots.map(s=>s.label));
-    } else {
+
+    if (hasNewTimeframe) {
+      // User wants a different timeframe — fetch fresh and re-lock
       slots = await getAvailableSlots(daysWindow, searchFromDate);
-      console.log('📅 Fresh slots:', slots ? slots.map(s=>s.label) : 'NULL', '| from:', searchFromDate, '| window:', daysWindow, 'days');
+      console.log('📅 New timeframe slots:', slots ? slots.map(s=>s.label) : 'NULL', '| from:', searchFromDate);
       if (slots && slots.length > 0) {
-        slotCache.set(fullCacheKey, slots);
-        setTimeout(() => slotCache.delete(fullCacheKey), 60 * 60 * 1000);
+        conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+        console.log('🔒 Slots locked for conversation:', convId.slice(0,30));
+      }
+    } else if (lockedEntry) {
+      // Reuse locked slots — this is the key to consistency
+      slots = lockedEntry.slots;
+      console.log('🔒 Using locked slots for conversation:', slots.map(s=>s.label));
+    } else {
+      // First time — fetch and lock
+      slots = await getAvailableSlots(daysWindow, null);
+      console.log('📅 Initial slots fetched:', slots ? slots.map(s=>s.label) : 'NULL');
+      if (slots && slots.length > 0) {
+        conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+        console.log('🔒 Slots locked for conversation:', convId.slice(0,30));
       }
     }
     console.log('🔍 Slots count:', slots ? slots.length : 0);
@@ -368,17 +390,18 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
     if (bookMatch && slots) {
       try {
         const bookData = JSON.parse(bookMatch[1]);
-        // Try to match by label first (most reliable), then fall back to index
-        let slot;
-        if (bookData.slotLabel) {
-          slot = slots.find(s => s.label === bookData.slotLabel);
+        // Always use locked conversation slots — this guarantees we book exactly what was shown
+        const lockedSlots = conversationSlots.get(convId)?.slots || slots;
+        // Primary: use slotIndex into locked slots (ARIA counts from 1, array is 0-based)
+        const slotIdx = Math.max(0, (bookData.slotIndex || 1) - 1);
+        let slot = lockedSlots[slotIdx];
+        // Backup: label match if index fails
+        if (!slot && bookData.slotLabel) {
+          slot = lockedSlots.find(s => s.label === bookData.slotLabel) || 
+                 lockedSlots.find(s => s.label.includes(bookData.slotLabel?.split(' at ')[1] || ''));
         }
-        if (!slot) {
-          // ARIA numbers slots from 1, array is 0-based — subtract 1
-          const slotIdx = Math.max(0, (bookData.slotIndex || 1) - 1);
-          slot = slots[slotIdx] || slots[0];
-        }
-        console.log('📌 Booking slot:', slot?.label, '| Index:', bookData.slotIndex, '| Label match:', bookData.slotLabel);
+        slot = slot || lockedSlots[0];
+        console.log('📌 Booking slot:', slot?.label, '| ARIA said slotIndex:', bookData.slotIndex, '| Array index used:', slotIdx, '| Label ARIA gave:', bookData.slotLabel);
         await bookAppointment({
           name: bookData.name,
           email: bookData.email,
