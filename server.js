@@ -247,27 +247,38 @@ app.post('/api/chat', async (req, res) => {
     const { messages } = req.body;
     if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Messages array required' });
 
-    // Parse any date hint from the conversation
-    // Only look at the LAST user message to avoid picking up ARIA's previous date mentions
+    // Parse date preference from the LAST user message only
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
+    const allUserMsgs = messages.filter(m => m.role === 'user').map(m => m.content.toLowerCase()).join(' ');
     let searchFromDate = null;
+    let daysWindow = 4; // default: show next 3 days of slots
     const today = new Date();
 
-    if (lastUserMsg.match(/few weeks|couple weeks|2-3 weeks|a few weeks/)) {
+    // Detect timeframe from last user message
+    if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?|a couple/)) {
       const d = new Date(); d.setDate(d.getDate() + 14);
       searchFromDate = d.toISOString().split('T')[0];
+      daysWindow = 5;
+    } else if (lastUserMsg.match(/next week/)) {
+      const d = new Date(); d.setDate(d.getDate() + 7);
+      searchFromDate = d.toISOString().split('T')[0];
+      daysWindow = 5;
     } else if (lastUserMsg.match(/in\s+(\d+)\s+weeks?/)) {
       const weeks = parseInt(lastUserMsg.match(/in\s+(\d+)\s+weeks?/)[1]);
       const d = new Date(); d.setDate(d.getDate() + weeks * 7);
       searchFromDate = d.toISOString().split('T')[0];
+      daysWindow = 5;
     } else if (lastUserMsg.match(/next month/)) {
       const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
       searchFromDate = d.toISOString().split('T')[0];
+      daysWindow = 7;
     } else if (lastUserMsg.match(/in\s+(\d+)\s+months?/)) {
       const months = parseInt(lastUserMsg.match(/in\s+(\d+)\s+months?/)[1]);
       const d = new Date(); d.setMonth(d.getMonth() + months);
       searchFromDate = d.toISOString().split('T')[0];
+      daysWindow = 7;
     } else {
+      // Check for specific month names
       const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
       for (const [i, month] of monthNames.entries()) {
         if (lastUserMsg.includes(month)) {
@@ -276,59 +287,56 @@ app.post('/api/chat', async (req, res) => {
           if (d <= today) d.setFullYear(d.getFullYear() + 1);
           d.setDate(1);
           searchFromDate = d.toISOString().split('T')[0];
+          daysWindow = 10;
           break;
         }
       }
     }
 
-
-    // Fetch live availability searching up to 365 days out from detected date
-    console.log('🗓️ Date search:', { lastUserMsg: lastUserMsg.slice(0,100), searchFromDate });
-    // Use cached slots if available (ensures booking uses same slots shown to user)
+    // Fetch slots — always bypass cache when user specifies a new timeframe
+    const hasNewTimeframe = lastUserMsg.match(/week|month|couple|few|january|february|march|april|may|june|july|august|september|october|november|december/);
     const cacheKey = messages[0]?.content?.slice(0, 50) || 'default';
+    const fullCacheKey = cacheKey + (searchFromDate || 'default');
     let slots;
-    if (slotCache.has(cacheKey)) {
-      slots = slotCache.get(cacheKey);
+    if (!hasNewTimeframe && slotCache.has(fullCacheKey)) {
+      slots = slotCache.get(fullCacheKey);
       console.log('📅 Using cached slots:', slots.map(s=>s.label));
     } else {
-      slots = await getAvailableSlots(30, searchFromDate);
-      console.log('📅 Slots returned:', slots ? slots.map(s=>s.label) : 'NULL');
+      slots = await getAvailableSlots(daysWindow, searchFromDate);
+      console.log('📅 Fresh slots:', slots ? slots.map(s=>s.label) : 'NULL', '| from:', searchFromDate, '| window:', daysWindow, 'days');
       if (slots && slots.length > 0) {
-        slotCache.set(cacheKey, slots);
-        // Clear cache after 1 hour
-        setTimeout(() => slotCache.delete(cacheKey), 60 * 60 * 1000);
+        slotCache.set(fullCacheKey, slots);
+        setTimeout(() => slotCache.delete(fullCacheKey), 60 * 60 * 1000);
       }
     }
-    console.log('🔍 Slots count:', slots ? slots.length : 0, '| cacheKey:', cacheKey.slice(0,30));
+    console.log('🔍 Slots count:', slots ? slots.length : 0);
     const slotsText = slots && slots.length > 0
       ? `\n\n[DANNY'S REAL AVAILABLE TIMES]\n${slots.map((s, i) => `SLOT ${i+1}: ${s.label}`).join('\n')}\n[END OF AVAILABLE TIMES]\n\nWhen showing slots to the client, copy them EXACTLY as: "SLOT 1: Wednesday, Mar 4 at 2:00 PM EST" — use the full date, never say 'tomorrow' or 'next Monday'.\n\nCRITICAL SLOT RULES:\n1. Show slot labels EXACTLY as written above — do NOT convert to relative dates like "tomorrow" or "next Monday". Show "Wednesday, Mar 4 at 2:00 PM EST" verbatim.\n2. Never invent, add, or rephrase any slot.\n3. When client picks a slot, use that EXACT slot number from the list above.\n\nWhen client picks a slot number, respond with:\nBOOK:{"slotIndex": N, "slotLabel": "EXACT label text from the slot list", "name": "Full Name", "email": "their@email.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = slot number they picked, slotLabel = copied exactly from the list above)`
       : '\n\nCALENDAR UNAVAILABLE: Do NOT invent or make up any dates or times. Tell the client: "Let me check Danny\'s calendar and get back to you — can I get your email so we can confirm a time?" Then collect their contact info.';
 
     const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company at neuralflowai.io. Danny Boehmer is the founder.
 
-Your goal: qualify leads and book free 1-hour consultations directly in this chat. No links, no redirects — book it right here.
+Your goal: qualify leads and book 1-hour consultations directly in this chat.
 
-CONVERSATION FLOW:
+STRICT CONVERSATION FLOW — follow this order exactly:
 1. Greet warmly, ask what brings them to NeuralFlow
-2. Ask about their business and challenges
-3. Explain relevant services (AI Consulting, Workflow Automation, Custom Apps, AI Receptionists, Lead Gen, Dashboards)
-4. When they are interested, collect: Full name, Email address, Company name
-5. Show available slots and ask which works best
-6. The moment they pick a slot — IMMEDIATELY output the BOOK command. No extra confirmation needed.
+2. Learn about their business challenges and what they want to automate
+3. Collect in order: Full name → Email address → Company name
+4. ONLY AFTER collecting all three — present the available time slots
+5. When they pick a slot — immediately output the BOOK command
 
-CRITICAL BOOKING RULE: When a client selects or confirms any time slot, you MUST output this FIRST before any other text:
-BOOK:{"slotIndex": N, "name": "Their Full Name", "email": "their@email.com", "company": "Their Company", "notes": "What they want to build|Their pain points"}
-Then say: "Perfect! Booking that now — you will get a calendar invite at [email] shortly! 🎉"
+SCHEDULING RULES:
+- Show ONLY the slots listed below, copied exactly word for word
+- Default slots are the next 3 days. If the client says "couple weeks", "few weeks", "next month", or a specific month — the slots below are ALREADY filtered for that timeframe. Say "No problem! Here are times around then:" and list them
+- NEVER show near-term slots again after a client requests a later date
+- NEVER invent dates. NEVER use "tomorrow" or "next Monday" — always use the exact label text from the list
 
+BOOKING — the moment client confirms a slot:
+BOOK:{"slotIndex": N, "slotLabel": "EXACT label from slot list", "name": "Full Name", "email": "email@example.com", "company": "Company", "notes": "What they want|Pain points"}
+Then say: "Perfect! Booking that now — you will get a calendar invite at [email] shortly!"
 
-SCHEDULING FLEXIBILITY: Danny's calendar is open up to a full year out. If a client mentions they are busy, on vacation, or wants a specific week or month — always say "No problem! Here are slots around that time:" and show ONLY the numbered slots listed below. NEVER invent or make up dates. ONLY use the exact slot labels provided in the AVAILABLE SLOTS list. The slots are already filtered to match their timeframe.
-
-NEVER skip the BOOK command when a slot is chosen. NEVER ask for extra confirmation after they have already said yes to a slot. Act immediately and book it.
-
-Keep responses concise (2-3 sentences). Pricing starts at $2,500 — always offer free consultation for exact quote. Be warm and professional.\${slotsText}`;
-
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5',
+NEVER skip the BOOK command. NEVER ask for extra confirmation after they say yes.
+Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professional.\${slotsText}\`;
       max_tokens: 600,
       system: systemPrompt,
       messages,
