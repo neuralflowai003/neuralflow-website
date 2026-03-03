@@ -475,24 +475,64 @@ NEVER skip the BOOK command. NEVER ask for extra confirmation after they say yes
 Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professional.${slotsText}`;
 
     let response;
-    for (let attempt = 1; attempt <= 4; attempt++) {
-      try {
-        response = await anthropic.messages.create({
-          model: 'claude-haiku-4-5',
-          max_tokens: 600,
-          system: systemPrompt,
-          messages,
-        });
-        break; // success
-      } catch (err) {
-        const isOverloaded = err?.status === 529 || err?.message?.includes('overloaded');
-        const isRetryable = isOverloaded || err?.status === 529 || err?.status >= 500;
-        if (isRetryable && attempt < 4) {
-          console.log(`⚠️ Anthropic overloaded (attempt ${attempt}/4), retrying in ${attempt * 3}s...`);
-          await new Promise(r => setTimeout(r, attempt * 3000));
-        } else {
-          throw err;
+    let usedFallback = false;
+
+    // Try Anthropic first (3 attempts), then fall back to OpenRouter
+    const callAnthropic = async () => {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          return await anthropic.messages.create({
+            model: 'claude-haiku-4-5',
+            max_tokens: 600,
+            system: systemPrompt,
+            messages,
+          });
+        } catch (err) {
+          const isOverloaded = err?.status === 529 || err?.message?.includes('overloaded');
+          if (isOverloaded && attempt < 3) {
+            console.log(`⚠️ Anthropic overloaded (attempt ${attempt}/3), retrying in ${attempt * 2}s...`);
+            await new Promise(r => setTimeout(r, attempt * 2000));
+          } else {
+            throw err;
+          }
         }
+      }
+    };
+
+    const callOpenRouter = async () => {
+      if (!process.env.OPENROUTER_API_KEY) throw new Error('No OpenRouter key');
+      console.log('🔀 Falling back to OpenRouter...');
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://neuralflowai.io',
+          'X-Title': 'NeuralFlow ARIA',
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-haiku-4-5',
+          max_tokens: 600,
+          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        }),
+      });
+      if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
+      const data = await res.json();
+      // Normalize to Anthropic SDK format
+      return { content: [{ text: data.choices[0].message.content }] };
+    };
+
+    try {
+      response = await callAnthropic();
+    } catch (err) {
+      console.log('⚠️ Anthropic failed, trying OpenRouter...', err.message);
+      try {
+        response = await callOpenRouter();
+        usedFallback = true;
+        console.log('✅ OpenRouter fallback succeeded');
+      } catch (err2) {
+        console.error('❌ Both Anthropic and OpenRouter failed:', err2.message);
+        throw err;
       }
     }
 
