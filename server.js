@@ -365,23 +365,25 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // Check if the requested date falls within already-locked slots
-    let dateInLockedRange = false;
+    // Check if we actually have slots for the requested date in our locked set
+    let requestedDateCovered = false;
     if (lockedEntry && searchFromDate) {
-      const reqDate = new Date(searchFromDate + 'T12:00:00');
-      const lockedDates = lockedEntry.slots.map(s => new Date(s.start));
-      const earliest = lockedDates.reduce((a, b) => a < b ? a : b, lockedDates[0]);
-      const latest = lockedDates.reduce((a, b) => a > b ? a : b, lockedDates[0]);
-      // Add buffer: ±2 days either side of locked range
-      dateInLockedRange = reqDate >= new Date(earliest.getTime() - 2*86400000) &&
-                          reqDate <= new Date(latest.getTime() + 2*86400000);
+      const reqDateStr = new Date(searchFromDate + 'T12:00:00').toDateString();
+      // Look 1 day ahead (since searchFromDate is dayNum-1)
+      const reqDateNext = new Date(searchFromDate + 'T12:00:00');
+      reqDateNext.setDate(reqDateNext.getDate() + 1);
+      const reqDateNextStr = reqDateNext.toDateString();
+      requestedDateCovered = lockedEntry.slots.some(s => {
+        const slotDate = new Date(s.start).toDateString();
+        return slotDate === reqDateStr || slotDate === reqDateNextStr;
+      });
     }
 
     let slots;
     const now = new Date();
 
-    if (lockedEntry && !wantsDifferentTime && (!searchFromDate || dateInLockedRange)) {
-      // Use locked slots — date is within range or no new date requested
+    if (lockedEntry && !wantsDifferentTime && (!searchFromDate || requestedDateCovered)) {
+      // Use locked slots — we have slots for the requested date (or no specific date requested)
       slots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > now);
       if (slots.length === 0) {
         console.log('⚠️ All locked slots expired — fetching fresh');
