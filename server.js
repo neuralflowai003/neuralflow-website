@@ -115,10 +115,19 @@ async function getAvailableSlots(daysAhead = 30, startFromDate = null) {
 
       const hours = [9, 10, 11, 13, 14, 15, 16];
       for (const h of hours) {
-        const slotStart = new Date(day);
-          slotStart.setUTCHours(h + 5, 0, 0, 0); // EST = UTC-5
-        const slotEnd = new Date(slotStart);
-          slotEnd.setUTCHours(h + 6, 0, 0, 0); // EST = UTC-5
+        // Determine NY UTC offset: EDT (-4) or EST (-5)
+        // DST: 2nd Sunday in March → 1st Sunday in November
+        const year = day.getUTCFullYear();
+        const dstStart = new Date(Date.UTC(year, 2, 8));
+        dstStart.setUTCDate(8 + (7 - dstStart.getUTCDay()) % 7);
+        const dstEnd = new Date(Date.UTC(year, 10, 1));
+        dstEnd.setUTCDate(1 + (7 - dstEnd.getUTCDay()) % 7);
+        const isDST = day >= dstStart && day < dstEnd;
+        const nyOffsetHours = isDST ? 4 : 5; // hours behind UTC
+        const dateStr = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
+        const slotStart = new Date(`${dateStr}T${String(h).padStart(2,'0')}:00:00.000Z`);
+        slotStart.setTime(slotStart.getTime() + nyOffsetHours * 3600000); // convert NY→UTC
+        const slotEnd = new Date(slotStart.getTime() + 3600000);
 
         // Check if slot overlaps with busy time
         const isBusy = busy.some(b => {
