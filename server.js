@@ -311,14 +311,11 @@ app.post('/api/chat', async (req, res) => {
     // outside what we already have. Let Claude handle ALL natural language
     // understanding of dates/times — never try to parse intent with regex.
 
-    const lockedEntry = conversationSlots.get(convId);
-    const wantsDifferentTime = lastUserMsg.match(/different|another time|another date|instead|rather|change|reschedule|not work|how about|what about/);
-
     const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
     let searchFromDate = null;
     let daysWindow = 7;
 
-    // Always parse timeframe intent — needed to detect if user wants a date outside locked range
+    // Parse timeframe from user message to know what date range to fetch
     if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?/)) {
       const d = new Date(); d.setDate(d.getDate() + 14);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
@@ -337,7 +334,7 @@ app.post('/api/chat', async (req, res) => {
       const d = new Date(); d.setMonth(d.getMonth() + m);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
     } else {
-      // Month name: "sometime in April", "April works"
+      // Check for specific month name
       for (const [i, month] of monthNames.entries()) {
         if (lastUserMsg.includes(month)) {
           const d = new Date(); d.setMonth(i);
@@ -351,55 +348,25 @@ app.post('/api/chat', async (req, res) => {
       if (!searchFromDate) {
         const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
         if (dateMatch) {
-          const today2 = new Date();
           const monthStr = dateMatch[1];
           const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
           if (dayNum >= 1 && dayNum <= 31) {
             const d = new Date();
             if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
             d.setDate(Math.max(1, dayNum - 1));
-            if (d < today2) d.setMonth(d.getMonth() + 1);
+            if (d < new Date()) d.setMonth(d.getMonth() + 1);
             searchFromDate = d.toISOString().split('T')[0]; daysWindow = 5;
           }
         }
       }
     }
 
-    // Check if we actually have slots for the requested date in our locked set
-    let requestedDateCovered = false;
-    if (lockedEntry && searchFromDate) {
-      const reqDateStr = new Date(searchFromDate + 'T12:00:00').toDateString();
-      // Look 1 day ahead (since searchFromDate is dayNum-1)
-      const reqDateNext = new Date(searchFromDate + 'T12:00:00');
-      reqDateNext.setDate(reqDateNext.getDate() + 1);
-      const reqDateNextStr = reqDateNext.toDateString();
-      requestedDateCovered = lockedEntry.slots.some(s => {
-        const slotDate = new Date(s.start).toDateString();
-        return slotDate === reqDateStr || slotDate === reqDateNextStr;
-      });
-    }
-
-    let slots;
-    const now = new Date();
-
-    if (lockedEntry && !wantsDifferentTime && (!searchFromDate || requestedDateCovered)) {
-      // Use locked slots — we have slots for the requested date (or no specific date requested)
-      slots = lockedEntry.slots.filter(s => s.start && new Date(s.start) > now);
-      if (slots.length === 0) {
-        console.log('⚠️ All locked slots expired — fetching fresh');
-        slots = await getAvailableSlots(7, null);
-        if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-      } else {
-        console.log('🔒 Reusing locked slots:', slots.map(s => s.label));
-      }
-    } else {
-      // Re-fetch: new date outside locked range, explicit "different time", or no locks yet
-      slots = await getAvailableSlots(daysWindow, searchFromDate);
-      console.log('📅 Fetching slots from:', searchFromDate || 'now', '| window:', daysWindow, '| reason:', wantsDifferentTime ? 'different-time' : searchFromDate ? 'date-outside-range' : 'no-lock');
-      if (slots?.length > 0) {
-        conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-        console.log('🔒 Slots locked:', slots.map(s => s.label));
-      }
+    // SIMPLE: always fetch fresh slots. No caching complexity.
+    // Google Calendar is the source of truth. Claude picks the slot by label.
+    const slots = await getAvailableSlots(daysWindow, searchFromDate);
+    console.log('📅 Fresh slots fetched from:', searchFromDate || 'now', '| window:', daysWindow);
+    if (slots?.length > 0) {
+      conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     }
 
     // Filter out slots reserved by other active conversations
