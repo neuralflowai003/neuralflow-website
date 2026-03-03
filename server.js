@@ -327,6 +327,17 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
+    // Detect time preference from last user message
+    let timePreference = null;
+    if (lastUserMsg.match(/morning|9am|10am|11am|9 am|10 am|11 am/)) timePreference = 'morning';
+    else if (lastUserMsg.match(/afternoon|noon|12pm|1pm|2pm|3pm|12 pm|1 pm|2 pm|3 pm/)) timePreference = 'afternoon';
+    else if (lastUserMsg.match(/evening|4pm|5pm|6pm|4 pm|5 pm|6 pm/)) timePreference = 'evening';
+    else {
+      const timeMatch = lastUserMsg.match(/(\d{1,2})\s*(?:am|pm)/);
+      if (timeMatch) timePreference = timeMatch[0].replace(/\s/g,'');
+    }
+    if (timePreference) console.log('⏰ Time preference detected:', timePreference);
+
     // Slot locking logic:
     // - If user requests a NEW timeframe (couple weeks, next month etc) → fetch fresh slots for that window
     // - If slots already locked for this conversation → reuse them (guarantees booking = what was shown)
@@ -354,6 +365,21 @@ app.post('/api/chat', async (req, res) => {
       if (slots && slots.length > 0) {
         conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
         console.log('🔒 Slots locked for conversation:', convId.slice(0,30));
+      }
+    }
+    // Filter by time preference if specified
+    if (timePreference && slots && slots.length > 0) {
+      const filtered = slots.filter(s => {
+        const label = s.label.toLowerCase();
+        if (timePreference === 'morning') return label.match(/[89]:[0-9][0-9] am|1[01]:[0-9][0-9] am/);
+        if (timePreference === 'afternoon') return label.match(/12:[0-9][0-9] pm|1:[0-9][0-9] pm|2:[0-9][0-9] pm|3:[0-9][0-9] pm/);
+        if (timePreference === 'evening') return label.match(/4:[0-9][0-9] pm|5:[0-9][0-9] pm|6:[0-9][0-9] pm/);
+        // Specific time like "2pm"
+        return label.includes(timePreference.replace('pm',' pm').replace('am',' am'));
+      });
+      if (filtered.length > 0) {
+        slots = filtered;
+        console.log('⏰ Filtered to', filtered.length, 'slots matching time preference:', timePreference);
       }
     }
     console.log('🔍 Slots count:', slots ? slots.length : 0);
