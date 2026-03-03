@@ -358,21 +358,18 @@ Keep responses concise (2-3 sentences). Pricing starts at $2,500 — always offe
 
     let reply = response.content[0].text;
 
-    // If ARIA listed slots, replace its reply's slot lines with exact labels from our list
-    if (slots && slots.length > 0 && reply.includes('SLOT') === false) {
-      // Replace any numbered list items that don't match exact slot labels
+    // Only enforce slot labels if ARIA is actually presenting a full numbered slot list
+    // Must have at least 2 numbered time entries to qualify as a slot presentation
+    const looksLikeSlotList = slots && slots.length > 0 &&
+      /\n\s*1\..*?(AM|PM)/i.test(reply) &&
+      /\n\s*2\..*?(AM|PM)/i.test(reply);
+
+    if (looksLikeSlotList) {
       slots.forEach((slot, i) => {
         const num = i + 1;
-        // Replace patterns like "1. Tomorrow, 2:00 PM" or "1. **Tomorrow**" with exact label
         reply = reply.replace(
-          new RegExp(`(^|\n)\s*${num}\. [^\n]*`, 'g'),
-          (match, pre) => {
-            // Only replace if this looks like a slot listing line
-            if (match.match(/\d+\. .*(AM|PM|morning|afternoon|evening|monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today|next)/i)) {
-              return `${pre}${num}. ${slot.label}`;
-            }
-            return match;
-          }
+          new RegExp(`(\n\\s*)${num}\\.[^\n]*(AM|PM)[^\n]*`, 'g'),
+          `$1${num}. ${slot.label}`
         );
       });
     }
