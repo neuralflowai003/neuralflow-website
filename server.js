@@ -287,17 +287,42 @@ app.post('/api/chat', async (req, res) => {
       searchFromDate = d.toISOString().split('T')[0];
       daysWindow = 7;
     } else {
-      // Check for specific month names
+      // Check for specific date like "March 25th", "25th", "the 25th"
       const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-      for (const [i, month] of monthNames.entries()) {
-        if (lastUserMsg.includes(month)) {
-          const d = new Date();
-          d.setMonth(i);
-          if (d <= today) d.setFullYear(d.getFullYear() + 1);
-          d.setDate(1);
-          searchFromDate = d.toISOString().split('T')[0];
-          daysWindow = 10;
-          break;
+      const specificDateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+)?(\d{1,2})(?:st|nd|rd|th)?/);
+      
+      if (specificDateMatch) {
+        const dayNum = parseInt(specificDateMatch[2]);
+        const monthStr = specificDateMatch[1];
+        const d = new Date();
+        
+        if (monthStr) {
+          // Has month name + day: "March 25th"
+          d.setMonth(monthNames.indexOf(monthStr));
+          d.setDate(dayNum);
+          if (d < today) d.setFullYear(d.getFullYear() + 1);
+        } else if (dayNum >= 1 && dayNum <= 31) {
+          // Just a day number: "the 25th"
+          d.setDate(dayNum);
+          if (d < today) d.setMonth(d.getMonth() + 1);
+        }
+        
+        // Start search 1 day before, window of 5 days around the date
+        d.setDate(d.getDate() - 1);
+        searchFromDate = d.toISOString().split('T')[0];
+        daysWindow = 5;
+      } else {
+        // Check for just month names (no specific day)
+        for (const [i, month] of monthNames.entries()) {
+          if (lastUserMsg.includes(month)) {
+            const d = new Date();
+            d.setMonth(i);
+            if (d <= today) d.setFullYear(d.getFullYear() + 1);
+            d.setDate(1);
+            searchFromDate = d.toISOString().split('T')[0];
+            daysWindow = 10;
+            break;
+          }
         }
       }
     }
