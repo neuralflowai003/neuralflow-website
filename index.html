@@ -552,6 +552,7 @@
       margin-bottom: 20px;
       text-transform: none;
     }
+    @media(max-width:768px) { body .hero-headline { white-space:normal !important; font-size:clamp(1.6rem,6vw,2.5rem) !important; letter-spacing:-1px !important; text-align:center !important; } }
 
     .line-1 {
       color: #fff;
@@ -2063,6 +2064,7 @@
     @keyframes marqueeScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
     .build-track::-webkit-scrollbar { display:none; }
     .build-card { min-width:380px; max-width:380px; background:#16161a; border:1px solid #2a2a35; border-radius:16px; padding:24px; flex-shrink:0; transition:border-color 0.3s, transform 0.3s; }
+    @media(max-width:768px) { .build-card { min-width:220px !important; max-width:220px !important; padding:16px !important; } .build-card h3 { font-size:13px !important; } .build-card p { font-size:11px !important; } }
     .build-card:hover { border-color:#FF6B1A; transform:translateY(-4px); }
     .build-card h3 { font-size:16px; font-weight:700; margin:16px 0 8px; }
     .build-card p { font-size:13px; color:#6b6b80; line-height:1.6; }
@@ -2443,6 +2445,7 @@
   <!-- HOW IT WORKS -->
   <style>
     .hiw-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:80px; align-items:start; }
+    @media(max-width:768px) { .hiw-grid { grid-template-columns:1fr !important; gap:16px !important; margin-top:40px !important; } }
     .hiw-card { background:#16161a; border:1px solid #2a2a35; border-radius:20px; padding:36px 28px; cursor:pointer; transition:border-color 0.3s, transform 0.3s; position:relative; overflow:hidden; }
     .hiw-card:hover { border-color:#FF6B1A; transform:translateY(-4px); }
     .hiw-card.expanded { border-color:#FF6B1A; }
@@ -3097,7 +3100,8 @@
         // Respawn particles to fill new dimensions
         particles = [];
         for (let i = 0; i < 4; i++) particles.push(new Particle(true));
-        for (let i = 0; i < 282; i++) particles.push(new Particle());
+        const particleCount = window.innerWidth < 768 ? 40 : 282;
+        for (let i = 0; i < particleCount; i++) particles.push(new Particle());
       }
       window.addEventListener('resize', resizeCanvas);
 
@@ -3151,7 +3155,7 @@
               ctx.moveTo(particles[i].x, particles[i].y);
               ctx.lineTo(particles[j].x, particles[j].y);
 
-              const alpha = 0.4 * (1 - dist / 200);
+              const alpha = (window.innerWidth < 768 ? 0.12 : 0.4) * (1 - dist / 200);
               if (dist < 80) {
                 ctx.strokeStyle = `rgba(255, 107, 26, ${alpha + 0.12})`;
               } else {
