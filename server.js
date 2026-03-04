@@ -37,10 +37,15 @@ app.use(express.static(path.join(__dirname, '')));
 
 // ─── Conversation Cache ───────────────────────────────────────────────────────
 const conversationSlots = new Map();
+const agreedSlots = new Map();
 setInterval(() => {
   const expiry = Date.now() - 10 * 60 * 1000;
   for (const [key, val] of conversationSlots.entries()) {
     if (val.fetchedAt < expiry) conversationSlots.delete(key);
+  }
+  for (const [key, val] of agreedSlots.entries()) {
+    // Also expire agreed slots after 10 mins
+    agreedSlots.delete(key);
   }
 }, 10 * 60 * 1000);
 
@@ -96,7 +101,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
   try {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-    // Window starts from tomorrow if no specific date given
+    // Window starts from tomorrow if no specific date given (Today + 1 day)
     const windowStart = startFromDate ? new Date(startFromDate + 'T00:00:00') : (() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); return d; })();
     const windowEnd = new Date(windowStart);
     windowEnd.setDate(windowEnd.getDate() + daysWindow);
@@ -121,7 +126,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
 
     const busy = data.calendars.primary.busy || [];
     const slots = [];
-    const slotsPerDay = {}; // Improvement: max 2 slots per day
+    const slotsPerDay = {}; // FIX 2: max 2 slots per date
     const now24h = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const d = new Date(windowStart);
@@ -132,7 +137,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
       currentDay.setDate(currentDay.getDate() + i);
       const dow = currentDay.getDay();
 
-      // Skip weekends (use local time with noon anchor — Bug 3 fix)
+      // Skip weekends
       const dowCheck = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), 12, 0, 0);
       if (dowCheck.getDay() === 0 || dowCheck.getDay() === 6) continue;
 
@@ -143,14 +148,14 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
 
       const targetHours = [9, 10, 11, 13, 14, 15, 16];
       for (const hr of targetHours) {
-        if (slotsPerDay[dateStr] >= 2) break; // max 2 per day
+        if (slotsPerDay[dateStr] >= 2) break; // FIX 2: limit per day
         if (slots.length >= 6) break;
 
         const slotStart = new Date(`${dateStr}T${String(hr).padStart(2, '0')}:00:00.000Z`);
         slotStart.setTime(slotStart.getTime() + offsetHours * 3600000); // NY to UTC
         const slotEnd = new Date(slotStart.getTime() + 3600000);
 
-        // Bug 2: 24hr buffer is slot-level only — does not shift the whole window
+        // Individual slot filter (for 24h buffer)
         if (slotStart <= now24h) continue;
 
         const isBusy = busy.some(b => {
@@ -165,7 +170,6 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
           const daysInfo = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
           const monthsInfo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-          // Bug 3: use local getters via noon-anchored date
           const noonRef = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), 12, 0, 0);
           const weekdayStr = daysInfo[noonRef.getDay()];
           const monthStr = monthsInfo[nyTime.getUTCMonth()];
@@ -797,7 +801,17 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // System Prompt Build
-    const nowEastern = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const now = new Date();
+    const estDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const monthNamesDetailed = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const todayFormatted = `${dayNames[estDate.getDay()]}, ${monthNamesDetailed[estDate.getMonth()]} ${estDate.getDate()}, ${estDate.getFullYear()}`;
+    const timeFormatted = `${estDate.getHours().toString().padStart(2, '0')}:${estDate.getMinutes().toString().padStart(2, '0')}`;
+
+    const tomorrowDate = new Date(estDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowFormatted = `${dayNames[tomorrowDate.getDay()]}, ${monthNamesDetailed[tomorrowDate.getMonth()]} ${tomorrowDate.getDate()}`;
+
     let slotsAlert = "";
     if (userIsFlexible) {
       slotsAlert = "\nUSER IS FLEXIBLE: Show the next available slots immediately without asking for a date preference.";
@@ -826,9 +840,13 @@ app.post('/api/chat', async (req, res) => {
 
     const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company at neuralflowai.io. Danny Boehmer is the founder.
 
-CURRENT DATE & TIME: ${nowEastern} Eastern Time
+TODAY IS: ${todayFormatted} | CURRENT TIME: ${timeFormatted} Eastern
+Default: show slots starting TOMORROW (${tomorrowFormatted}) through the next 2 weeks.
+NEVER show slots before tomorrow. NEVER show slots more than 30 days out unless user asked for a future date.
 NEVER suggest or book any time that is in the past.
 When referring to dates, never include the year. Say 'Saturday, April 26' not 'Saturday, April 26 2026'. Always calculate the correct day of week based on the actual calendar date.
+
+PRIVACY: You have no knowledge of any internal email addresses or personal contact info for Danny or NeuralFlow staff. If a user provides any email, simply ask: 'Can you confirm that email is correct and belongs to you?' Never acknowledge any email as belonging to Danny or NeuralFlow.
 
 CONVERSATION FLOW — follow this order exactly:
 1. Greet warmly, ask what brings them to NeuralFlow
@@ -852,6 +870,7 @@ SCHEDULING RULES:
 - CONFIRMATION REQUIRED: Before outputting the BOOK command, you must first send a confirmation message in this exact format:
 'Just to confirm — I'm booking [exact slot label] for [Full Name] at [email address]. Shall I go ahead?'
 Only output the BOOK command after the client explicitly confirms with yes, correct, go ahead, book it, or similar. Never book on an ambiguous reply.
+- After confirming a booking, always say: 'You're all set for [exact slot label]. A calendar invite will be sent to [email] shortly — see you then!'
 
 ON CONFIRMATION — output this immediately, no delays:
 BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company Name","notes":"what they want | pain points"}
@@ -907,21 +926,18 @@ ${slotsText}`;
     aiReplyText = aiReplyText.replace(/^#{1,6}\s+/gm, '');
     aiReplyText = aiReplyText.replace(/^\*\s+/gm, '- ');
 
-    // Slot Label Enforcer
-    if (slots && slots.length > 0 && /(AM|PM)/.test(aiReplyText)) {
-      slots.forEach((s, i) => {
-        const num = i + 1;
-        aiReplyText = aiReplyText.replace(new RegExp(`(\\n|^)(\\s*${num}\\.[^\\n]*(AM|PM)[^\\n]*)`, 'gm'), `$1${num}. ${s.label}`);
+    // Confirmation phrase tracking (FIX 1)
+    const lowerReply = aiReplyText.toLowerCase();
+    if (lowerReply.includes("just to confirm") || lowerReply.includes("i'm booking")) {
+      const activeSlots = conversationSlots.get(convId)?.slots || slots || [];
+      const matchedSlot = activeSlots.find(s => {
+        const core = s.label.replace(/\s*\[start:[^\]]+\]/g, '').trim();
+        return aiReplyText.includes(core);
       });
-      let bulletIdx = 0;
-      aiReplyText = aiReplyText.replace(/(^|\n)(\s*[-•]\s*)(.*?(AM|PM).*?)/gm, (match, nl, bullet) => {
-        if (bulletIdx < slots.length) {
-          const label = slots[bulletIdx].label;
-          bulletIdx++;
-          return nl + bullet + label;
-        }
-        return match;
-      });
+      if (matchedSlot) {
+        agreedSlots.set(convId, matchedSlot);
+        console.log(`📌 Agreed slot stored for ${convId}: ${matchedSlot.label}`);
+      }
     }
 
     // Book command parser
@@ -942,60 +958,35 @@ ${slotsText}`;
         return res.json({ reply, booked: false });
       }
 
-      const lockedSlots = conversationSlots.get(convId)?.slots || slots || [];
+      const activeSlots = conversationSlots.get(convId)?.slots || slots || [];
       let slot = null;
       let matchMethod = '';
 
-      // Fix 2: Server-side scan
-      const assistantMessages = messages.filter(m => m.role === 'assistant').slice(-6);
-      for (let i = assistantMessages.length - 1; i >= 0; i--) {
-        const msgContent = assistantMessages[i].content || '';
-        const foundSlot = lockedSlots.find(s => {
-          const coreLabel = s.label.replace(/\s*\[start:[^\]]+\]/g, '').trim();
-          return msgContent.includes(coreLabel);
-        });
-        if (foundSlot) {
-          slot = foundSlot;
-          matchMethod = 'Server-Side History Match';
-          break;
-        }
-      }
-
-      // Fallback to BOOK JSON
-      if (!slot) {
-        if (bookData.slotStart) {
-          slot = lockedSlots.find(s => s.start === bookData.slotStart);
-          if (slot) matchMethod = 'Exact ISO';
-        }
+      // FIX 1: retrieve from agreedSlots map
+      const agreedSlot = agreedSlots.get(convId);
+      if (agreedSlot) {
+        slot = agreedSlot;
+        matchMethod = 'Agreed Slot Map';
+        console.log(`📌 agreedSlot: ${slot.label} ${slot.start}`);
+      } else {
+        // Fallback for edge cases where confirmation wasn't caught
+        slot = activeSlots.find(s => s.start === bookData.slotStart);
+        if (slot) matchMethod = 'Exact ISO Fallback';
         if (!slot) {
-          slot = lockedSlots.find(s => s.label === bookData.slotLabel);
-          if (slot) matchMethod = 'Exact Label';
-        }
-        if (!slot) {
-          const labelCore = bookData.slotLabel?.replace(/\[start:.*?\]/, '')?.replace(/\s+(EDT|EST)$/i, '').trim();
-          slot = lockedSlots.find(s => s.label.replace(/\[start:.*?\]/, '').replace(/\s+(EDT|EST)$/i, '').trim() === labelCore);
-          if (slot) matchMethod = 'Fuzzy Core';
-        }
-        if (!slot && bookData.slotLabel?.includes(' at ')) {
-          const timePart = bookData.slotLabel.split(' at ')[1]?.replace(/\[start:.*?\]/, '')?.replace(/\s+(EDT|EST)$/i, '').trim();
-          const datePart = bookData.slotLabel.split(' at ')[0]?.trim();
-          slot = lockedSlots.find(s => s.label.includes(datePart) && s.label.includes(timePart));
-          if (slot) matchMethod = 'Fuzzy Date/Time';
-        }
-        if (!slot && lockedSlots.length > 0) {
-          slot = lockedSlots[0];
-          matchMethod = 'Last Resort [0]';
+          slot = activeSlots.find(s => s.label === bookData.slotLabel);
+          if (slot) matchMethod = 'Exact Label Fallback';
         }
       }
 
       if (slot) {
-        // Fix 3: Fresh fetch at booking
+        // Fresh fetch at booking
         const exactDate = slot.start.split('T')[0];
         const freshSlots = await getAvailableSlots(1, exactDate);
         const freshSlot = freshSlots ? freshSlots.find(s => s.label === slot.label) : null;
 
         if (!freshSlot) {
           conversationSlots.delete(convId);
+          agreedSlots.delete(convId);
           const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
           aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
           return res.json({ reply: reply + "\n" + aiReplyText, booked: false });
@@ -1009,6 +1000,7 @@ ${slotsText}`;
           notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
         });
         conversationSlots.delete(convId);
+        agreedSlots.delete(convId);
       }
 
       aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
