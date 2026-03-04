@@ -149,7 +149,7 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
           return slotStart < be && slotEnd > bs;
         });
 
-        if (!isBusy && slotStart > new Date()) {
+        if (!isBusy && slotStart > new Date(Date.now() + 24 * 60 * 60 * 1000)) {
           const nyTime = new Date(slotStart.getTime() - offsetHours * 3600000);
 
           const daysInfo = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -491,9 +491,19 @@ app.post('/api/chat', async (req, res) => {
     } else if (weekendNote) {
       slotsAlert = "\nNOTE: The client asked for a weekend. Slots below are for the nearest available weekday instead. Tell the client: 'We don't have weekend availability — here are the closest times:'";
     }
-    const slotsText = slots && slots.length > 0
-      ? `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => `${i + 1}. ${s.label} [start:${s.start}]`).join('\n')}`
-      : "CALENDAR UNAVAILABLE: Do NOT invent times. Tell the client: 'Let me check Danny's calendar — can I get your email so we can confirm a time?'";
+
+    const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
+    let slotsText;
+
+    if (!hasEmail) {
+      slotsText = "GATE: Do not show any available times yet. You must first collect the client's Full Name, Email, and Company. You have not collected their email yet.";
+    } else if (!slots) {
+      slotsText = "CALENDAR OFFLINE: Tell the client warmly: 'Our scheduling system is having a brief hiccup — no worries! Can I grab your email and I'll personally send you a few available times within the hour?' Then collect their email and preferred timeframe. End with: 'Perfect, I'll have Danny reach out shortly with available times.'";
+    } else if (slots.length > 0) {
+      slotsText = `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => `${i + 1}. ${s.label} [start:${s.start}]`).join('\n')}`;
+    } else {
+      slotsText = "CALENDAR UNAVAILABLE: Do NOT invent times. Tell the client: 'Let me check Danny's calendar — can I get your email so we can confirm a time?'";
+    }
 
     const tzNote = clientTimezone
       ? `\n- When confirming a slot, tell the client: 'I've found a time at [Time] ${clientTimezone}. Should I send the invite to [Email]?'`
@@ -519,6 +529,7 @@ SCHEDULING RULES:
 - If the client asks for a time NOT in the list, that time is already booked. Say: "That time's taken — here's what's still open:" then list the available slots
 - Never say a whole day is unavailable if there are slots listed for that day
 - Never invent or add slots that are not in the list${tzNote}
+- BOOKING BUFFER: Never offer any slot less than 24 hours from now. If client asks for very soon, say: 'I want to make sure Danny has time to prepare — here are the next available times:'
 - CRITICAL: The time you tell the client IS the time that will be booked. Never confirm a time verbally and then output a different slotStart in the BOOK command. The slotStart must always be the [start:...] value from the exact slot you told the client about.
 - When outputting the BOOK command, copy the [start:...] value from the chosen slot exactly into the slotStart field.
 - CONFIRMATION REQUIRED: Before outputting the BOOK command, you must first send a confirmation message in this exact format:
