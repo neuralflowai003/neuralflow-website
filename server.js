@@ -82,7 +82,7 @@ function getNYOffset(date) {
 }
 
 // ─── Slot Fetching ────────────────────────────────────────────────────────────
-async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
+async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
   if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
 
   if (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000) {
@@ -96,8 +96,8 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
   try {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-    // Determine bounds for freebusy
-    const windowStart = startFromDate ? new Date(startFromDate) : new Date();
+    // Window starts from tomorrow if no specific date given
+    const windowStart = startFromDate ? new Date(startFromDate + 'T00:00:00') : (() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); return d; })();
     const windowEnd = new Date(windowStart);
     windowEnd.setDate(windowEnd.getDate() + daysWindow);
 
@@ -121,27 +121,37 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
 
     const busy = data.calendars.primary.busy || [];
     const slots = [];
+    const slotsPerDay = {}; // Improvement: max 2 slots per day
+    const now24h = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const d = startFromDate ? new Date(startFromDate) : new Date();
+    const d = new Date(windowStart);
     d.setHours(0, 0, 0, 0);
-    const startIdx = startFromDate ? 0 : 1;
 
-    for (let i = startIdx; i <= daysWindow && slots.length < 6; i++) {
+    for (let i = 0; i <= daysWindow && slots.length < 6; i++) {
       const currentDay = new Date(d);
       currentDay.setDate(currentDay.getDate() + i);
       const dow = currentDay.getDay();
 
-      // Skip weekends
-      if (dow === 0 || dow === 6) continue;
+      // Skip weekends (use local time with noon anchor — Bug 3 fix)
+      const dowCheck = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), 12, 0, 0);
+      if (dowCheck.getDay() === 0 || dowCheck.getDay() === 6) continue;
 
       const { hours: offsetHours, abbr } = getNYOffset(currentDay);
       const dateStr = `${currentDay.getFullYear()}-${String(currentDay.getMonth() + 1).padStart(2, '0')}-${String(currentDay.getDate()).padStart(2, '0')}`;
 
+      if (!slotsPerDay[dateStr]) slotsPerDay[dateStr] = 0;
+
       const targetHours = [9, 10, 11, 13, 14, 15, 16];
       for (const hr of targetHours) {
+        if (slotsPerDay[dateStr] >= 2) break; // max 2 per day
+        if (slots.length >= 6) break;
+
         const slotStart = new Date(`${dateStr}T${String(hr).padStart(2, '0')}:00:00.000Z`);
         slotStart.setTime(slotStart.getTime() + offsetHours * 3600000); // NY to UTC
         const slotEnd = new Date(slotStart.getTime() + 3600000);
+
+        // Bug 2: 24hr buffer is slot-level only — does not shift the whole window
+        if (slotStart <= now24h) continue;
 
         const isBusy = busy.some(b => {
           const bs = new Date(b.start);
@@ -149,13 +159,15 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
           return slotStart < be && slotEnd > bs;
         });
 
-        if (!isBusy && slotStart > new Date(Date.now() + 24 * 60 * 60 * 1000)) {
+        if (!isBusy) {
           const nyTime = new Date(slotStart.getTime() - offsetHours * 3600000);
 
           const daysInfo = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
           const monthsInfo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-          const weekdayStr = daysInfo[nyTime.getUTCDay()];
+          // Bug 3: use local getters via noon-anchored date
+          const noonRef = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), 12, 0, 0);
+          const weekdayStr = daysInfo[noonRef.getDay()];
           const monthStr = monthsInfo[nyTime.getUTCMonth()];
           const dateDayStr = nyTime.getUTCDate();
           let hour12 = nyTime.getUTCHours();
@@ -165,7 +177,7 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
 
           const label = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${min} ${ampm} ${abbr}`;
           slots.push({ label, start: slotStart.toISOString(), end: slotEnd.toISOString() });
-          if (slots.length >= 6) break;
+          slotsPerDay[dateStr]++;
         }
       }
     }
@@ -180,6 +192,7 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
 async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
   slotLabel = slotLabel.replace(/\s*\[start:[^\]]+\]/g, '').trim();
   let meetLink = null;
+  let eventHtmlLink = null;
 
   let pricingDetails = 'Implementation: $TBD\nMonthly: $TBD/mo\nROI: TBD';
   let objections = '';
@@ -261,9 +274,113 @@ Industry: [their likely industry]
   // Google Calendar URL helper
   const toGCalDate = (iso) => iso ? iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '') : '';
   const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Consultation+with+NeuralFlow&dates=${toGCalDate(slotStart)}/${toGCalDate(slotEnd)}&details=Strategy+session+with+Danny+Boehmer+%7C+neuralflowai.io&location=${encodeURIComponent(meetLink || '')}`;
+  const calEventUrl = eventHtmlLink || 'https://calendar.google.com/calendar/r/eventedit';
 
   const leadNotes = notes ? notes.split('|')[0]?.trim() || '' : '';
   const leadPain = notes ? notes.split('|')[1]?.trim() || '' : '';
+
+  // ── Google Calendar Event Insert ──────────────────────────────────────────────
+  if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+    // Always refresh token immediately before insert (Bug 5)
+    try {
+      const result = await oauth2Client.getAccessToken();
+      if (result && result.token) {
+        cachedAccessToken = result.token;
+        tokenExpiresAt = result.res?.data?.expiry_date || (Date.now() + 3500000);
+      }
+    } catch (e) {
+      console.error('⚠️ Token refresh before calendar insert failed:', e.message);
+    }
+
+    const structuredDesc = `🧑 LEAD\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n🎯 WHAT THEY WANT\n${leadNotes}\n\n⚠️ PAIN POINTS\n${leadPain}\n\n💰 RECOMMENDED PRICING\n${pricingDetails}\n\n📋 PREP NOTES\n- Review their industry and look for relevant NeuralFlow case studies\n- Come with 2-3 specific automation ideas for their use case\n- Be ready to discuss timeline and next steps\n\n🤖 Booked via ARIA | neuralflowai.io`;
+
+    let eventData = null;
+    const delays = [2000, 4000, 8000];
+
+    for (let i = 0; i < 3; i++) {
+      try {
+        console.log(`📅 Creating calendar event... (attempt ${i + 1})`);
+        const res = await Promise.race([
+          calendar.events.insert({
+            calendarId: 'primary',       // Bug 5: always primary
+            sendUpdates: 'none',
+            conferenceDataVersion: 1,    // Bug 5: query param, not in body
+            requestBody: {
+              summary: `Consultation: ${name} (${company}) x NeuralFlowAI`,
+              description: structuredDesc,
+              start: { dateTime: slotStart, timeZone: 'America/New_York' },
+              end: { dateTime: slotEnd, timeZone: 'America/New_York' },
+              attendees: [{ email: process.env.GMAIL_USER }],
+              conferenceData: {
+                createRequest: {
+                  requestId: `nf-${Date.now()}`,
+                  conferenceSolutionKey: { type: 'hangoutsMeet' },
+                },
+              },
+            },
+          }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+        ]);
+        eventData = res.data;
+        console.log(`✅ Event created: ${eventData.id} | ${eventData.htmlLink}`);
+        console.log('Full event response:', JSON.stringify({ id: eventData.id, status: eventData.status, conferenceData: eventData.conferenceData }, null, 2));
+        break;
+      } catch (err) {
+        console.error(`❌ Calendar insert failed (attempt ${i + 1}):`, err.message, err.response?.data);
+        if (i < 2) await new Promise(r => setTimeout(r, delays[i]));
+      }
+    }
+
+    if (eventData) {
+      // Bug 6: extract Meet link from conferenceData.entryPoints (not just hangoutLink)
+      meetLink = eventData.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri
+        || eventData.conferenceData?.entryPoints?.[0]?.uri
+        || eventData.hangoutLink
+        || null;
+      eventHtmlLink = eventData.htmlLink || null;
+      console.log('📹 Meet link:', meetLink);
+      console.log('📅 Event link:', eventHtmlLink);
+
+      // Bug 7: verify event exists in calendar, retry once if not
+      try {
+        await calendar.events.get({ calendarId: 'primary', eventId: eventData.id });
+        console.log('✅ Event verified in calendar');
+      } catch (verErr) {
+        console.warn('⚠️ Event verification failed — retrying insert once...');
+        try {
+          await new Promise(r => setTimeout(r, 2000));
+          const retryRes = await calendar.events.insert({
+            calendarId: 'primary',
+            sendUpdates: 'none',
+            conferenceDataVersion: 1,
+            requestBody: {
+              summary: `Consultation: ${name} (${company}) x NeuralFlowAI`,
+              description: structuredDesc,
+              start: { dateTime: slotStart, timeZone: 'America/New_York' },
+              end: { dateTime: slotEnd, timeZone: 'America/New_York' },
+              attendees: [{ email: process.env.GMAIL_USER }],
+              conferenceData: {
+                createRequest: {
+                  requestId: `nf-retry-${Date.now()}`,
+                  conferenceSolutionKey: { type: 'hangoutsMeet' },
+                },
+              },
+            },
+          });
+          eventData = retryRes.data;
+          meetLink = eventData.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri
+            || eventData.conferenceData?.entryPoints?.[0]?.uri
+            || eventData.hangoutLink || meetLink;
+          eventHtmlLink = eventData.htmlLink || eventHtmlLink;
+          console.log('✅ Retry event created:', eventData.id);
+        } catch (retryErr) {
+          console.error('❌ Retry insert also failed:', retryErr.message);
+        }
+      }
+    }
+  }
 
   // ── Shared style tokens ──────────────────────────────────────────────────────
   const bg = '#0a0a0f';
@@ -275,7 +392,7 @@ Industry: [their likely industry]
 
   // ── Client Confirmation Email ────────────────────────────────────────────────
   const clientHtml = `
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Consultation Confirmed</title></head>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><style>@media(prefers-color-scheme:light){body,table,td{background-color:#0a0a0f!important;color:#ffffff!important}}@media only screen and (max-width:600px){.email-container{width:100%!important}}</style><title>Consultation Confirmed</title></head>
 <body style="margin:0;padding:0;background:#06060b;font-family:${ff};">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#06060b;padding:32px 16px;">
   <tr><td align="center">
@@ -319,7 +436,9 @@ Industry: [their likely industry]
             <tr>
               <td style="padding:10px 0;">
                 <span style="font-size:13px;color:${textMuted};">📹 Google Meet</span><br>
-                <a href="${meetLink || '#'}" style="font-size:15px;font-weight:600;color:${accent};text-decoration:none;">${meetLink || 'Link coming shortly'}</a>
+                ${meetLink
+      ? `<a href="${meetLink}" style="font-size:15px;font-weight:600;color:${accent};text-decoration:none;">${meetLink}</a>`
+      : `<span style="font-size:15px;color:${textMuted};">Google Meet link will be sent separately</span>`}
               </td>
             </tr>
           </table>
@@ -332,7 +451,9 @@ Industry: [their likely industry]
       <table cellpadding="0" cellspacing="0">
         <tr>
           <td style="padding-right:12px;">
-            <a href="${meetLink || '#'}" style="display:inline-block;background:${accent};color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 24px;border-radius:8px;letter-spacing:0.3px;">Join Google Meet →</a>
+            ${meetLink
+      ? `<a href="${meetLink}" style="display:inline-block;background:${accent};color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 24px;border-radius:8px;letter-spacing:0.3px;">Join Google Meet →</a>`
+      : `<span style="display:inline-block;background:#333;color:#888;font-size:14px;font-weight:700;padding:13px 24px;border-radius:8px;">Meet link coming shortly</span>`}
           </td>
           <td>
             <a href="${gcalUrl}" style="display:inline-block;background:transparent;color:${accent};font-size:14px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;border:1.5px solid ${accent};letter-spacing:0.3px;">Add to Calendar</a>
@@ -447,7 +568,7 @@ Industry: [their likely industry]
       <table cellpadding="0" cellspacing="0">
         <tr>
           <td style="padding-right:12px;">
-            <a href="https://calendar.google.com" style="display:inline-block;background:${accent};color:#fff;font-size:13px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:8px;">View Calendar Event</a>
+            <a href="${calEventUrl}" style="display:inline-block;background:${accent};color:#fff;font-size:13px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:8px;">View Calendar Event</a>
           </td>
           <td>
             <a href="mailto:${email}" style="display:inline-block;background:transparent;color:${accent};font-size:13px;font-weight:700;text-decoration:none;padding:11px 22px;border-radius:8px;border:1.5px solid ${accent};">Reply to Lead</a>
