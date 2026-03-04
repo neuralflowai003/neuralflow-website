@@ -44,6 +44,29 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000);
 
+// ─── Global Slots Cache ───────────────────────────────────────────────────────
+let globalSlotCache = null;
+let globalSlotCacheUpdatedAt = 0;
+
+async function refreshGlobalSlotCache() {
+  try {
+    const slots = await getAvailableSlots(7, null);
+    if (slots && slots.length > 0) {
+      globalSlotCache = slots;
+      globalSlotCacheUpdatedAt = Date.now();
+      console.log('🔄 Background cache refresh — slots:', slots.length);
+    }
+  } catch (e) {
+    console.error('⚠️ Global cache refresh failed:', e.message);
+  }
+}
+refreshGlobalSlotCache();
+setInterval(refreshGlobalSlotCache, 2 * 60 * 1000);
+
+// ─── Cached OAuth Token ───────────────────────────────────────────────────────
+let cachedAccessToken = null;
+let tokenExpiresAt = 0;
+
 // ─── Helper: DST-Aware NY Offset ──────────────────────────────────────────────
 function getNYOffset(date) {
   const year = date.getUTCFullYear();
@@ -62,8 +85,13 @@ function getNYOffset(date) {
 async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
   if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
 
-  // Bug 2 - Force Token Refresh on API call
-  await oauth2Client.getAccessToken().catch(e => console.log('token refresh err', e.message));
+  if (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000) {
+    const result = await oauth2Client.getAccessToken().catch(e => console.log('token refresh err', e.message));
+    if (result && result.token) {
+      cachedAccessToken = result.token;
+      tokenExpiresAt = result.res?.data?.expiry_date || (Date.now() + 3500000);
+    }
+  }
 
   try {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
@@ -135,9 +163,7 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
           hour12 = hour12 % 12 || 12;
           const min = String(nyTime.getUTCMinutes()).padStart(2, '0');
 
-          const labelCore = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${min} ${ampm} ${abbr}`;
-          const label = `${labelCore} [start:${slotStart.toISOString()}]`;
-
+          const label = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${min} ${ampm} ${abbr}`;
           slots.push({ label, start: slotStart.toISOString(), end: slotEnd.toISOString() });
           if (slots.length >= 6) break;
         }
@@ -152,11 +178,75 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
 
 // ─── Booking Logic ────────────────────────────────────────────────────────────
 async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
+  slotLabel = slotLabel.replace(/\s*\[start:[^\]]+\]/g, '').trim();
   let meetLink = null;
+
+  let pricingDetails = "Implementation: $TBD\nMonthly Retainer: $TBD\nEstimated ROI: TBD";
+  if (notes) {
+    try {
+      const parts = notes.split('|');
+      const whatTheyWant = parts[0]?.trim() || '';
+      const painPoints = parts[1]?.trim() || '';
+
+      const pricingPrompt = `Based on this lead's pain points and company, recommend:
+1. A one-time implementation price (range $2,500–$15,000 based on complexity)
+2. A monthly retainer (range $297–$997/mo based on ongoing support needed)
+3. Estimated ROI: how much time/money they could save per month and how long until they break even
+
+Pain points: ${painPoints}
+Company: ${company}
+What they want: ${whatTheyWant}
+
+Reply in this exact format:
+Implementation: $X,XXX
+Monthly: $XXX/mo
+ROI: [1-2 sentence estimate of time/money saved and break-even point]`;
+
+      const pricingRes = await anthropic.messages.create({
+        model: 'claude-haiku-4-5',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: pricingPrompt }]
+      });
+      pricingDetails = pricingRes.content[0].text.trim();
+    } catch (e) {
+      console.log('AI Pricing failed:', e.message);
+    }
+  }
 
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    await oauth2Client.getAccessToken().catch(() => { });
+
+    // Ensure token cache applies here too just in case
+    if (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000) {
+      const result = await oauth2Client.getAccessToken().catch(() => { });
+      if (result && result.token) {
+        cachedAccessToken = result.token;
+        tokenExpiresAt = result.res?.data?.expiry_date || (Date.now() + 3500000);
+      }
+    }
+
+    const leadNotes = notes ? notes.split('|')[0] || '' : '';
+    const leadPain = notes ? notes.split('|')[1] || '' : '';
+    const structuredDesc = `🧑 LEAD
+Name: ${name}
+Email: ${email}
+Company: ${company}
+
+🎯 WHAT THEY WANT
+${leadNotes}
+
+⚠️ PAIN POINTS
+${leadPain}
+
+💰 RECOMMENDED PRICING
+${pricingDetails}
+
+📋 PREP NOTES
+- Review their industry and look for relevant NeuralFlow case studies
+- Come with 2-3 specific automation ideas for their use case
+- Be ready to discuss timeline and next steps
+
+🤖 Booked via ARIA | neuralflowai.io`;
 
     let eventData = null;
     const delays = [2000, 4000, 8000];
@@ -170,7 +260,7 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
             conferenceDataVersion: 1,
             requestBody: {
               summary: `Consultation: ${name} (${company}) x NeuralFlowAI`,
-              description: `Company: ${company}\nPain Points: ${notes}\nBooked via ARIA.`,
+              description: structuredDesc,
               start: { dateTime: slotStart, timeZone: 'America/New_York' },
               end: { dateTime: slotEnd, timeZone: 'America/New_York' },
               attendees: [{ email: process.env.GMAIL_USER }],
@@ -284,6 +374,11 @@ app.post('/api/chat', async (req, res) => {
 
     // Date Detection
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
+
+    // Fix 6: Pre-warm global cache on cold boot message
+    if ((!globalSlotCache || globalSlotCache.length === 0) && messages.length <= 2) {
+      await refreshGlobalSlotCache();
+    }
     let searchFromDate = null;
     let daysWindow = 7;
 
@@ -349,31 +444,25 @@ app.post('/api/chat', async (req, res) => {
     // Cache Logic
     const lockedEntry = conversationSlots.get(convId);
     let slots;
-    let fallbackFetch = false;
 
-    if (lastUserMsg.match(/\byes\b|\bthat works\b|\bsounds good\b/)) {
-      slots = lockedEntry?.slots;
-      if (!slots) fallbackFetch = true;
-    } else if (lockedEntry) {
-      const validCached = lockedEntry.slots.filter(s => new Date(s.start) > new Date());
-      let coversDate = true;
-      if (searchFromDate && validCached.length > 0) {
-        const targetStr = searchFromDate;
-        coversDate = validCached.some(s => s.start.startsWith(targetStr));
-      }
-      if (validCached.length > 0 && coversDate) {
-        slots = validCached;
-      } else {
-        fallbackFetch = true;
-      }
-    } else {
-      fallbackFetch = true;
+    // Use specific validCached array internally when valid
+    const validCached = lockedEntry ? lockedEntry.slots.filter(s => new Date(s.start) > new Date()) : [];
+    let coversDate = true;
+    if (searchFromDate && validCached.length > 0) {
+      coversDate = validCached.some(s => s.start.startsWith(searchFromDate));
     }
 
-    if (fallbackFetch) {
+    if (lockedEntry && validCached.length > 0 && coversDate) {
+      slots = validCached;
+    } else if (searchFromDate) {
+      console.log('🔍 Live fetch for specific date:', searchFromDate);
       slots = await getAvailableSlots(daysWindow, searchFromDate);
-      if (!slots || slots.length === 0) {
-        await new Promise(r => setTimeout(r, 3000));
+    } else {
+      if (globalSlotCache && globalSlotCache.length > 0) {
+        console.log('📦 Using global slot cache:', globalSlotCache.length, 'slots, age:', Math.round((Date.now() - globalSlotCacheUpdatedAt) / 1000), 'sec');
+        slots = globalSlotCache.filter(s => new Date(s.start) > new Date());
+      } else {
+        console.log('🔍 Live fallback fetch (empty global cache)');
         slots = await getAvailableSlots(daysWindow, searchFromDate);
       }
     }
@@ -386,7 +475,7 @@ app.post('/api/chat', async (req, res) => {
     const nowEastern = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
     const slotsAlert = weekendNote ? "\nNOTE: The client asked for a weekend. Slots below are for the nearest available weekday instead. Tell the client: 'We don't have weekend availability — here are the closest times:'" : "";
     const slotsText = slots && slots.length > 0
-      ? `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => `SLOT ${i + 1}: ${s.label}`).join('\n')}`
+      ? `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => `SLOT ${i + 1}: ${s.label} [start:${s.start}]`).join('\n')}`
       : "CALENDAR UNAVAILABLE: Do NOT invent times. Tell the client: 'Let me check Danny's calendar — can I get your email so we can confirm a time?'";
 
     const tzNote = clientTimezone
@@ -563,12 +652,12 @@ ${slotsText}`;
 
         slot = freshSlot;
 
-        console.log(`📌 Booking: ${slot.label} | start: ${slot.start} | method: ${matchMethod} (Fresh Confirmed)`);
+        console.log(`📌 Booking confirmed: ${slot.label} | method: ${matchMethod} (Fresh Confirmed)`);
         await bookAppointment({
           name: bookData.name, email: bookData.email, company: bookData.company,
-          notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label // Fix 1
+          notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
         });
-        conversationSlots.delete(convId); // Fix 4
+        conversationSlots.delete(convId);
       }
 
       aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
