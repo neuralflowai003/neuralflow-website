@@ -528,6 +528,7 @@ SCHEDULING RULES:
 - Never reformat times. "10:00 AM - 11:00 AM ET" is wrong. "tomorrow" is wrong. Copy the label verbatim.
 - If the client asks for a time NOT in the list, that time is already booked. Say: "That time's taken — here's what's still open:" then list the available slots
 - Never say a whole day is unavailable if there are slots listed for that day
+- After listing the available slots, always end with: 'If none of these times work for you, just tell me a date and I'll check if Danny has availability.'
 - Never invent or add slots that are not in the list${tzNote}
 - BOOKING BUFFER: Never offer any slot less than 24 hours from now. If client asks for very soon, say: 'I want to make sure Danny has time to prepare — here are the next available times:'
 - CRITICAL: The time you tell the client IS the time that will be booked. Never confirm a time verbally and then output a different slotStart in the BOOK command. The slotStart must always be the [start:...] value from the exact slot you told the client about.
