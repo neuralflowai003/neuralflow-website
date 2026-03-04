@@ -302,11 +302,19 @@ Industry: [their likely industry]
     for (let i = 0; i < 3; i++) {
       try {
         console.log(`📅 Creating calendar event... (attempt ${i + 1})`);
+
+        // Refresh token immediately before insert (Fix Bug 1)
+        const tokenRes = await oauth2Client.getAccessToken();
+        if (tokenRes && tokenRes.token) {
+          cachedAccessToken = tokenRes.token;
+          tokenExpiresAt = tokenRes.res?.data?.expiry_date || (Date.now() + 3500000);
+        }
+
         const res = await Promise.race([
           calendar.events.insert({
-            calendarId: 'primary',       // Bug 5: always primary
+            calendarId: 'primary',
             sendUpdates: 'none',
-            conferenceDataVersion: 1,    // Bug 5: query param, not in body
+            conferenceDataVersion: 1,
             requestBody: {
               summary: `Consultation: ${name} (${company}) x NeuralFlowAI`,
               description: structuredDesc,
@@ -325,25 +333,21 @@ Industry: [their likely industry]
         ]);
         eventData = res.data;
         console.log(`✅ Event created: ${eventData.id} | ${eventData.htmlLink}`);
-        console.log('Full event response:', JSON.stringify({ id: eventData.id, status: eventData.status, conferenceData: eventData.conferenceData }, null, 2));
         break;
       } catch (err) {
-        console.error(`❌ Calendar insert failed (attempt ${i + 1}):`, err.message, err.response?.data);
+        console.error(`❌ Calendar insert failed (attempt ${i + 1}):`, err);
         if (i < 2) await new Promise(r => setTimeout(r, delays[i]));
       }
     }
 
     if (eventData) {
-      // Bug 6: extract Meet link from conferenceData.entryPoints (not just hangoutLink)
-      meetLink = eventData.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri
-        || eventData.conferenceData?.entryPoints?.[0]?.uri
-        || eventData.hangoutLink
-        || null;
+      // Fix Bug 1 & 2: extract Meet link
+      meetLink = eventData.conferenceData?.entryPoints?.[0]?.uri || null;
       eventHtmlLink = eventData.htmlLink || null;
       console.log('📹 Meet link:', meetLink);
       console.log('📅 Event link:', eventHtmlLink);
 
-      // Bug 7: verify event exists in calendar, retry once if not
+      // Verify event exists in calendar, retry once if not
       try {
         await calendar.events.get({ calendarId: 'primary', eventId: eventData.id });
         console.log('✅ Event verified in calendar');
@@ -370,13 +374,11 @@ Industry: [their likely industry]
             },
           });
           eventData = retryRes.data;
-          meetLink = eventData.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri
-            || eventData.conferenceData?.entryPoints?.[0]?.uri
-            || eventData.hangoutLink || meetLink;
+          meetLink = eventData.conferenceData?.entryPoints?.[0]?.uri || null;
           eventHtmlLink = eventData.htmlLink || eventHtmlLink;
           console.log('✅ Retry event created:', eventData.id);
         } catch (retryErr) {
-          console.error('❌ Retry insert also failed:', retryErr.message);
+          console.error('❌ Retry insert also failed:', retryErr);
         }
       }
     }
