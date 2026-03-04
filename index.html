@@ -1535,7 +1535,7 @@
       opacity: 0;
       pointer-events: none;
       transform: translateY(20px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.3s ease, transform 0.3s ease, width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, bottom 0.3s ease;
       overflow: hidden;
     }
 
@@ -1564,7 +1564,7 @@
     }
 
     .chat-expand-btn {
-      background: none;
+      background: transparent;
       border: none;
       color: rgba(255, 255, 255, 0.5);
       cursor: pointer;
@@ -4294,8 +4294,10 @@
         </div>
         <div class="chat-subtitle">NeuralFlow AI Receptionist</div>
       </div>
-      <button class="chat-expand-btn" id="chatExpandBtn" title="Expand chat">&#x26F6;</button>
-      <button class="chat-close" id="chatCloseBtn">&times;</button>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="chat-expand-btn" id="chatExpandBtn" title="Expand chat">&#x26F6;</button>
+        <button class="chat-close" id="chatCloseBtn">&times;</button>
+      </div>
     </div>
     <div class="chat-messages" id="chatMessages">
       <!-- Chat history goes here -->
