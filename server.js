@@ -38,11 +38,11 @@ app.use(express.static(path.join(__dirname, '')));
 // ─── Conversation Cache ───────────────────────────────────────────────────────
 const conversationSlots = new Map();
 setInterval(() => {
-  const expiry = Date.now() - 30 * 60 * 1000;
+  const expiry = Date.now() - 10 * 60 * 1000;
   for (const [key, val] of conversationSlots.entries()) {
     if (val.fetchedAt < expiry) conversationSlots.delete(key);
   }
-}, 30 * 60 * 1000);
+}, 10 * 60 * 1000);
 
 // ─── Helper: DST-Aware NY Offset ──────────────────────────────────────────────
 function getNYOffset(date) {
@@ -489,7 +489,13 @@ ${slotsText}`;
     // Book command parser
     const bookMatch = aiReplyText.match(/BOOK:(\{[^{}]*\})/);
     if (bookMatch) {
-      const bookData = JSON.parse(bookMatch[1]);
+      let bookData;
+      try {
+        bookData = JSON.parse(bookMatch[1]);
+      } catch (e) {
+        console.error('Failed to parse BOOK JSON:', e.message);
+        return res.json({ reply: 'Sorry, I had trouble parsing that. Could you confirm the email again?', booked: false });
+      }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!bookData.email || !emailRegex.test(bookData.email)) {
@@ -499,48 +505,79 @@ ${slotsText}`;
       }
 
       const lockedSlots = conversationSlots.get(convId)?.slots || slots || [];
-
       let slot = null;
       let matchMethod = '';
 
-      if (bookData.slotStart) {
-        slot = lockedSlots.find(s => s.start === bookData.slotStart);
-        if (slot) matchMethod = 'Exact ISO';
+      // Fix 2: Server-side scan
+      const assistantMessages = messages.filter(m => m.role === 'assistant').slice(-6);
+      for (let i = assistantMessages.length - 1; i >= 0; i--) {
+        const msgContent = assistantMessages[i].content || '';
+        const foundSlot = lockedSlots.find(s => {
+          const coreLabel = s.label.replace(/\s*\[start:[^\]]+\]/g, '').trim();
+          return msgContent.includes(coreLabel);
+        });
+        if (foundSlot) {
+          slot = foundSlot;
+          matchMethod = 'Server-Side History Match';
+          break;
+        }
       }
 
+      // Fallback to BOOK JSON
       if (!slot) {
-        slot = lockedSlots.find(s => s.label === bookData.slotLabel);
-        if (slot) matchMethod = 'Exact Label';
-      }
-      if (!slot) {
-        const labelCore = bookData.slotLabel?.replace(/\[start:.*?\]/, '')?.replace(/\s+(EDT|EST)$/i, '').trim();
-        slot = lockedSlots.find(s => s.label.replace(/\[start:.*?\]/, '').replace(/\s+(EDT|EST)$/i, '').trim() === labelCore);
-        if (slot) matchMethod = 'Fuzzy Core';
-      }
-      if (!slot && bookData.slotLabel?.includes(' at ')) {
-        const timePart = bookData.slotLabel.split(' at ')[1]?.replace(/\[start:.*?\]/, '')?.replace(/\s+(EDT|EST)$/i, '').trim();
-        const datePart = bookData.slotLabel.split(' at ')[0]?.trim();
-        slot = lockedSlots.find(s => s.label.includes(datePart) && s.label.includes(timePart));
-        if (slot) matchMethod = 'Fuzzy Date/Time';
-      }
-
-      if (!slot && lockedSlots.length > 0) {
-        slot = lockedSlots[0];
-        matchMethod = 'Last Resort [0]';
+        if (bookData.slotStart) {
+          slot = lockedSlots.find(s => s.start === bookData.slotStart);
+          if (slot) matchMethod = 'Exact ISO';
+        }
+        if (!slot) {
+          slot = lockedSlots.find(s => s.label === bookData.slotLabel);
+          if (slot) matchMethod = 'Exact Label';
+        }
+        if (!slot) {
+          const labelCore = bookData.slotLabel?.replace(/\[start:.*?\]/, '')?.replace(/\s+(EDT|EST)$/i, '').trim();
+          slot = lockedSlots.find(s => s.label.replace(/\[start:.*?\]/, '').replace(/\s+(EDT|EST)$/i, '').trim() === labelCore);
+          if (slot) matchMethod = 'Fuzzy Core';
+        }
+        if (!slot && bookData.slotLabel?.includes(' at ')) {
+          const timePart = bookData.slotLabel.split(' at ')[1]?.replace(/\[start:.*?\]/, '')?.replace(/\s+(EDT|EST)$/i, '').trim();
+          const datePart = bookData.slotLabel.split(' at ')[0]?.trim();
+          slot = lockedSlots.find(s => s.label.includes(datePart) && s.label.includes(timePart));
+          if (slot) matchMethod = 'Fuzzy Date/Time';
+        }
+        if (!slot && lockedSlots.length > 0) {
+          slot = lockedSlots[0];
+          matchMethod = 'Last Resort [0]';
+        }
       }
 
       if (slot) {
-        console.log(`📌 Booking: \${slot.label} | start: \${slot.start} | method: \${matchMethod}`);
+        // Fix 3: Fresh fetch at booking
+        const exactDate = slot.start.split('T')[0];
+        const freshSlots = await getAvailableSlots(1, exactDate);
+        const freshSlot = freshSlots ? freshSlots.find(s => s.label === slot.label) : null;
+
+        if (!freshSlot) {
+          conversationSlots.delete(convId);
+          const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
+          aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
+          return res.json({ reply: reply + "\n" + aiReplyText, booked: false });
+        }
+
+        slot = freshSlot;
+
+        console.log(`📌 Booking: ${slot.label} | start: ${slot.start} | method: ${matchMethod} (Fresh Confirmed)`);
         await bookAppointment({
           name: bookData.name, email: bookData.email, company: bookData.company,
-          notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label.replace(/\s*\[start:[^\]]+\]/g, '').trim()
+          notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label // Fix 1
         });
-        conversationSlots.delete(convId);
+        conversationSlots.delete(convId); // Fix 4
       }
 
       aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
       return res.json({ reply: aiReplyText, booked: true });
     }
+
+    aiReplyText = aiReplyText.replace(/\[start:[^\]]+\]/g, '').trim();
 
     aiReplyText = aiReplyText.replace(/\[start:[^\]]+\]/g, '').trim();
     res.json({ reply: aiReplyText });
