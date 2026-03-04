@@ -398,7 +398,7 @@ BOOK:{"slotLabel": "EXACT label copied from slot list", "slotIndex": N, "name": 
 
 Then say: "Perfect! Booking that now — you'll get a calendar invite at [email] shortly!"
 
-Keep responses to 2–3 sentences. Be warm and professional. Pricing starts at $2,500.
+Keep responses to 2–3 sentences. Be warm and professional. Do NOT mention any pricing.
 ${slotsText}`;
 
     let response;
