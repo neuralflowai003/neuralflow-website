@@ -1539,6 +1539,49 @@
       overflow: hidden;
     }
 
+    .chat-window.chat-expanded {
+      width: 700px;
+      height: 600px;
+      bottom: auto;
+      right: auto;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) !important;
+      z-index: 100000;
+      border-radius: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .chat-window.chat-expanded {
+        width: 95vw;
+        height: 85vh;
+        left: 50%;
+        top: 50%;
+        right: auto;
+        bottom: auto;
+        transform: translate(-50%, -50%) !important;
+      }
+    }
+
+    .chat-expand-btn {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 6px;
+      margin-right: 4px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color 0.2s ease, background 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .chat-expand-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
     .chat-window.active {
       opacity: 1;
       pointer-events: all;
@@ -4251,6 +4294,7 @@
         </div>
         <div class="chat-subtitle">NeuralFlow AI Receptionist</div>
       </div>
+      <button class="chat-expand-btn" id="chatExpandBtn" title="Expand chat">&#x26F6;</button>
       <button class="chat-close" id="chatCloseBtn">&times;</button>
     </div>
     <div class="chat-messages" id="chatMessages">
@@ -4604,6 +4648,13 @@
 
     chatBtn.addEventListener('click', toggleChat);
     chatCloseBtn.addEventListener('click', toggleChat);
+
+    const chatExpandBtn = document.getElementById('chatExpandBtn');
+    chatExpandBtn.addEventListener('click', () => {
+      const isExpanded = chatWindow.classList.toggle('chat-expanded');
+      chatExpandBtn.innerHTML = isExpanded ? '&#x2715;' : '&#x26F6;';
+      chatExpandBtn.title = isExpanded ? 'Collapse chat' : 'Expand chat';
+    });
 
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
