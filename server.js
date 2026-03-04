@@ -55,7 +55,7 @@ let globalSlotCacheUpdatedAt = 0;
 
 async function refreshGlobalSlotCache() {
   try {
-    const slots = await getAvailableSlots(7, null);
+    const slots = await getAvailableSlots(90, null);
     if (slots && slots.length > 0) {
       globalSlotCache = slots;
       globalSlotCacheUpdatedAt = Date.now();
@@ -725,7 +725,7 @@ app.post('/api/chat', async (req, res) => {
             if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
             d.setDate(dayNum);
             if (d < new Date(new Date().setHours(0, 0, 0, 0))) d.setFullYear(d.getFullYear() + 1);
-            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1;
+            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
           }
         } else {
           for (const [i, month] of monthNames.entries()) {
@@ -754,16 +754,16 @@ app.post('/api/chat', async (req, res) => {
     }
 
     let weekendNote = false;
+    let weekendRedirectDate = null;
     if (searchFromDate) {
       const d = new Date(searchFromDate + "T12:00:00");
       const day = d.getDay();
-      if (day === 0) {
-        d.setDate(d.getDate() + 1);
+      if (day === 0 || day === 6) {
+        const originalDate = searchFromDate;
+        if (day === 0) d.setDate(d.getDate() + 1); // Sunday -> Monday
+        else d.setDate(d.getDate() + 2); // Saturday -> Monday
         searchFromDate = d.toISOString().split('T')[0];
-        weekendNote = true;
-      } else if (day === 6) {
-        d.setDate(d.getDate() + 2);
-        searchFromDate = d.toISOString().split('T')[0];
+        weekendRedirectDate = { from: originalDate, to: searchFromDate };
         weekendNote = true;
       }
     }
@@ -782,6 +782,12 @@ app.post('/api/chat', async (req, res) => {
       // Bug 2: always live-fetch for any specific date/range
       console.log('🔍 Live fetch for specific date:', searchFromDate);
       slots = await getAvailableSlots(daysWindow, searchFromDate);
+
+      // Fallback: If no slots on that exact date/range, widen search to 7 days
+      if (!slots || slots.length === 0) {
+        console.log('🔍 No slots on requested date, widening search to 7 days');
+        slots = await getAvailableSlots(7, searchFromDate);
+      }
     } else {
       // Default — use global cache if available
       const validCached = lockedEntry ? lockedEntry.slots.filter(s => new Date(s.start) > new Date()) : [];
@@ -817,6 +823,10 @@ app.post('/api/chat', async (req, res) => {
       slotsAlert = "\nUSER IS FLEXIBLE: Show the next available slots immediately without asking for a date preference.";
     } else if (pastDateNote) {
       slotsAlert = "\nNOTE: Client asked for a past date. Tell them: 'That date has already passed — here are the next available times:'";
+    } else if (slotsAlert === "" && searchFromDate && (!slots || slots.length === 0)) {
+      slotsAlert = `\nNOTE: No availability found on the requested timeframe. Tell the client: 'I don't have any openings on that day — here are the closest available times:' then show alternatives below.`;
+    } else if (weekendNote && weekendRedirectDate) {
+      slotsAlert = `\nNOTE: The client asked for a weekend (${weekendRedirectDate.from}). Tell the client: 'We don't have weekend availability — here are the closest times starting Monday ${weekendRedirectDate.to}:'`;
     } else if (weekendNote) {
       slotsAlert = "\nNOTE: The client asked for a weekend. Slots below are for the nearest available weekday instead. Tell the client: 'We don't have weekend availability — here are the closest times:'";
     }
@@ -863,6 +873,7 @@ SCHEDULING RULES:
 - If the client asks for a time NOT in the list, that time is already booked. Say: "That time's taken — here's what's still open:" then list the available slots
 - Never say a whole day is unavailable if there are slots listed for that day
 - After listing the available slots, always end with: 'If none of these times work for you, just tell me a date and I'll check if Danny has availability.'
+- NEVER tell a client you don't have a date on the calendar or that you can't check a date. If no slots are available on a requested date, say: 'I don't have any openings on that day — here are the closest available times:' and show alternatives. Always show alternatives, never leave the client without options.
 - Never invent or add slots that are not in the list${tzNote}
 - BOOKING BUFFER: Never offer any slot less than 24 hours from now. If client asks for very soon, say: 'I want to make sure Danny has time to prepare — here are the next available times:'
 - CRITICAL: The time you tell the client IS the time that will be booked. Never confirm a time verbally and then output a different slotStart in the BOOK command. The slotStart must always be the [start:...] value from the exact slot you told the client about.
