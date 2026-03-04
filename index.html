@@ -554,7 +554,7 @@
 
     /* Kinetic Split Text */
     .hero-headline {
-      font-size: clamp(2.5rem, 4.5vw, 6rem);
+      font-size: clamp(2.5rem, 4vw, 5.5rem);
       white-space: nowrap;
       text-align: center;
       font-weight: 700;
@@ -562,6 +562,8 @@
       letter-spacing: -4px;
       margin-bottom: 20px;
       text-transform: none;
+      overflow: visible;
+      padding-right: 8px;
       overflow: visible;
       padding-right: 20px;
     }
@@ -4575,7 +4577,7 @@
       if (role === 'aria') {
         html += `<div class="message-avatar">A</div>`;
       }
-      html += `<div class="message-content">${text}</div>`;
+      html += `<div class="message-content">${text.replace(/\n/g, '<br>')}</div>`;
 
       msgDiv.innerHTML = html;
       chatMessages.insertBefore(msgDiv, typingIndicator);
