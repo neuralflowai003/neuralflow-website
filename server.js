@@ -471,9 +471,7 @@ ${slotsText}`;
     if (slots && slots.length > 0 && /(AM|PM)/.test(aiReplyText)) {
       slots.forEach((s, i) => {
         const num = i + 1;
-        aiReplyText = aiReplyText.replace(new RegExp(`(^|\\\\n)\\\\s*\${num}\\\\. \\\\[.*?\\\\]\\\\s*.*?(AM|PM).*?`, 'gm'), `$1\${num}. \${s.label}`);
-        aiReplyText = aiReplyText.replace(new RegExp(`(^|\\\\n)\\\\s*\${num}\\\\. \\\\[.*?\\\\]`, 'gm'), `$1\${num}. \${s.label}`);
-        aiReplyText = aiReplyText.replace(new RegExp(`(^|\\\\n)\\\\s*\${num}\\\\.\\\\s+.*?(AM|PM).*?`, 'gm'), `$1\${num}. \${s.label}`);
+        aiReplyText = aiReplyText.replace(new RegExp(`(\\n|^)(\\s*${num}\\.[^\\n]*(AM|PM)[^\\n]*)`, 'gm'), `$1${num}. ${s.label}`);
       });
       let bulletIdx = 0;
       aiReplyText = aiReplyText.replace(/(^|\n)(\s*[-•]\s*)(.*?(AM|PM).*?)/gm, (match, nl, bullet) => {
