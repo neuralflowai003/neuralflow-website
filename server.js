@@ -385,42 +385,68 @@ app.post('/api/chat', async (req, res) => {
     const wMatch = lastUserMsg.match(/in\s+(\d+)\s+weeks?/);
     const mMatch = lastUserMsg.match(/in\s+(\d+)\s+months?/);
 
-    if (lastUserMsg.match(/couple weeks?|few weeks?/)) {
-      const d = new Date(); d.setDate(d.getDate() + 14);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-    } else if (lastUserMsg.match(/next week/)) {
-      const d = new Date(); d.setDate(d.getDate() + 7);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-    } else if (wMatch) {
-      const d = new Date(); d.setDate(d.getDate() + parseInt(wMatch[1]) * 7);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-    } else if (lastUserMsg.match(/next month/)) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-    } else if (mMatch) {
-      const d = new Date(); d.setMonth(d.getMonth() + parseInt(mMatch[1]));
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-    } else {
-      const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-      const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
-      if (dateMatch) {
-        const monthStr = dateMatch[1];
-        const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
-        if (dayNum >= 1 && dayNum <= 31) {
-          const d = new Date();
-          if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
-          d.setDate(dayNum);
-          if (d < new Date(new Date().setHours(0, 0, 0, 0))) d.setFullYear(d.getFullYear() + 1);
-          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1;
+    // Bug 6 — Flexible user detection
+    let userIsFlexible = false;
+    if (lastUserMsg.match(/\banytime\b|whatever works|you pick|\bflexible\b|whatever is available|doesn.t matter|what.s your availability|what.s available|when are you free|when is danny free|what times do you have|what do you have open|show me times|show me availability/)) {
+      userIsFlexible = true;
+    }
+
+    if (!userIsFlexible) {
+      // Bug 1 — End of month detection (before all other checks)
+      if (lastUserMsg.match(/end of (the )?month/)) {
+        const d = new Date();
+        const target20 = new Date(d.getFullYear(), d.getMonth(), 20);
+        if (d >= target20) {
+          // Past the 20th — use next month's 20th
+          searchFromDate = new Date(d.getFullYear(), d.getMonth() + 1, 20).toISOString().split('T')[0];
+        } else {
+          searchFromDate = target20.toISOString().split('T')[0];
         }
+        daysWindow = 10;
+      } else if (lastUserMsg.match(/couple weeks?|few weeks?/)) {
+        const d = new Date(); d.setDate(d.getDate() + 14);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+      } else if (lastUserMsg.match(/next week/)) {
+        const d = new Date(); d.setDate(d.getDate() + 7);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+      } else if (wMatch) {
+        const d = new Date(); d.setDate(d.getDate() + parseInt(wMatch[1]) * 7);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+        // Bug 5 — Month-based phrase detection
+      } else if (lastUserMsg.match(/next month/)) {
+        const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+      } else if (lastUserMsg.match(/in a few months?|a couple months?|in 2 months?/)) {
+        const d = new Date(); d.setDate(d.getDate() + 60);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+      } else if (lastUserMsg.match(/in 3 months?/)) {
+        const d = new Date(); d.setDate(d.getDate() + 90);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+      } else if (mMatch) {
+        const d = new Date(); d.setDate(d.getDate() + parseInt(mMatch[1]) * 30);
+        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
       } else {
-        for (const [i, month] of monthNames.entries()) {
-          if (lastUserMsg.includes(month)) {
-            const d = new Date(); d.setMonth(i);
+        const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+        const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
+        if (dateMatch) {
+          const monthStr = dateMatch[1];
+          const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
+          if (dayNum >= 1 && dayNum <= 31) {
+            const d = new Date();
+            if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
+            d.setDate(dayNum);
             if (d < new Date(new Date().setHours(0, 0, 0, 0))) d.setFullYear(d.getFullYear() + 1);
-            d.setDate(1);
-            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-            break;
+            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1;
+          }
+        } else {
+          for (const [i, month] of monthNames.entries()) {
+            if (lastUserMsg.includes(month)) {
+              const d = new Date(); d.setMonth(i);
+              if (d < new Date(new Date().setHours(0, 0, 0, 0))) d.setFullYear(d.getFullYear() + 1);
+              d.setDate(1);
+              searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+              break;
+            }
           }
         }
       }
@@ -453,24 +479,26 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    // Cache Logic
+    // Cache Logic — Bug 2: always live-fetch when a specific date was requested
     const lockedEntry = conversationSlots.get(convId);
     let slots;
 
-    // Use specific validCached array internally when valid
-    const validCached = lockedEntry ? lockedEntry.slots.filter(s => new Date(s.start) > new Date()) : [];
-    let coversDate = true;
-    if (searchFromDate && validCached.length > 0) {
-      coversDate = validCached.some(s => s.start.startsWith(searchFromDate));
-    }
-
-    if (lockedEntry && validCached.length > 0 && coversDate) {
-      slots = validCached;
+    if (userIsFlexible) {
+      // Bug 6: flexible user — use global cache directly
+      console.log('📦 Flexible user — using global slot cache directly');
+      slots = globalSlotCache && globalSlotCache.length > 0
+        ? globalSlotCache.filter(s => new Date(s.start) > new Date())
+        : await getAvailableSlots(7, null);
     } else if (searchFromDate) {
+      // Bug 2: always live-fetch for any specific date/range
       console.log('🔍 Live fetch for specific date:', searchFromDate);
       slots = await getAvailableSlots(daysWindow, searchFromDate);
     } else {
-      if (globalSlotCache && globalSlotCache.length > 0) {
+      // Default — use global cache if available
+      const validCached = lockedEntry ? lockedEntry.slots.filter(s => new Date(s.start) > new Date()) : [];
+      if (validCached.length > 0) {
+        slots = validCached;
+      } else if (globalSlotCache && globalSlotCache.length > 0) {
         console.log('📦 Using global slot cache:', globalSlotCache.length, 'slots, age:', Math.round((Date.now() - globalSlotCacheUpdatedAt) / 1000), 'sec');
         slots = globalSlotCache.filter(s => new Date(s.start) > new Date());
       } else {
@@ -486,7 +514,9 @@ app.post('/api/chat', async (req, res) => {
     // System Prompt Build
     const nowEastern = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
     let slotsAlert = "";
-    if (pastDateNote) {
+    if (userIsFlexible) {
+      slotsAlert = "\nUSER IS FLEXIBLE: Show the next available slots immediately without asking for a date preference.";
+    } else if (pastDateNote) {
       slotsAlert = "\nNOTE: Client asked for a past date. Tell them: 'That date has already passed — here are the next available times:'";
     } else if (weekendNote) {
       slotsAlert = "\nNOTE: The client asked for a weekend. Slots below are for the nearest available weekday instead. Tell the client: 'We don't have weekend availability — here are the closest times:'";
@@ -513,6 +543,7 @@ app.post('/api/chat', async (req, res) => {
 
 CURRENT DATE & TIME: ${nowEastern} Eastern Time
 NEVER suggest or book any time that is in the past.
+When referring to dates, never include the year. Say 'Saturday, April 26' not 'Saturday, April 26 2026'. Always calculate the correct day of week based on the actual calendar date.
 
 CONVERSATION FLOW — follow this order exactly:
 1. Greet warmly, ask what brings them to NeuralFlow
