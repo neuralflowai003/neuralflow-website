@@ -85,15 +85,14 @@ app.get('/oauth/callback', async (req, res) => {
 });
 
 // ─── Get Availability ────────────────────────────────────────────────────────
-async function getAvailableSlots(daysAhead = 90, startFromDate = null) {
+async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
   if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
   try {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     const now = startFromDate ? new Date(startFromDate) : new Date();
     const end = new Date(now);
-    end.setDate(end.getDate() + daysAhead); // 90 days out
+    end.setDate(end.getDate() + daysWindow);
 
-    // Get busy times
     const freeBusy = await calendar.freebusy.query({
       requestBody: {
         timeMin: now.toISOString(),
@@ -104,44 +103,52 @@ async function getAvailableSlots(daysAhead = 90, startFromDate = null) {
 
     const busy = freeBusy.data.calendars.primary.busy || [];
 
-    // Generate available 1-hour slots Mon-Fri 9am-5pm EST
     const slots = [];
     const d = startFromDate ? new Date(startFromDate) : new Date();
     d.setHours(0, 0, 0, 0);
 
-    for (let i = startFromDate ? 0 : 1; i <= daysAhead && slots.length < 6; i++) {
+    for (let i = startFromDate ? 0 : 1; i <= daysWindow && slots.length < 6; i++) {
       const day = new Date(d);
       day.setDate(day.getDate() + i);
       const dow = day.getDay();
-      if (dow === 0 || dow === 6) continue; // skip weekends
+      if (dow === 0 || dow === 6) continue;
 
       const hours = [9, 10, 11, 13, 14, 15, 16];
       for (const h of hours) {
-        // Determine NY UTC offset: EDT (-4) or EST (-5)
-        // DST: 2nd Sunday in March → 1st Sunday in November
-        const year = day.getUTCFullYear();
+        const year = day.getFullYear();
         const dstStart = new Date(Date.UTC(year, 2, 8));
         dstStart.setUTCDate(8 + (7 - dstStart.getUTCDay()) % 7);
         const dstEnd = new Date(Date.UTC(year, 10, 1));
         dstEnd.setUTCDate(1 + (7 - dstEnd.getUTCDay()) % 7);
         const isDST = day >= dstStart && day < dstEnd;
-        const nyOffsetHours = isDST ? 4 : 5; // hours behind UTC
-        const dateStr = `${day.getFullYear()}-${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`;
-        const slotStart = new Date(`${dateStr}T${String(h).padStart(2,'0')}:00:00.000Z`);
-        slotStart.setTime(slotStart.getTime() + nyOffsetHours * 3600000); // convert NY→UTC
+        const nyOffsetHours = isDST ? 4 : 5;
+
+        const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+        const slotStart = new Date(`${dateStr}T${String(h).padStart(2, '0')}:00:00.000Z`);
+        slotStart.setTime(slotStart.getTime() + nyOffsetHours * 3600000);
         const slotEnd = new Date(slotStart.getTime() + 3600000);
 
-        // Check if slot overlaps with busy time
         const isBusy = busy.some(b => {
           const bs = new Date(b.start);
           const be = new Date(b.end);
           return slotStart < be && slotEnd > bs;
         });
 
-        if (!isBusy && slotStart > now) {
+        if (!isBusy && slotStart > new Date()) {
           const tzAbbr = isDST ? 'EDT' : 'EST';
-          const label = slotStart.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'America/New_York' })
-            + ' at ' + slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' }) + ' ' + tzAbbr;
+          const nyTime = new Date(slotStart.getTime() - nyOffsetHours * 3600000);
+          const daysInfo = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const monthsInfo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+          const weekdayStr = daysInfo[nyTime.getUTCDay()];
+          const monthStr = monthsInfo[nyTime.getUTCMonth()];
+          const dateDayStr = nyTime.getUTCDate();
+          let hr = nyTime.getUTCHours();
+          const ampm = hr >= 12 ? 'PM' : 'AM';
+          hr = hr % 12 || 12;
+          const min = String(nyTime.getUTCMinutes()).padStart(2, '0');
+          const label = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hr}:${min} ${ampm} ${tzAbbr}`;
+
           slots.push({ label, start: slotStart.toISOString(), end: slotEnd.toISOString() });
           if (slots.length >= 6) break;
         }
@@ -158,41 +165,55 @@ async function getAvailableSlots(daysAhead = 90, startFromDate = null) {
 async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
   const results = { calendar: false, emailLead: false, emailDanny: false };
 
-  // 1. Create Google Calendar event with 5s timeout, grab Meet link if available
+  // 1. Create Google Calendar event with robust retry logic
   let meetLink = null;
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
-    try {
-      console.log(`📅 Creating calendar event for ${name}`);
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-      await oauth2Client.getAccessToken();
-      const event = await Promise.race([
-        calendar.events.insert({
-          calendarId: 'primary',
-          sendUpdates: 'none',
-          conferenceDataVersion: 1,
-          requestBody: {
-            summary: `NeuralFlow Consultation — ${name} (${company})`,
-            description: `🤖 Booked via ARIA\n\n👤 CLIENT\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n📋 WHAT THEY WANT\n${notes ? notes.split('|')[0] : 'See chat'}\n\n🔥 PAIN POINTS\n${notes ? (notes.split('|')[1] || 'See chat') : 'See chat'}\n\n⚡ PREP\n- Pricing starts at $2,500`,
-            start: { dateTime: slotStart, timeZone: 'America/New_York' },
-            end: { dateTime: slotEnd, timeZone: 'America/New_York' },
-            attendees: [
-              { email: process.env.GMAIL_USER || 'danny@neuralflowai.io', displayName: 'Danny Boehmer' },
-            ],
-            conferenceData: {
-              createRequest: {
-                requestId: `nf-${Date.now()}`,
-                conferenceSolutionKey: { type: 'hangoutsMeet' },
+    console.log(`📅 Creating calendar event for ${name}`);
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+    await oauth2Client.getAccessToken();
+
+    let eventData = null;
+    let lastErr = null;
+    const retryDelays = [2000, 4000, 8000];
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await Promise.race([
+          calendar.events.insert({
+            calendarId: 'primary',
+            sendUpdates: 'none',
+            conferenceDataVersion: 1,
+            requestBody: {
+              summary: `Consultation: ${name} (${company}) x NeuralFlowAI`,
+              description: `Company: ${company}\nPain Points: ${notes}\nBooked via ARIA.`,
+              start: { dateTime: slotStart, timeZone: 'America/New_York' },
+              end: { dateTime: slotEnd, timeZone: 'America/New_York' },
+              attendees: [{ email: process.env.GMAIL_USER || 'danny@neuralflowai.io' }],
+              conferenceData: {
+                createRequest: {
+                  requestId: `nf-${Date.now()}`,
+                  conferenceSolutionKey: { type: 'hangoutsMeet' },
+                },
               },
             },
-          },
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Calendar timeout')), 5000))
-      ]);
-      meetLink = event.data?.hangoutLink || null;
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Calendar timeout')), 5000))
+        ]);
+        eventData = res.data;
+        break; // Success
+      } catch (err) {
+        lastErr = err;
+        console.log(`⚠️ Calendar attempt ${attempt + 1} failed: ${err.message}`);
+        if (attempt < 2) await new Promise(r => setTimeout(r, retryDelays[attempt]));
+      }
+    }
+
+    if (eventData) {
+      meetLink = eventData.hangoutLink || null;
       results.calendar = true;
       console.log(`✅ Calendar event created for ${name} — Meet: ${meetLink || 'pending'}`);
-    } catch (e) {
-      console.error(`❌ Calendar failed: ${e.message} — emails will still send`);
+    } else {
+      console.error(`❌ Calendar failed after 3 attempts: ${lastErr?.message} — emails will still send`);
     }
   }
 
@@ -201,7 +222,7 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
     await sendEmail({
       from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
       to: email,
-      subject: `✅ Your NeuralFlow Consultation is Confirmed!`,
+      subject: `Your NeuralFlow Consultation is Confirmed ✅`,
       html: `
         <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#0a0a0f;color:#ffffff;padding:48px 40px;border-radius:12px;">
           <h1 style="margin:0 0 32px;font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;">Neural<span style="color:#FF6B1A;">Flow</span></h1>
@@ -209,7 +230,7 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
           <p style="margin:0 0 24px;color:#a0a0b0;">Hi ${name},</p>
           <p style="margin:0 0 28px;color:#a0a0b0;">Your 1-hour consultation with Danny Boehmer is booked. We look forward to speaking with you.</p>
           <div style="background:#16161a;border:1px solid #2a2a35;border-radius:10px;padding:24px;margin:0 0 32px;">
-            <p style="margin:0 0 14px;color:#ffffff;"><strong>When</strong><br/><span style="color:#a0a0b0;">${slotLabel.includes('EST') ? slotLabel : slotLabel + ' EST'}</span></p>
+            <p style="margin:0 0 14px;color:#ffffff;"><strong>When</strong><br/><span style="color:#a0a0b0;">${slotLabel.includes('EST') || slotLabel.includes('EDT') ? slotLabel : slotLabel + ' EST'}</span></p>
             <p style="margin:0 0 14px;color:#ffffff;"><strong>Duration</strong><br/><span style="color:#a0a0b0;">1 hour</span></p>
             <p style="margin:0;color:#ffffff;"><strong>Google Meet</strong><br/><a href="${meetLink || '#'}" style="color:#FF6B1A;text-decoration:none;">${meetLink || 'Link coming shortly'}</a></p>
           </div>
@@ -222,13 +243,13 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
 
   // 3. Notify Danny
   try {
-    const gcalStart = new Date(slotStart).toISOString().replace(/[-:]/g,'').replace('.000','');
-    const gcalEnd = new Date(slotEnd).toISOString().replace(/[-:]/g,'').replace('.000','');
+    const gcalStart = new Date(slotStart).toISOString().replace(/[-:]/g, '').replace('.000', '');
+    const gcalEnd = new Date(slotEnd).toISOString().replace(/[-:]/g, '').replace('.000', '');
     const gcalLink = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('NeuralFlow Consultation — ' + name)}&dates=${gcalStart}Z/${gcalEnd}Z&details=${encodeURIComponent('Client: ' + name + '\nEmail: ' + email + '\nCompany: ' + company + '\n\nWhat they want: ' + (notes ? notes.split('|')[0] : '') + '\nPain points: ' + (notes ? notes.split('|')[1] || '' : ''))}&add=${encodeURIComponent(email)}`;
     await sendEmail({
       from: "NeuralFlow ARIA <danny@neuralflowai.io>",
       to: process.env.GMAIL_USER,
-      subject: `🔥 New Consultation — ${name} from ${company} — ${slotLabel}`,
+      subject: `🔥 New Booking — ${name} (${company})`,
       html: `<div style="font-family:sans-serif;max-width:600px;">
         <h2>🤖 New Consultation Booked via ARIA!</h2>
         <p><strong>Name:</strong> ${name}</p>
@@ -264,23 +285,17 @@ app.post('/api/book', async (req, res) => {
 // ─── ARIA Chat ───────────────────────────────────────────────────────────────
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, conversationId } = req.body;
+    const { messages, conversationId, clientTimezone } = req.body;
     if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Messages array required' });
     const convId = conversationId || messages[0]?.content?.slice(0, 60) || 'default';
 
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
 
     // ── Slot fetch strategy ──────────────────────────────────────────────────
-    // Simple rule: lock slots once fetched. Only re-fetch if user explicitly
-    // wants a DIFFERENT timeframe (different month, week, etc.) that falls
-    // outside what we already have. Let Claude handle ALL natural language
-    // understanding of dates/times — never try to parse intent with regex.
-
-    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
     let searchFromDate = null;
     let daysWindow = 7;
 
-    // Parse timeframe from user message to know what date range to fetch
     if (lastUserMsg.match(/couple weeks?|few weeks?|2[-–]3 weeks?/)) {
       const d = new Date(); d.setDate(d.getDate() + 14);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
@@ -299,7 +314,6 @@ app.post('/api/chat', async (req, res) => {
       const d = new Date(); d.setMonth(d.getMonth() + m);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
     } else {
-      // Specific date first: "March 10", "March 10th", "the 10th", "10th"
       const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
       if (dateMatch) {
         const monthStr = dateMatch[1];
@@ -307,18 +321,18 @@ app.post('/api/chat', async (req, res) => {
         if (dayNum >= 1 && dayNum <= 31) {
           const d = new Date();
           if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
-          d.setDate(dayNum); // start FROM the requested date, not day before
-          if (d < new Date()) d.setMonth(d.getMonth() + 1);
-          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1; // only fetch that specific day
+          d.setDate(dayNum);
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          if (d < today) d.setFullYear(d.getFullYear() + 1);
+          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1;
         }
       }
-      // Vague month reference only (no specific day): "sometime in April", "April works"
-      // Do NOT trigger if user already gave a specific date above
       if (!searchFromDate) {
         for (const [i, month] of monthNames.entries()) {
           if (lastUserMsg.includes(month)) {
             const d = new Date(); d.setMonth(i);
-            if (d <= new Date()) d.setFullYear(d.getFullYear() + 1);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            if (d < today) d.setFullYear(d.getFullYear() + 1);
             d.setDate(1);
             searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
             break;
@@ -331,72 +345,61 @@ app.post('/api/chat', async (req, res) => {
     let slots;
 
     if (lockedEntry) {
-      // We already have slots for this conversation — check if any are still valid
       const validCached = lockedEntry.slots.filter(s => s.start && new Date(s.start) > new Date());
-      
-      // Check if cached slots actually cover the date the user is asking about
       let cachedCoversDate = true;
       if (searchFromDate && validCached.length > 0) {
-        const targetStr = new Date(searchFromDate + 'T12:00:00').toDateString();
-        cachedCoversDate = validCached.some(s => new Date(s.start).toDateString() === targetStr);
+        const targetStr = new Date(searchFromDate + 'T12:00:00Z').toISOString().split('T')[0];
+        cachedCoversDate = validCached.some(s => s.start.startsWith(targetStr));
       }
 
       if (validCached.length > 0 && cachedCoversDate) {
         slots = validCached;
         console.log('🔒 Reusing cached slots:', slots.map(s => s.label));
       } else {
-        // Cache doesn't cover requested date or is empty — fetch fresh
         slots = await getAvailableSlots(daysWindow, searchFromDate);
         console.log('📅 Re-fetching slots from:', searchFromDate || 'now', '| window:', daysWindow);
         if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
       }
     } else {
-      // First message — fetch fresh
       slots = await getAvailableSlots(daysWindow, searchFromDate);
       console.log('📅 Fresh slots from:', searchFromDate || 'now', '| window:', daysWindow, '| count:', slots?.length || 0);
       if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     }
 
-
     console.log('🔍 Slots count:', slots?.length || 0);
     const slotsText = slots && slots.length > 0
-      ? `\n\n[DANNY'S REAL AVAILABLE TIMES]\n${slots.map((s, i) => `SLOT ${i+1}: ${s.label}`).join('\n')}\n[END OF AVAILABLE TIMES]\n\nCRITICAL — show slots EXACTLY like this, copy-paste verbatim:\n1. Tuesday, Mar 10 at 10:00 AM EDT\n2. Tuesday, Mar 10 at 11:00 AM EDT\n\nDO NOT reformat, shorten, or rephrase slot labels. Copy them character-for-character from the list above. Never say "10:00 AM - 11:00 AM ET" or any other format. Always use the exact label text.\n\nWhen client picks a slot, respond with:\nBOOK:{"slotIndex": N, "slotLabel": "EXACT label text copied from slot list above", "name": "Full Name", "email": "their@email.com", "company": "Company", "notes": "What they want|Pain points"}\n(N = the slot number the client picked, 1-based)`
-      : '\n\nCALENDAR UNAVAILABLE: Do NOT invent or make up any dates or times. Tell the client: "Let me check Danny\'s calendar and get back to you — can I get your email so we can confirm a time?" Then collect their contact info.';
+      ? `\n${slots.map((s, i) => `SLOT ${i + 1}: ${s.label}`).join('\n')}`
+      : "\nCALENDAR UNAVAILABLE: Do NOT invent times. Tell client: 'Let me check Danny's calendar — can I get your email so we can confirm a time?'";
+
+    const timezoneContext = clientTimezone ? `\n- When confirming a slot, state it in the user's timezone. Format exactly: "I've found a time at [Time] ${clientTimezone}. Should I send the invite to [Email]?"` : '';
 
     const nowEastern = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+
     const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company at neuralflowai.io. Danny Boehmer is the founder.
 
 CURRENT DATE & TIME: ${nowEastern} Eastern Time
-CRITICAL: NEVER suggest, offer, or book any time slot that is in the past. If a client asks for a time that has already passed, politely let them know and offer future availability instead.
-
-Your goal: qualify leads and book 1-hour consultations directly in this chat.
 
 STRICT CONVERSATION FLOW — follow this order exactly:
 1. Greet warmly, ask what brings them to NeuralFlow
-2. Ask 2-3 qualifying questions to understand their business (pick the most relevant):
-   - "What does your team spend the most time on manually?"
-   - "What's your biggest bottleneck right now?"
-   - "What would make the biggest impact if it were automated?"
-   - "How big is your team and what industry are you in?"
-3. Once you understand their challenges, collect in order: Full name → Email address → Company name
-4. ONLY AFTER collecting all three AND understanding their pain points — present the available time slots
-5. When they pick a slot — immediately output the BOOK command
-
-IMPORTANT: Always capture their pain points and what they want to automate in the BOOK notes field. This is critical for Danny to prepare for the call.
+2. Ask 2–3 qualifying questions to understand their business needs
+3. Collect in order: Full Name → Email → Company
+4. ONLY AFTER collecting all three AND understanding their pain points — show available slots
+5. When they confirm a slot — immediately output the BOOK command
 
 SCHEDULING RULES:
-- Show ONLY the slots listed below, copied exactly word for word
-- If a client asks for a specific time that is NOT in the list below, it means that time is already booked. Say "That time is taken — here's what's still open:" and list the available slots from the list below. NEVER say a whole day is unavailable if there are slots listed for that day.
-- Default slots are the next few days. If the client says "couple weeks", "few weeks", "next month", or a specific month — the slots below are ALREADY filtered for that timeframe. Say "No problem! Here are times around then:" and list them
-- NEVER show near-term slots again after a client requests a later date
-- NEVER invent dates. NEVER use "tomorrow" or "next Monday" — always use the exact label text from the list
+- Show slots EXACTLY as listed below — copy each label character-for-character
+- Never reformat times (not "10:00 AM - 11:00 AM ET", not "tomorrow", not "next Monday")
+- If the client asks for a time NOT in the list, it means that time is taken. Say: "That time's taken — here's what's still open:" and list available slots from the list
+- Never say a whole day is unavailable if there are slots listed for that day
+- Never invent slots${timezoneContext}
 
-BOOKING — the moment client confirms a slot:
-BOOK:{"slotIndex": N, "slotLabel": "EXACT label from slot list", "name": "Full Name", "email": "email@example.com", "company": "Company", "notes": "What they want|Pain points"}
-Then say: "Perfect! Booking that now — you will get a calendar invite at [email] shortly!"
+WHEN CLIENT CONFIRMS A SLOT — output this immediately:
+BOOK:{"slotLabel": "EXACT label copied from slot list", "slotIndex": N, "name": "Full Name", "email": "email@example.com", "company": "Company Name", "notes": "What they want | Pain points"}
 
-NEVER skip the BOOK command. NEVER ask for extra confirmation after they say yes.
-Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professional.${slotsText}`;
+Then say: "Perfect! Booking that now — you'll get a calendar invite at [email] shortly!"
+
+Keep responses to 2–3 sentences. Be warm and professional. Pricing starts at $2,500.
+${slotsText}`;
 
     let response;
     let usedFallback = false;
@@ -412,7 +415,7 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
             messages,
           });
         } catch (err) {
-          console.log(`⚠️ Anthropic attempt ${attempt} failed: ${err?.status} ${err?.message?.slice(0,60)}`);
+          console.log(`⚠️ Anthropic attempt ${attempt} failed: ${err?.status} ${err?.message?.slice(0, 60)}`);
           if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
           else throw err;
         }
@@ -501,7 +504,7 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
           }
           // Fuzzy: match on just the time + date portion
           if (!slot && bookData.slotLabel.includes(' at ')) {
-            const timePart = bookData.slotLabel.split(' at ')[1]?.replace(/\s+(EDT|EST)$/i,'').trim();
+            const timePart = bookData.slotLabel.split(' at ')[1]?.replace(/\s+(EDT|EST)$/i, '').trim();
             const datePart = bookData.slotLabel.split(' at ')[0]?.trim();
             slot = lockedSlots.find(s => s.label.includes(datePart) && s.label.includes(timePart));
           }
@@ -515,7 +518,7 @@ Keep responses to 2-3 sentences. Pricing starts at $2,500. Be warm and professio
         }
 
         if (!slot) slot = lockedSlots[0]; // last resort
-        const slotNY = slot?.start ? new Date(slot.start).toLocaleString('en-US', { timeZone: 'America/New_York', weekday:'short', month:'short', day:'numeric', hour:'numeric', minute:'2-digit', hour12:true }) : 'unknown';
+        const slotNY = slot?.start ? new Date(slot.start).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }) : 'unknown';
         console.log('📌 Booking slot:', slot?.label, '| NY time:', slotNY, '| UTC:', slot?.start, '| ARIA index:', bookData.slotIndex, '| Label:', bookData.slotLabel);
         await bookAppointment({
           name: bookData.name,
