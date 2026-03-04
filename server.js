@@ -61,6 +61,10 @@ function getNYOffset(date) {
 // ─── Slot Fetching ────────────────────────────────────────────────────────────
 async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
   if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
+
+  // Bug 2 - Force Token Refresh on API call
+  await oauth2Client.getAccessToken().catch(e => console.log('token refresh err', e.message));
+
   try {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
@@ -69,13 +73,23 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
     const windowEnd = new Date(windowStart);
     windowEnd.setDate(windowEnd.getDate() + daysWindow);
 
-    const { data } = await calendar.freebusy.query({
-      requestBody: {
-        timeMin: windowStart.toISOString(),
-        timeMax: windowEnd.toISOString(),
-        items: [{ id: 'primary' }],
-      },
-    });
+    let data;
+    try {
+      const res = await Promise.race([
+        calendar.freebusy.query({
+          requestBody: {
+            timeMin: windowStart.toISOString(),
+            timeMax: windowEnd.toISOString(),
+            items: [{ id: 'primary' }],
+          },
+        }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('freebusy timeout')), 8000))
+      ]);
+      data = res.data;
+    } catch (e) {
+      console.error('❌ freebusy failed:', e.message, e.response?.data);
+      throw e;
+    }
 
     const busy = data.calendars.primary.busy || [];
     const slots = [];
@@ -121,7 +135,8 @@ async function getAvailableSlots(daysWindow = 7, startFromDate = null) {
           hour12 = hour12 % 12 || 12;
           const min = String(nyTime.getUTCMinutes()).padStart(2, '0');
 
-          const label = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${min} ${ampm} ${abbr}`;
+          const labelCore = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${min} ${ampm} ${abbr}`;
+          const label = `${labelCore} [start:${slotStart.toISOString()}]`;
 
           slots.push({ label, start: slotStart.toISOString(), end: slotEnd.toISOString() });
           if (slots.length >= 6) break;
@@ -316,12 +331,29 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
+    let weekendNote = false;
+    if (searchFromDate) {
+      const d = new Date(searchFromDate + "T00:00:00");
+      const day = d.getDay();
+      if (day === 0) {
+        d.setDate(d.getDate() + 1);
+        searchFromDate = d.toISOString().split('T')[0];
+        weekendNote = true;
+      } else if (day === 6) {
+        d.setDate(d.getDate() + 2);
+        searchFromDate = d.toISOString().split('T')[0];
+        weekendNote = true;
+      }
+    }
+
     // Cache Logic
     const lockedEntry = conversationSlots.get(convId);
     let slots;
+    let fallbackFetch = false;
 
     if (lastUserMsg.match(/\byes\b|\bthat works\b|\bsounds good\b/)) {
-      slots = lockedEntry?.slots || await getAvailableSlots(daysWindow, searchFromDate);
+      slots = lockedEntry?.slots;
+      if (!slots) fallbackFetch = true;
     } else if (lockedEntry) {
       const validCached = lockedEntry.slots.filter(s => new Date(s.start) > new Date());
       let coversDate = true;
@@ -329,10 +361,21 @@ app.post('/api/chat', async (req, res) => {
         const targetStr = searchFromDate;
         coversDate = validCached.some(s => s.start.startsWith(targetStr));
       }
-      if (validCached.length > 0 && coversDate) slots = validCached;
-      else slots = await getAvailableSlots(daysWindow, searchFromDate);
+      if (validCached.length > 0 && coversDate) {
+        slots = validCached;
+      } else {
+        fallbackFetch = true;
+      }
     } else {
+      fallbackFetch = true;
+    }
+
+    if (fallbackFetch) {
       slots = await getAvailableSlots(daysWindow, searchFromDate);
+      if (!slots || slots.length === 0) {
+        await new Promise(r => setTimeout(r, 3000));
+        slots = await getAvailableSlots(daysWindow, searchFromDate);
+      }
     }
 
     if (slots && slots.length > 0) {
@@ -341,8 +384,9 @@ app.post('/api/chat', async (req, res) => {
 
     // System Prompt Build
     const nowEastern = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const slotsAlert = weekendNote ? "\nNOTE: The client asked for a weekend. Slots below are for the nearest available weekday instead. Tell the client: 'We don't have weekend availability — here are the closest times:'" : "";
     const slotsText = slots && slots.length > 0
-      ? `AVAILABLE SLOTS:\n${slots.map((s, i) => `SLOT ${i + 1}: ${s.label}`).join('\n')}`
+      ? `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => `SLOT ${i + 1}: ${s.label}`).join('\n')}`
       : "CALENDAR UNAVAILABLE: Do NOT invent times. Tell the client: 'Let me check Danny's calendar — can I get your email so we can confirm a time?'";
 
     const tzNote = clientTimezone
@@ -358,18 +402,24 @@ CONVERSATION FLOW — follow this order exactly:
 1. Greet warmly, ask what brings them to NeuralFlow
 2. Ask 2–3 qualifying questions to understand their business needs
 3. Collect in order: Full Name → Email → Company name
+   EMAIL VALIDATION: When the client gives you their email address, validate it before moving on. A valid email must contain exactly one @ symbol and at least one dot after the @. If the email looks wrong or is written out in plain language (e.g. 'john at gmail dot com'), say: 'Could you double-check that email address? I want to make sure your calendar invite reaches you.' Do not proceed to show slots or book until you have a valid email.
 4. ONLY after collecting all three AND understanding their pain points — present available slots
 5. When they confirm a slot — output the BOOK command immediately
 
-SLOT RULES:
+SCHEDULING RULES:
 - Copy slot labels EXACTLY character-for-character from the list below — no changes whatsoever
 - Never reformat times. "10:00 AM - 11:00 AM ET" is wrong. "tomorrow" is wrong. Copy the label verbatim.
 - If the client asks for a time NOT in the list, that time is already booked. Say: "That time's taken — here's what's still open:" then list the available slots
 - Never say a whole day is unavailable if there are slots listed for that day
 - Never invent or add slots that are not in the list${tzNote}
+- CRITICAL: The time you tell the client IS the time that will be booked. Never confirm a time verbally and then output a different slotStart in the BOOK command. The slotStart must always be the [start:...] value from the exact slot you told the client about.
+- When outputting the BOOK command, copy the [start:...] value from the chosen slot exactly into the slotStart field.
+- CONFIRMATION REQUIRED: Before outputting the BOOK command, you must first send a confirmation message in this exact format:
+'Just to confirm — I'm booking [exact slot label] for [Full Name] at [email address]. Shall I go ahead?'
+Only output the BOOK command after the client explicitly confirms with yes, correct, go ahead, book it, or similar. Never book on an ambiguous reply.
 
 ON CONFIRMATION — output this immediately, no delays:
-BOOK:{"slotLabel":"EXACT label copied from slot list","slotIndex":N,"name":"Full Name","email":"email@example.com","company":"Company Name","notes":"what they want | pain points"}
+BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company Name","notes":"what they want | pain points"}
 Then say: "Perfect! Booking that now — you'll get a calendar invite at [email] shortly!"
 
 Keep replies to 2–3 sentences. Be warm and professional.
@@ -440,35 +490,59 @@ ${slotsText}`;
     const bookMatch = aiReplyText.match(/BOOK:(\{[^{}]*\})/);
     if (bookMatch) {
       const bookData = JSON.parse(bookMatch[1]);
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!bookData.email || !emailRegex.test(bookData.email)) {
+        console.log('⚠️ Invalid email provided during booking:', bookData.email);
+        const reply = "Could you double-check that email address? I want to make sure your calendar invite reaches you.";
+        return res.json({ reply, booked: false });
+      }
+
       const lockedSlots = conversationSlots.get(convId)?.slots || slots || [];
-      
-      let slot = lockedSlots.find(s => s.label === bookData.slotLabel);
+
+      let slot = null;
+      let matchMethod = '';
+
+      if (bookData.slotStart) {
+        slot = lockedSlots.find(s => s.start === bookData.slotStart);
+        if (slot) matchMethod = 'Exact ISO';
+      }
+
       if (!slot) {
-        const labelCore = bookData.slotLabel?.replace(/\s+(EDT|EST)$/i, '').trim();
-        slot = lockedSlots.find(s => s.label.replace(/\s+(EDT|EST)$/i, '').trim() === labelCore);
+        slot = lockedSlots.find(s => s.label === bookData.slotLabel);
+        if (slot) matchMethod = 'Exact Label';
+      }
+      if (!slot) {
+        const labelCore = bookData.slotLabel?.replace(/\[start:.*?\]/, '')?.replace(/\s+(EDT|EST)$/i, '').trim();
+        slot = lockedSlots.find(s => s.label.replace(/\[start:.*?\]/, '').replace(/\s+(EDT|EST)$/i, '').trim() === labelCore);
+        if (slot) matchMethod = 'Fuzzy Core';
       }
       if (!slot && bookData.slotLabel?.includes(' at ')) {
-        const timePart = bookData.slotLabel.split(' at ')[1]?.replace(/\s+(EDT|EST)$/i, '').trim();
+        const timePart = bookData.slotLabel.split(' at ')[1]?.replace(/\[start:.*?\]/, '')?.replace(/\s+(EDT|EST)$/i, '').trim();
         const datePart = bookData.slotLabel.split(' at ')[0]?.trim();
         slot = lockedSlots.find(s => s.label.includes(datePart) && s.label.includes(timePart));
+        if (slot) matchMethod = 'Fuzzy Date/Time';
       }
-      if (!slot && bookData.slotIndex) {
-        slot = lockedSlots[Math.max(0, bookData.slotIndex - 1)];
+
+      if (!slot && lockedSlots.length > 0) {
+        slot = lockedSlots[0];
+        matchMethod = 'Last Resort [0]';
       }
-      if (!slot) slot = lockedSlots[0];
-      
+
       if (slot) {
-        console.log(`Booking: \${slot.label} | UTC: \${slot.start}`);
+        console.log(`📌 Booking: \${slot.label} | start: \${slot.start} | method: \${matchMethod}`);
         await bookAppointment({
           name: bookData.name, email: bookData.email, company: bookData.company,
-          notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
+          notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label.replace(/\s*\[start:[^\]]+\]/g, '').trim()
         });
+        conversationSlots.delete(convId);
       }
-      
-      aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').trim();
+
+      aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
       return res.json({ reply: aiReplyText, booked: true });
     }
 
+    aiReplyText = aiReplyText.replace(/\[start:[^\]]+\]/g, '').trim();
     res.json({ reply: aiReplyText });
   } catch (e) {
     console.error('AI Error:', e.message);
