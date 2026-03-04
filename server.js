@@ -426,9 +426,21 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
+    let pastDateNote = false;
+    if (searchFromDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const reqDate = new Date(searchFromDate + "T12:00:00");
+      reqDate.setHours(0, 0, 0, 0);
+      if (reqDate < today) {
+        searchFromDate = null;
+        pastDateNote = true;
+      }
+    }
+
     let weekendNote = false;
     if (searchFromDate) {
-      const d = new Date(searchFromDate + "T00:00:00");
+      const d = new Date(searchFromDate + "T12:00:00");
       const day = d.getDay();
       if (day === 0) {
         d.setDate(d.getDate() + 1);
@@ -473,9 +485,14 @@ app.post('/api/chat', async (req, res) => {
 
     // System Prompt Build
     const nowEastern = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-    const slotsAlert = weekendNote ? "\nNOTE: The client asked for a weekend. Slots below are for the nearest available weekday instead. Tell the client: 'We don't have weekend availability — here are the closest times:'" : "";
+    let slotsAlert = "";
+    if (pastDateNote) {
+      slotsAlert = "\nNOTE: Client asked for a past date. Tell them: 'That date has already passed — here are the next available times:'";
+    } else if (weekendNote) {
+      slotsAlert = "\nNOTE: The client asked for a weekend. Slots below are for the nearest available weekday instead. Tell the client: 'We don't have weekend availability — here are the closest times:'";
+    }
     const slotsText = slots && slots.length > 0
-      ? `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => `SLOT ${i + 1}: ${s.label} [start:${s.start}]`).join('\n')}`
+      ? `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => `${i + 1}. ${s.label} [start:${s.start}]`).join('\n')}`
       : "CALENDAR UNAVAILABLE: Do NOT invent times. Tell the client: 'Let me check Danny's calendar — can I get your email so we can confirm a time?'";
 
     const tzNote = clientTimezone
@@ -496,6 +513,7 @@ CONVERSATION FLOW — follow this order exactly:
 5. When they confirm a slot — output the BOOK command immediately
 
 SCHEDULING RULES:
+- Use plain text only — no asterisks, no bold, no markdown.
 - Copy slot labels EXACTLY character-for-character from the list below — no changes whatsoever
 - Never reformat times. "10:00 AM - 11:00 AM ET" is wrong. "tomorrow" is wrong. Copy the label verbatim.
 - If the client asks for a time NOT in the list, that time is already booked. Say: "That time's taken — here's what's still open:" then list the available slots
@@ -555,6 +573,11 @@ ${slotsText}`;
       const data = await resOpenRouter.json();
       aiReplyText = data.choices[0].message.content;
     }
+
+    aiReplyText = aiReplyText.replace(/\*\*(.*?)\*\*/g, '$1');
+    aiReplyText = aiReplyText.replace(/\*(.*?)\*/g, '$1');
+    aiReplyText = aiReplyText.replace(/^#{1,6}\s+/gm, '');
+    aiReplyText = aiReplyText.replace(/^\*\s+/gm, '- ');
 
     // Slot Label Enforcer
     if (slots && slots.length > 0 && /(AM|PM)/.test(aiReplyText)) {
