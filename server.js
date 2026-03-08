@@ -759,19 +759,15 @@ app.post('/api/accept-proposal', async (req, res) => {
       `,
     };
 
-    // Send emails with fresh transporter + timeout
+    // Send emails — non-blocking, don't fail if email errors
     const acceptTransporter = nodemailer.createTransport({
       host: 'smtp.gmail.com', port: 465, secure: true,
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
     });
-    const emailTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Email timeout')), 12000));
-    await Promise.race([
-      Promise.all([
-        acceptTransporter.sendMail(dannyMailOptions),
-        acceptTransporter.sendMail(clientMailOptions)
-      ]),
-      emailTimeout
-    ]);
+    Promise.all([
+      acceptTransporter.sendMail(dannyMailOptions),
+      acceptTransporter.sendMail(clientMailOptions)
+    ]).catch(err => console.error('Email send error:', err.message));
 
     res.json({ ok: true });
   } catch (err) {
