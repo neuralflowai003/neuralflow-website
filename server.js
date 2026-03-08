@@ -132,7 +132,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
     const d = new Date(windowStart);
     d.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i <= daysWindow && slots.length < 6; i++) {
+    for (let i = 0; i <= daysWindow && slots.length < 12; i++) {
       const currentDay = new Date(d);
       currentDay.setDate(currentDay.getDate() + i);
       const dow = currentDay.getDay();
@@ -148,8 +148,8 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
 
       const targetHours = [9, 10, 11, 13, 14, 15, 16];
       for (const hr of targetHours) {
-        if (slotsPerDay[dateStr] >= 2) break; // FIX 2: limit per day
-        if (slots.length >= 6) break;
+        if (slotsPerDay[dateStr] >= 6) break; // Increased from 2
+        if (slots.length >= 12) break; // Increased from 6
 
         const slotStart = new Date(`${dateStr}T${String(hr).padStart(2, '0')}:00:00.000Z`);
         slotStart.setTime(slotStart.getTime() + offsetHours * 3600000); // NY to UTC
@@ -798,12 +798,86 @@ app.post('/api/chat', async (req, res) => {
         slots = globalSlotCache.filter(s => new Date(s.start) > new Date());
       } else {
         console.log('🔍 Live fallback fetch (empty global cache)');
-        slots = await getAvailableSlots(daysWindow, searchFromDate);
       }
-    }
+      // Specific Time Detection
+      let requestedTime = null;
+      const timeMatch = lastUserMsg.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+      if (timeMatch) {
+        let hr = parseInt(timeMatch[1]);
+        const min = parseInt(timeMatch[2] || "0");
+        const ampm = timeMatch[3].toLowerCase();
+        if (ampm === 'pm' && hr < 12) hr += 12;
+        if (ampm === 'am' && hr === 12) hr = 0;
 
-    if (slots && slots.length > 0) {
-      conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+        // Round to nearest 30 mins
+        let roundedMin = min < 15 ? 0 : (min < 45 ? 30 : 60);
+        if (roundedMin === 60) {
+          hr = (hr + 1) % 24;
+          roundedMin = 0;
+        }
+        requestedTime = { hr, min: roundedMin };
+        console.log(`⏰ Detected time: ${hr}:${String(roundedMin).padStart(2, '0')}`);
+      }
+
+      if (slots && slots.length > 0) {
+        conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+      }
+
+      // If user asked for a specific time but no date was mentioned, use the most recently discussed date from cached slots
+      if (requestedTime && !searchFromDate && lockedEntry && lockedEntry.slots && lockedEntry.slots.length > 0) {
+        searchFromDate = lockedEntry.slots[0].start.split('T')[0];
+        console.log(`📅 No date in message — using last discussed date: ${searchFromDate}`);
+      }
+
+      // Bug: If specific time requested, perform a live check for that exact window
+      if (requestedTime && searchFromDate) {
+        console.log(`🔍 Checking specific time: ${requestedTime.hr}:${requestedTime.min} on ${searchFromDate}`);
+        const { hours: offsetHours } = getNYOffset(new Date(searchFromDate + "T12:00:00"));
+        const slotStart = new Date(`${searchFromDate}T${String(requestedTime.hr).padStart(2, '0')}:${String(requestedTime.min).padStart(2, '0')}:00.000Z`);
+        slotStart.setTime(slotStart.getTime() + offsetHours * 3600000);
+        const slotEnd = new Date(slotStart.getTime() + 30 * 60000); // 30 min check
+
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        try {
+          const fbRes = await calendar.freebusy.query({
+            requestBody: {
+              timeMin: slotStart.toISOString(),
+              timeMax: slotEnd.toISOString(),
+              items: [{ id: 'primary' }],
+            },
+          });
+          const isBusy = fbRes.data.calendars.primary.busy.length > 0;
+          if (!isBusy) {
+            console.log("✅ Specific slot is FREE, adding to top of slots");
+            const weekdayStr = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(searchFromDate + "T12:00:00").getDay()];
+            const monthStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][new Date(searchFromDate + "T12:00:00").getMonth()];
+            const dateDayStr = new Date(searchFromDate + "T12:00:00").getDate();
+            let hour12 = requestedTime.hr % 12 || 12;
+            const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
+            const label = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${String(requestedTime.min).padStart(2, '0')} ${ampm} ${getNYOffset(new Date(searchFromDate + "T12:00:00")).abbr}`;
+
+            const newSlot = { label, start: slotStart.toISOString(), end: new Date(slotStart.getTime() + 3600000).toISOString() };
+            slots = [newSlot, ...(slots || []).filter(s => s.label !== label)].slice(0, 12);
+          } else {
+            console.log("❌ Specific slot is BUSY");
+            slotsAlert += `\nNOTE: The requested time ${requestedTime.hr % 12 || 12}:${String(requestedTime.min).padStart(2, '0')} ${requestedTime.hr >= 12 ? 'PM' : 'AM'} was just checked and is BUSY. Tell the client it's taken and offer the alternatives below.`;
+          }
+        } catch (e) {
+          console.error("Freebusy check failed:", e.message);
+        }
+      }
+
+      // Refresh for "what else/any other"
+      if (lastUserMsg.match(/what else|any other|more times|other slots/)) {
+        console.log("🔄 'What else' detected - fetching full day");
+        const fetchDate = searchFromDate || (slots && slots[0] ? slots[0].start.split('T')[0] : null);
+        if (fetchDate) {
+          const moreSlots = await getAvailableSlots(1, fetchDate);
+          if (moreSlots && moreSlots.length > 0) {
+            slots = [...(slots || []), ...moreSlots].filter((v, i, a) => a.findIndex(t => t.start === v.start) === i).slice(0, 12);
+          }
+        }
+      }
     }
 
     // System Prompt Build
@@ -870,8 +944,9 @@ SCHEDULING RULES:
 - Use plain text only — no asterisks, no bold, no markdown.
 - Copy slot labels EXACTLY character-for-character from the list below — no changes whatsoever
 - Never reformat times. "10:00 AM - 11:00 AM ET" is wrong. "tomorrow" is wrong. Copy the label verbatim.
-- If the client asks for a time NOT in the list, that time is already booked. Say: "That time's taken — here's what's still open:" then list the available slots
-- Never say a whole day is unavailable if there are slots listed for that day
+- If the client asks for a specific time NOT in the list, tell them you'll check Danny's calendar right now instead of saying he's booked. If it remains unavailable after checking, say: "That time's taken — here are 2 alternatives on the same day:" then list the alternatives.
+- NEVER say "fully booked" or "no availability" for a date unless raw data confirms zero slots for the entire window requested.
+- If a client says "what else do you have" or "any other times" on a day, show them more options for that date.
 - After listing the available slots, always end with: 'If none of these times work for you, just tell me a date and I'll check if Danny has availability.'
 - NEVER tell a client you don't have a date on the calendar or that you can't check a date. If no slots are available on a requested date, say: 'I don't have any openings on that day — here are the closest available times:' and show alternatives. Always show alternatives, never leave the client without options.
 - Never invent or add slots that are not in the list${tzNote}
@@ -916,7 +991,7 @@ ${slotsText}`;
       const resOpenRouter = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer \${process.env.OPENROUTER_API_KEY}`,
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': 'https://neuralflowai.io',
           'X-Title': 'NeuralFlow ARIA'
@@ -1019,8 +1094,6 @@ ${slotsText}`;
     }
 
     aiReplyText = aiReplyText.replace(/\[start:[^\]]+\]/g, '').trim();
-
-    aiReplyText = aiReplyText.replace(/\[start:[^\]]+\]/g, '').trim();
     res.json({ reply: aiReplyText });
   } catch (e) {
     console.error('AI Error:', e.message);
@@ -1028,4 +1101,4 @@ ${slotsText}`;
   }
 });
 
-app.listen(port, () => console.log(`Server running on \${port}`));
+app.listen(port, () => console.log(`Server running on ${port}`));
