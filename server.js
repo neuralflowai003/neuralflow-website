@@ -680,10 +680,12 @@ app.post('/api/accept-proposal', async (req, res) => {
 
   try {
     // 1. Telegram Notification
-    if (process.env.TELEGRAM_BOT_TOKEN) {
+    {
+      const tgToken = process.env.TELEGRAM_BOT_TOKEN || '8354160885:AAHsmTw_qDhYsEf2Htd2qotMd1kPRm-okmw';
+      const tgChat = process.env.TELEGRAM_CHAT_ID || '8709413106';
       const message = `🎉 NEW CLIENT ACCEPTED\n\nBusiness: ${businessName}\nContact: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nDeposit: $${amount}\nMonthly: $${fee}/mo`;
-      const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-      const payload = JSON.stringify({ chat_id: '8709413106', text: message });
+      const url = `https://api.telegram.org/bot${tgToken}/sendMessage`;
+      const payload = JSON.stringify({ chat_id: tgChat, text: message });
 
       const reqTg = https.request(url, {
         method: 'POST',
