@@ -139,7 +139,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
 
       // Skip weekends
       const dowCheck = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), 12, 0, 0);
-      if (dowCheck.getDay() === 0 || dowCheck.getDay() === 6) continue;
+      if (dowCheck.getDay() === 0) continue;
 
       const { hours: offsetHours, abbr } = getNYOffset(currentDay);
       const dateStr = `${currentDay.getFullYear()}-${String(currentDay.getMonth() + 1).padStart(2, '0')}-${String(currentDay.getDate()).padStart(2, '0')}`;
@@ -951,7 +951,7 @@ SCHEDULING RULES:
 - NEVER tell a client you don't have a date on the calendar or that you can't check a date. If no slots are available on a requested date, say: 'I don't have any openings on that day — here are the closest available times:' and show alternatives. Always show alternatives, never leave the client without options.
 - Never invent or add slots that are not in the list${tzNote}
 - BOOKING BUFFER: Never offer any slot less than 24 hours from now. If client asks for very soon, say: 'I want to make sure Danny has time to prepare — here are the next available times:'
-- SCHEDULE HOURS: Available Monday through Saturday, 9AM to 9PM EST. We do not schedule on Sundays. If a client requests Sunday, redirect them to Monday.
+- SCHEDULE HOURS: Available Monday through Sunday, 9AM to 9PM EST.
 - CRITICAL: The time you tell the client IS the time that will be booked. Never confirm a time verbally and then output a different slotStart in the BOOK command. The slotStart must always be the [start:...] value from the exact slot you told the client about.
 - When outputting the BOOK command, copy the [start:...] value from the chosen slot exactly into the slotStart field.
 - CONFIRMATION REQUIRED: Before outputting the BOOK command, you must first send a confirmation message in this exact format:
