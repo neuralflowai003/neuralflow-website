@@ -146,7 +146,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
 
       if (!slotsPerDay[dateStr]) slotsPerDay[dateStr] = 0;
 
-      const targetHours = [9, 10, 11, 13, 14, 15, 16];
+      const targetHours = [9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21];
       for (const hr of targetHours) {
         if (slotsPerDay[dateStr] >= 6) break; // Increased from 2
         if (slots.length >= 12) break; // Increased from 6
