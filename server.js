@@ -900,9 +900,9 @@ app.post('/api/chat', async (req, res) => {
     } else if (slotsAlert === "" && searchFromDate && (!slots || slots.length === 0)) {
       slotsAlert = `\nNOTE: No availability found on the requested timeframe. Tell the client: 'I don't have any openings on that day — here are the closest available times:' then show alternatives below.`;
     } else if (weekendNote && weekendRedirectDate) {
-      slotsAlert = `\nNOTE: The client asked for a weekend (${weekendRedirectDate.from}). Tell the client: 'We don't have weekend availability — here are the closest times starting Monday ${weekendRedirectDate.to}:'`;
+      slotsAlert = `\nNOTE: The client asked for a weekend (${weekendRedirectDate.from}). Tell the client: 'We don't schedule on Sundays — here are the closest times starting Monday ${weekendRedirectDate.to}:'`;
     } else if (weekendNote) {
-      slotsAlert = "\nNOTE: The client asked for a weekend. Slots below are for the nearest available weekday instead. Tell the client: 'We don't have weekend availability — here are the closest times:'";
+      slotsAlert = "\nNOTE: The client asked for a Sunday. Slots below are for the nearest available weekday instead. Tell the client: 'We don't schedule on Sundays — here are the closest available times:'";
     }
 
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
@@ -951,6 +951,7 @@ SCHEDULING RULES:
 - NEVER tell a client you don't have a date on the calendar or that you can't check a date. If no slots are available on a requested date, say: 'I don't have any openings on that day — here are the closest available times:' and show alternatives. Always show alternatives, never leave the client without options.
 - Never invent or add slots that are not in the list${tzNote}
 - BOOKING BUFFER: Never offer any slot less than 24 hours from now. If client asks for very soon, say: 'I want to make sure Danny has time to prepare — here are the next available times:'
+- SCHEDULE HOURS: Available Monday through Saturday, 9AM to 9PM EST. We do not schedule on Sundays. If a client requests Sunday, redirect them to Monday.
 - CRITICAL: The time you tell the client IS the time that will be booked. Never confirm a time verbally and then output a different slotStart in the BOOK command. The slotStart must always be the [start:...] value from the exact slot you told the client about.
 - When outputting the BOOK command, copy the [start:...] value from the chosen slot exactly into the slotStart field.
 - CONFIRMATION REQUIRED: Before outputting the BOOK command, you must first send a confirmation message in this exact format:
