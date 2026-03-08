@@ -87,7 +87,7 @@ function getNYOffset(date) {
 }
 
 // ─── Slot Fetching ────────────────────────────────────────────────────────────
-async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
+async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours = false) {
   if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
 
   if (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000) {
@@ -147,19 +147,12 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
       if (!slotsPerDay[dateStr]) slotsPerDay[dateStr] = 0;
 
       const targetHours = [9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21];
-      // Pick one morning (9-11), one afternoon (1-4), one evening (5-9) per day for initial offer
-      const morningHours = [9, 10, 11];
-      const afternoonHours = [13, 14, 15, 16];
-      const eveningHours = [17, 18, 19, 20, 21];
-      const preferredHours = [];
-      for (const h of morningHours) { preferredHours.push(h); break; }
-      for (const h of afternoonHours) { preferredHours.push(h); break; }
-      for (const h of eveningHours) { preferredHours.push(h); break; }
-      // Use preferred hours first, fall back to all hours for specific-time requests
-      const hoursToCheck = preferredHours.length === 3 ? preferredHours : targetHours;
+      const hoursToCheck = allHours ? targetHours : [9, 13, 17];
+      const maxPerDay = allHours ? 12 : 3;
+      const maxTotal = allHours ? 24 : 9;
       for (const hr of hoursToCheck) {
-        if (slotsPerDay[dateStr] >= 3) break;
-        if (slots.length >= 9) break;
+        if (slotsPerDay[dateStr] >= maxPerDay) break;
+        if (slots.length >= maxTotal) break;
 
         const slotStart = new Date(`${dateStr}T${String(hr).padStart(2, '0')}:00:00.000Z`);
         slotStart.setTime(slotStart.getTime() + offsetHours * 3600000); // NY to UTC
@@ -839,13 +832,23 @@ app.post('/api/chat', async (req, res) => {
         console.log(`📅 No date in message — using last discussed date: ${searchFromDate}`);
       }
 
-      // Bug: If specific time requested, perform a live check for that exact window
+      // If specific time requested, fetch full day slots so Claude has all alternatives
+      if (requestedTime && searchFromDate) {
+        console.log(`🔄 Specific time requested — fetching full day slots for ${searchFromDate}`);
+        const fullDaySlots = await getAvailableSlots(1, searchFromDate, true);
+        if (fullDaySlots && fullDaySlots.length > 0) {
+          slots = fullDaySlots;
+          conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+        }
+      }
+
+      // Live freebusy check for the exact requested time
       if (requestedTime && searchFromDate) {
         console.log(`🔍 Checking specific time: ${requestedTime.hr}:${requestedTime.min} on ${searchFromDate}`);
         const { hours: offsetHours } = getNYOffset(new Date(searchFromDate + "T12:00:00"));
         const slotStart = new Date(`${searchFromDate}T${String(requestedTime.hr).padStart(2, '0')}:${String(requestedTime.min).padStart(2, '0')}:00.000Z`);
         slotStart.setTime(slotStart.getTime() + offsetHours * 3600000);
-        const slotEnd = new Date(slotStart.getTime() + 30 * 60000); // 30 min check
+        const slotEnd = new Date(slotStart.getTime() + 60 * 60000); // 1 hour check
 
         const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
         try {
