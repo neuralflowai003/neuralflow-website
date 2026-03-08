@@ -147,9 +147,19 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null) {
       if (!slotsPerDay[dateStr]) slotsPerDay[dateStr] = 0;
 
       const targetHours = [9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21];
-      for (const hr of targetHours) {
-        if (slotsPerDay[dateStr] >= 6) break; // Increased from 2
-        if (slots.length >= 12) break; // Increased from 6
+      // Pick one morning (9-11), one afternoon (1-4), one evening (5-9) per day for initial offer
+      const morningHours = [9, 10, 11];
+      const afternoonHours = [13, 14, 15, 16];
+      const eveningHours = [17, 18, 19, 20, 21];
+      const preferredHours = [];
+      for (const h of morningHours) { preferredHours.push(h); break; }
+      for (const h of afternoonHours) { preferredHours.push(h); break; }
+      for (const h of eveningHours) { preferredHours.push(h); break; }
+      // Use preferred hours first, fall back to all hours for specific-time requests
+      const hoursToCheck = preferredHours.length === 3 ? preferredHours : targetHours;
+      for (const hr of hoursToCheck) {
+        if (slotsPerDay[dateStr] >= 3) break;
+        if (slots.length >= 9) break;
 
         const slotStart = new Date(`${dateStr}T${String(hr).padStart(2, '0')}:00:00.000Z`);
         slotStart.setTime(slotStart.getTime() + offsetHours * 3600000); // NY to UTC
@@ -947,7 +957,9 @@ SCHEDULING RULES:
 - If the client asks for a specific time NOT in the list, tell them you'll check Danny's calendar right now instead of saying he's booked. If it remains unavailable after checking, say: "That time's taken — here are 2 alternatives on the same day:" then list the alternatives.
 - NEVER say "fully booked" or "no availability" for a date unless raw data confirms zero slots for the entire window requested.
 - If a client says "what else do you have" or "any other times" on a day, show them more options for that date.
-- After listing the available slots, always end with: 'If none of these times work for you, just tell me a date and I'll check if Danny has availability.'
+- When first showing availability for a day, show exactly 3 options: one morning (9-11AM), one afternoon (1-4PM), one evening (5-9PM). This keeps it clean and easy to choose.
+- After listing the 3 slots, always end with: 'If none of these work, just tell me a different time or date and I'll check Danny's calendar.'
+- If the client asks for a specific time or says "what else do you have", check and offer additional times beyond the initial 3.
 - NEVER tell a client you don't have a date on the calendar or that you can't check a date. If no slots are available on a requested date, say: 'I don't have any openings on that day — here are the closest available times:' and show alternatives. Always show alternatives, never leave the client without options.
 - Never invent or add slots that are not in the list${tzNote}
 - BOOKING BUFFER: Never offer any slot less than 24 hours from now. If client asks for very soon, say: 'I want to make sure Danny has time to prepare — here are the next available times:'
