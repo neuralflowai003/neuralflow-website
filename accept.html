@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accept Proposal | NeuralFlow AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --accent: #FF6B2B;
+            --text: #ffffff;
+            --text-muted: #a0a0b0;
+            --card-bg: #13131a;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container {
+            max-width: 480px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .subline {
+            color: var(--text-muted);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 32px;
+            font-size: 14px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .info-card strong {
+            color: var(--text);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            margin-top: 12px;
+        }
+
+        button:hover {
+            background: #e55a1e;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .success-state,
+        .error-state {
+            display: none;
+            text-align: center;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 24px;
+        }
+
+        .success-headline {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .success-subline {
+            color: var(--text-muted);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .pay-button {
+            display: inline-block;
+            background: #22c55e;
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+
+        .pay-button:hover {
+            transform: translateY(-2px);
+            background: #16a34a;
+        }
+
+        .docusign-note {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .error-message {
+            color: #ef4444;
+            margin-bottom: 20px;
+        }
+
+        .error-link {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        button.loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        button.loading .spinner {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="form-container">
+            <div class="header">
+                <div class="logo">NeuralFlow AI</div>
+                <h1>Let's Get Started</h1>
+                <p class="subline">Complete the form below to confirm your proposal and kick off onboarding.</p>
+            </div>
+
+            <div id="pricing-card" class="info-card" style="display: none;">
+                Your deposit today: <strong id="display-amount">$0</strong> · Monthly retainer: <strong
+                    id="display-fee">$0</strong>/mo
+            </div>
+
+            <form id="accept-form">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="businessName">Business Name</label>
+                    <input type="text" id="businessName" name="businessName" required placeholder="Acme Corp">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone (Optional)</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+1 (555) 000-0000">
+                </div>
+                <button type="submit" id="submit-btn">
+                    <span class="spinner"></span>
+                    <span>Confirm & Begin Onboarding →</span>
+                </button>
+            </form>
+        </div>
+
+        <div id="success-state" class="success-state">
+            <div class="success-icon">🎉</div>
+            <div class="success-headline">You're in!</div>
+            <p class="success-subline">Check your email for next steps. You can pay your deposit below to secure your
+                spot immediately.</p>
+            <a href="https://buy.stripe.com/PLACEHOLDER" class="pay-button" target="_blank">Pay Deposit →</a>
+            <p class="docusign-note">We'll send your DocuSign agreement within 24 hours.</p>
+        </div>
+
+        <div id="error-state" class="error-state">
+            <div class="success-icon">⚠️</div>
+            <div class="success-headline">Something went wrong</div>
+            <p id="error-text" class="error-message"></p>
+            <p class="subline">Please email <a href="mailto:danny@neuralflowai.io"
+                    class="error-link">danny@neuralflowai.io</a> directly.</p>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientParam = urlParams.get('client');
+        const amountParam = urlParams.get('amount');
+        const feeParam = urlParams.get('fee');
+
+        if (clientParam) {
+            document.getElementById('businessName').value = clientParam;
+        }
+
+        if (amountParam) {
+            document.getElementById('pricing-card').style.display = 'block';
+            document.getElementById('display-amount').textContent = '$' + amountParam;
+            if (feeParam) {
+                document.getElementById('display-fee').textContent = '$' + feeParam;
+            }
+        }
+
+        document.getElementById('accept-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('submit-btn');
+            btn.classList.add('loading');
+
+            const formData = {
+                name: document.getElementById('name').value,
+                businessName: document.getElementById('businessName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                amount: amountParam || '0',
+                fee: feeParam || '0'
+            };
+
+            try {
+                const response = await fetch('/api/accept-proposal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    document.getElementById('form-container').style.display = 'none';
+                    document.getElementById('success-state').style.display = 'block';
+                } else {
+                    showError(result.error || 'Failed to submit proposal.');
+                }
+            } catch (err) {
+                showError('Network error. Please try again or email Danny.');
+            } finally {
+                btn.classList.remove('loading');
+            }
+        });
+
+        function showError(msg) {
+            document.getElementById('form-container').style.display = 'none';
+            document.getElementById('error-state').style.display = 'block';
+            document.getElementById('error-text').textContent = msg;
+        }
+    </script>
+</body>
+
+</html>

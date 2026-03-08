@@ -7,8 +7,20 @@ const { Resend } = require('resend');
 const { google } = require('googleapis');
 const fs = require('fs');
 
+const nodemailer = require('nodemailer');
+const https = require('https');
+
 const app = express();
 const port = process.env.PORT || 8080;
+
+// ─── Transporter ─────────────────────────────────────────────────────────────
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+});
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -629,6 +641,8 @@ app.get('/oauth/callback', async (req, res) => {
   }
 });
 
+app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html')));
+
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/api/availability', async (req, res) => {
@@ -655,6 +669,107 @@ app.post('/api/contact', async (req, res) => {
     html: `<p>Hi ${name.split(' ')[0]}, I'll get back to you within 24 hours! - Danny</p>`,
   });
   res.json({ success: true });
+});
+
+app.post('/api/accept-proposal', async (req, res) => {
+  const { name, businessName, email, phone, amount, fee } = req.body;
+
+  if (!name || !businessName || !email) {
+    return res.status(400).json({ ok: false, error: 'Name, Business Name, and Email are required.' });
+  }
+
+  try {
+    // 1. Telegram Notification
+    if (process.env.TELEGRAM_BOT_TOKEN) {
+      const message = `🎉 NEW CLIENT ACCEPTED\n\nBusiness: ${businessName}\nContact: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nDeposit: $${amount}\nMonthly: $${fee}/mo`;
+      const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+      const payload = JSON.stringify({ chat_id: '8709413106', text: message });
+
+      const reqTg = https.request(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': payload.length,
+        },
+      }, (resTg) => {
+        let response = '';
+        resTg.on('data', (chunk) => { response += chunk; });
+        resTg.on('end', () => {
+          if (resTg.statusCode !== 200) {
+            console.error('Telegram notification failed:', response);
+          }
+        });
+      });
+
+      reqTg.on('error', (err) => console.error('Telegram request error:', err.message));
+      reqTg.write(payload);
+      reqTg.end();
+    }
+
+    // Shared styles for Emails
+    const emailStyles = `
+      background-color: #0a0a0f;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      padding: 40px;
+      line-height: 1.6;
+    `;
+    const accentColor = '#FF6B2B';
+
+    // 2. Email to Danny
+    const dannyMailOptions = {
+      from: `"NeuralFlow AI" <${process.env.GMAIL_USER}>`,
+      to: 'danny@neuralflowai.io',
+      subject: `🎉 NEW CLIENT — ${businessName} accepted their proposal`,
+      html: `
+        <div style="${emailStyles}">
+          <h1 style="color: ${accentColor};">New Proposal Accepted!</h1>
+          <p><strong>Business:</strong> ${businessName}</p>
+          <p><strong>Contact:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
+          <p><strong>Deposit:</strong> $${amount}</p>
+          <p><strong>Monthly Fee:</strong> $${fee}/mo</p>
+          <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+          <p><em>Action required: Send DocuSign agreement and Stripe invoice now.</em></p>
+        </div>
+      `,
+    };
+
+    // 3. Email to Client
+    const clientMailOptions = {
+      from: `"Danny @ NeuralFlow" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `Welcome to NeuralFlow AI — Here's What Happens Next`,
+      html: `
+        <div style="${emailStyles}">
+          <h2 style="color: ${accentColor};">Welcome to NeuralFlow AI, ${name.split(' ')[0]}!</h2>
+          <p>Your proposal has been accepted. We're excited to start this journey with <strong>${businessName}</strong>.</p>
+          <p>Here's what happens next:</p>
+          <ol>
+            <li>We'll send your consulting agreement via <strong>DocuSign</strong> within 24 hours.</li>
+            <li>A deposit invoice will follow for <strong>$${amount}</strong> to begin work.</li>
+            <li>Onboarding starts immediately after the agreement is signed.</li>
+          </ol>
+          <p><strong>Expected go-live:</strong> 10–14 days from today.</p>
+          <p>If you have any questions, simply reply to this email.</p>
+          <br>
+          <p>— Danny Boehmer<br>Founder, NeuralFlow AI</p>
+        </div>
+      `,
+    };
+
+    // Send emails
+    await Promise.all([
+      transporter.sendMail(dannyMailOptions),
+      transporter.sendMail(clientMailOptions)
+    ]);
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Accept proposal error:', err);
+    res.status(500).json({ ok: false, error: 'Internal server error processing your request.' });
+  }
 });
 
 // ─── Chat / ARIA ──────────────────────────────────────────────────────────────
