@@ -24,7 +24,7 @@ const transporter = nodemailer.createTransport({
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 're_77ekkho9_q3Vyf7fg7E5bYcUTnKAVvpxv');
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
