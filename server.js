@@ -1248,4 +1248,13 @@ ${slotsText}`;
   }
 });
 
-app.listen(port, () => console.log(`Server running on ${port}`));
+app.listen(port, () => {
+  console.log(`Server running on ${port}`);
+  // Self-ping every 4 minutes to prevent Railway cold starts
+  setInterval(() => {
+    const https = require('https');
+    https.get('https://neuralflowai.io/api/availability', (res) => {
+      console.log(`🏓 Keep-alive ping: ${res.statusCode}`);
+    }).on('error', (e) => console.log(`Keep-alive error: ${e.message}`));
+  }, 4 * 60 * 1000);
+});
