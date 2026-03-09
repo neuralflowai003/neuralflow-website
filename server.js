@@ -1227,10 +1227,11 @@ ${slotsText}`;
         slot = freshSlot;
 
         console.log(`📌 Booking confirmed: ${slot.label} | method: ${matchMethod} (Fresh Confirmed)`);
-        await bookAppointment({
+        // Fire booking in background — don't block the response
+        bookAppointment({
           name: bookData.name, email: bookData.email, company: bookData.company,
           notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
-        });
+        }).catch(err => console.error('Background booking error:', err.message));
         conversationSlots.delete(convId);
         agreedSlots.delete(convId);
       }
