@@ -652,8 +652,13 @@ app.get('/api/availability', async (req, res) => {
 });
 
 app.post('/api/book', async (req, res) => {
-  await bookAppointment(req.body);
-  res.json({ success: true });
+  try {
+    await bookAppointment(req.body);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Book endpoint error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.post('/api/contact', async (req, res) => {
