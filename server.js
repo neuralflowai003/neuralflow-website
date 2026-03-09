@@ -37,9 +37,12 @@ const oauth2Client = new google.auth.OAuth2(
 const TOKEN_PATH = path.join(__dirname, 'google-token.json');
 if (process.env.GOOGLE_REFRESH_TOKEN) {
   oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
-  oauth2Client.getAccessToken().catch(() => { });
+  oauth2Client.getAccessToken().then(t => console.log('✅ Google auth OK')).catch(e => console.error('❌ Google auth failed:', e.message));
 } else if (fs.existsSync(TOKEN_PATH)) {
   oauth2Client.setCredentials(JSON.parse(fs.readFileSync(TOKEN_PATH)));
+  console.log('✅ Google auth loaded from token file');
+} else {
+  console.error('❌ No Google credentials found — calendar booking will fail');
 }
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
@@ -611,21 +614,29 @@ Industry: [their likely industry]
 </table>
 </body></html>`;
 
+  // Send emails via Gmail (nodemailer) — reliable, no domain verification needed
+  const bookingTransporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com', port: 465, secure: true,
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
+  });
+
   // Client Email
-  if (resend) await resend.emails.send({
-    from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
+  bookingTransporter.sendMail({
+    from: `NeuralFlow AI <${process.env.GMAIL_USER}>`,
     to: email,
     subject: "Your NeuralFlow Consultation is Confirmed ✅",
     html: clientHtml,
-  }).catch(() => { });
+  }).then(() => console.log('✅ Client email sent to', email))
+    .catch(e => console.error('❌ Client email failed:', e.message));
 
   // Danny Email
-  if (resend) await resend.emails.send({
-    from: "NeuralFlow ARIA <danny@neuralflowai.io>",
+  bookingTransporter.sendMail({
+    from: `NeuralFlow ARIA <${process.env.GMAIL_USER}>`,
     to: process.env.GMAIL_USER,
     subject: `🔥 New Booking — ${name} (${company}) | ${dealValueStr} potential`,
     html: dannyHtml,
-  }).catch(() => { });
+  }).then(() => console.log('✅ Danny email sent'))
+    .catch(e => console.error('❌ Danny email failed:', e.message));
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
