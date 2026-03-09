@@ -293,7 +293,7 @@ Industry: [their likely industry]
   // Google Calendar URL helper
   const toGCalDate = (iso) => iso ? iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '') : '';
   const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Consultation+with+NeuralFlow&dates=${toGCalDate(slotStart)}/${toGCalDate(slotEnd)}&details=Strategy+session+with+Danny+Boehmer+%7C+neuralflowai.io&location=${encodeURIComponent(meetLink || '')}`;
-  const calEventUrl = eventHtmlLink || 'https://calendar.google.com/calendar/r/eventedit';
+  // calEventUrl set after calendar insert below
 
   const leadNotes = notes ? notes.split('|')[0]?.trim() || '' : '';
   const leadPain = notes ? notes.split('|')[1]?.trim() || '' : '';
@@ -402,6 +402,8 @@ Industry: [their likely industry]
       }
     }
   }
+
+  const calEventUrl = eventHtmlLink || `https://calendar.google.com/calendar/r/search?q=${encodeURIComponent(name)}`;
 
   // ── Shared style tokens ──────────────────────────────────────────────────────
   const bg = '#0a0a0f';
