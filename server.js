@@ -610,7 +610,7 @@ Industry: [their likely industry]
 </body></html>`;
 
   // Client Email
-  await resend.emails.send({
+  if (resend) await resend.emails.send({
     from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
     to: email,
     subject: "Your NeuralFlow Consultation is Confirmed ✅",
@@ -618,7 +618,7 @@ Industry: [their likely industry]
   }).catch(() => { });
 
   // Danny Email
-  await resend.emails.send({
+  if (resend) await resend.emails.send({
     from: "NeuralFlow ARIA <danny@neuralflowai.io>",
     to: process.env.GMAIL_USER,
     subject: `🔥 New Booking — ${name} (${company}) | ${dealValueStr} potential`,
@@ -656,18 +656,20 @@ app.post('/api/book', async (req, res) => {
 
 app.post('/api/contact', async (req, res) => {
   const { name, email, scope } = req.body;
-  await resend.emails.send({
-    from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
-    to: process.env.GMAIL_USER,
-    subject: `🔥 New Contact Form — ${name}`,
-    html: `<p>Name: ${name}<br/>Email: ${email}<br/>Scope: ${scope}</p>`,
-  });
-  await resend.emails.send({
-    from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
-    to: email,
-    subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
-    html: `<p>Hi ${name.split(' ')[0]}, I'll get back to you within 24 hours! - Danny</p>`,
-  });
+  if (resend) {
+    await resend.emails.send({
+      from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
+      to: process.env.GMAIL_USER,
+      subject: `🔥 New Contact Form — ${name}`,
+      html: `<p>Name: ${name}<br/>Email: ${email}<br/>Scope: ${scope}</p>`,
+    }).catch(() => {});
+    await resend.emails.send({
+      from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
+      to: email,
+      subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
+      html: `<p>Hi ${name.split(' ')[0]}, I'll get back to you within 24 hours! - Danny</p>`,
+    }).catch(() => {});
+  }
   res.json({ success: true });
 });
 
