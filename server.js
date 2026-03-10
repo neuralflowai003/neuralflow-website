@@ -40,6 +40,32 @@ app.use(cors());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '')));
 
+// ─── Rate Limiter ─────────────────────────────────────────────────────────────
+const chatRateLimits = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of chatRateLimits.entries()) {
+    if (now > entry.resetAt) chatRateLimits.delete(ip);
+  }
+}, 5 * 60 * 1000);
+
+function chatRateLimit(req, res, next) {
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const maxRequests = 30;
+  const entry = chatRateLimits.get(ip);
+  if (!entry || now > entry.resetAt) {
+    chatRateLimits.set(ip, { count: 1, resetAt: now + windowMs });
+    return next();
+  }
+  if (entry.count >= maxRequests) {
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment before trying again.' });
+  }
+  entry.count++;
+  next();
+}
+
 // ─── Conversation Cache ───────────────────────────────────────────────────────
 const conversationSlots = new Map();
 const agreedSlots = new Map(); // { slot, storedAt }
@@ -101,6 +127,35 @@ function getNYOffset(date) {
     return { hours: 4, abbr: 'EDT' };
   }
   return { hours: 5, abbr: 'EST' };
+}
+
+// ─── Booking Log ──────────────────────────────────────────────────────────────
+const BOOKINGS_LOG = path.join(__dirname, 'bookings.json');
+function logBooking(data) {
+  try {
+    let entries = [];
+    if (fs.existsSync(BOOKINGS_LOG)) {
+      try { entries = JSON.parse(fs.readFileSync(BOOKINGS_LOG, 'utf8')); } catch {}
+    }
+    entries.push({ ...data, bookedAt: new Date().toISOString() });
+    fs.writeFileSync(BOOKINGS_LOG, JSON.stringify(entries, null, 2));
+    console.log(`📝 Booking logged: ${data.name} — ${data.slotLabel}`);
+  } catch (e) {
+    console.error('⚠️ Failed to write booking log:', e.message);
+  }
+}
+
+// ─── Timezone Slot Formatter ──────────────────────────────────────────────────
+function formatSlotInClientTz(isoStr, tz) {
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short'
+    }).format(new Date(isoStr));
+  } catch { return null; }
 }
 
 // ─── Slot Fetching ────────────────────────────────────────────────────────────
@@ -214,7 +269,8 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
 
 // ─── Booking Logic ────────────────────────────────────────────────────────────
 async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
-  slotLabel = slotLabel.replace(/\s*\[start:[^\]]+\]/g, '').trim();
+  slotLabel = slotLabel.replace(/\s*\[start:[^\]]+\]/g, '').replace(/\s*\/\s*\d{1,2}:\d{2}\s*(AM|PM)\s+\w+\s+your time/i, '').trim();
+  logBooking({ name, email, company, slotLabel, slotStart, notes });
   let meetLink = null;
   let eventHtmlLink = null;
 
@@ -693,7 +749,7 @@ app.get('/api/availability', async (req, res) => {
   res.json({ slots: await getAvailableSlots(90, req.query.date || null) });
 });
 
-app.post('/api/book', async (req, res) => {
+app.post('/api/book', chatRateLimit, async (req, res) => {
   try {
     await bookAppointment(req.body);
     res.json({ success: true });
@@ -855,7 +911,7 @@ app.post('/api/accept-proposal', async (req, res) => {
 });
 
 // ─── Chat / ARIA ──────────────────────────────────────────────────────────────
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', chatRateLimit, async (req, res) => {
   try {
     const { messages, conversationId, clientTimezone } = req.body;
     if (!messages) return res.status(400).json({ error: 'Messages required' });
@@ -1133,12 +1189,21 @@ app.post('/api/chat', async (req, res) => {
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
     let slotsText;
 
+    const isETTimezone = !clientTimezone || /^America\/(New_York|Indiana|Detroit|Kentucky|Louisville|Toronto|Montreal|Ottawa|Iqaluit|Thunder_Bay|Nipigon|Pangnirtung|Moncton|Glace_Bay|Halifax)/.test(clientTimezone);
+
     if (!hasEmail) {
       slotsText = "GATE: Do not show any available times yet. You must first collect the client's Full Name, Email, and Company. You have not collected their email yet.";
     } else if (!slots) {
       slotsText = "CALENDAR OFFLINE: Tell the client warmly: 'Our scheduling system is having a brief hiccup — no worries! Can I grab your email and I'll personally send you a few available times within the hour?' Then collect their email and preferred timeframe. End with: 'Perfect, I'll have Danny reach out shortly with available times.'";
     } else if (slots.length > 0) {
-      slotsText = `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => `${i + 1}. ${s.label} [start:${s.start}]`).join('\n')}`;
+      slotsText = `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => {
+        let label = s.label;
+        if (clientTimezone && !isETTimezone) {
+          const localTime = formatSlotInClientTz(s.start, clientTimezone);
+          if (localTime) label += ` / ${localTime} your time`;
+        }
+        return `${i + 1}. ${label} [start:${s.start}]`;
+      }).join('\n')}`;
     } else {
       slotsText = "CALENDAR UNAVAILABLE: Do NOT invent times. Tell the client: 'Let me check Danny's calendar — can I get your email so we can confirm a time?'";
     }
@@ -1183,7 +1248,7 @@ SCHEDULING RULES:
 - When outputting the BOOK command, copy the [start:...] value from the chosen slot exactly into the slotStart field.
 - CONFIRMATION REQUIRED: Before outputting the BOOK command, you must first send a confirmation message in this exact format:
 'Just to confirm — I'm booking [exact slot label] for [Full Name] at [email address]. Shall I go ahead?'
-Only output the BOOK command after the client explicitly confirms with yes, correct, go ahead, book it, or similar. Never book on an ambiguous reply.
+Only output the BOOK command after the client confirms. Accept any clear affirmative: yes, correct, go ahead, book it, sounds good, perfect, that works, great, sure, absolutely, confirmed, do it, let's do it, looks good, yep, yup, or similar. Never book on an ambiguous reply.
 - After confirming a booking, always say: 'You're all set for [exact slot label]. A calendar invite will be sent to [email] shortly — see you then!'
 
 ON CONFIRMATION — output this immediately, no delays:
