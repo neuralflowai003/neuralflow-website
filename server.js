@@ -75,9 +75,13 @@ setInterval(() => {
     if (val.fetchedAt < expiry) conversationSlots.delete(key);
   }
   for (const [key, val] of agreedSlots.entries()) {
-    if (val.storedAt < expiry) agreedSlots.delete(key); // expire by age, not indiscriminately
+    if (val.storedAt < expiry) agreedSlots.delete(key);
   }
 }, 10 * 60 * 1000);
+
+// ─── Pending Leads (abandoned chat follow-up) ────────────────────────────────
+// Tracks conversations that collected an email but never booked
+const pendingLeads = new Map(); // convId -> { email, name, lastSeen, followedUp }
 
 // ─── Telegram Alert Helper ────────────────────────────────────────────────────
 function sendTelegramAlert(msg) {
@@ -1140,6 +1144,17 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
     const isETTimezone = !clientTimezone || /^America\/(New_York|Indiana|Detroit|Kentucky|Louisville|Toronto|Montreal|Ottawa)/.test(clientTimezone);
 
+    // Track pending leads for abandoned chat follow-up
+    if (hasEmail) {
+      const emailMatch = [...messages].reverse()
+        .find(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
+      const detectedEmail = emailMatch?.content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0];
+      if (detectedEmail) {
+        const existing = pendingLeads.get(convId) || {};
+        pendingLeads.set(convId, { ...existing, email: detectedEmail, lastSeen: Date.now(), followedUp: existing.followedUp || false });
+      }
+    }
+
     // Sort slots chronologically and group by day
     let slotsText;
     if (!hasEmail) {
@@ -1185,10 +1200,15 @@ You must always use this date and time when reasoning about scheduling. Never gu
 
 CONVERSATION FLOW — follow this exact order:
 1. Greet warmly, ask what brings them to NeuralFlow today
-2. Ask 2-3 questions to understand their business needs and pain points (what they want automated, what's slowing them down, what's their biggest time sink)
+2. Ask qualifying questions naturally across the conversation to understand:
+   - What they want automated or improved
+   - What's their biggest time sink or pain point
+   - How big is their team (just a rough sense — "a few people", "10-person team", etc.)
+   - What tools or software they currently use (CRM, booking system, etc.)
+   Weave these into the conversation naturally — don't fire them all at once.
 3. Collect in this order: Full Name → Email → Company name
    EMAIL VALIDATION: A valid email has exactly one @ and a dot after it. If the format looks wrong, say: "Could you double-check that email? I want to make sure your invite reaches you." Do not proceed until you have a valid email.
-4. Once you have name, email, company, and understand their needs — present available slots
+4. Once you have name, email, company, and a good understanding of their needs — present available slots
 5. When they confirm a slot — output the BOOK command
 
 HOW TO PRESENT SLOTS:
@@ -1220,7 +1240,7 @@ Accept any clear yes: yes, correct, go ahead, book it, sounds good, perfect, tha
 Never book on an ambiguous reply.
 
 ON CONFIRMATION — output immediately:
-BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company","notes":"what they want automated | pain points and challenges"}
+BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company","notes":"what they want automated | pain points | team size | current tools"}
 Then say: "You're all set! A calendar invite will be sent to [email] shortly."
 
 Keep replies to 2-3 sentences. Be warm, conversational, and professional. Never mention pricing.
@@ -1365,6 +1385,7 @@ ${slotsText}`;
         }).catch(err => console.error('Background booking error:', err.message));
         conversationSlots.delete(convId);
         agreedSlots.delete(convId);
+        pendingLeads.delete(convId); // booked — no follow-up needed
       }
 
       aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
@@ -1378,6 +1399,154 @@ ${slotsText}`;
     res.status(500).json({ error: 'AI error' });
   }
 });
+
+// ─── Reminder Email Sender ────────────────────────────────────────────────────
+async function sendReminderEmail(booking, type) {
+  const { name, email, slotLabel, slotStart } = booking;
+  const firstName = name.split(' ')[0];
+  const isOneHour = type === '1h';
+  const subject = isOneHour
+    ? `Your NeuralFlow call starts in 1 hour — ${slotLabel}`
+    : `Reminder: Your NeuralFlow consultation is tomorrow — ${slotLabel}`;
+
+  const bg = '#0a0a0f', bgCard = '#13131a', accent = '#FF6B2B', textMuted = '#a0a0b0';
+  const ff = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reminder</title></head>
+<body style="margin:0;padding:0;background:#06060b;font-family:${ff};">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#06060b;padding:32px 16px;">
+  <tr><td align="center">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);">
+    <tr><td style="background:${bg};padding:36px 40px 28px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;">
+        <span style="color:#fff;">Neural</span><span style="color:${accent};">Flow</span>
+      </div>
+      <div style="margin-top:6px;padding-left:10px;border-left:2px solid ${accent};font-size:10px;font-weight:700;letter-spacing:2px;color:${accent};text-transform:uppercase;">AI Consulting &amp; Automation</div>
+    </td></tr>
+    <tr><td style="background:${bg};padding:40px 40px 32px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:${accent};margin-bottom:14px;">
+        ${isOneHour ? '⏰ Starting Soon' : '📅 Tomorrow'}
+      </div>
+      <h1 style="margin:0 0 14px;font-size:26px;font-weight:800;color:#fff;line-height:1.2;">
+        ${isOneHour ? 'Your call starts in 1 hour' : 'Your consultation is tomorrow'}
+      </h1>
+      <p style="margin:0;font-size:16px;color:${textMuted};line-height:1.6;">
+        Hi <strong style="color:#fff;">${firstName}</strong>, just a heads-up — your strategy session with Danny Boehmer is coming up ${isOneHour ? 'very soon' : 'tomorrow'}.
+      </p>
+    </td></tr>
+    <tr><td style="background:${bgCard};padding:0 40px 32px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${accent};">
+        <tr><td style="padding:20px 24px;">
+          <span style="font-size:13px;color:${textMuted};">📅 When</span><br>
+          <span style="font-size:16px;font-weight:700;color:#fff;">${slotLabel}</span>
+        </td></tr>
+      </table>
+    </td></tr>
+    <tr><td style="background:${bgCard};padding:0 40px 40px;">
+      <p style="margin:0;font-size:14px;color:${textMuted};">Check your original confirmation email for the Google Meet link. See you ${isOneHour ? 'soon' : 'tomorrow'}!</p>
+      <br>
+      <p style="margin:0;font-size:13px;color:${textMuted};">— Danny Boehmer<br>Founder, NeuralFlow AI</p>
+    </td></tr>
+  </table>
+  </td></tr>
+</table>
+</body></html>`;
+
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to: email, subject, html })
+      });
+      if (r.ok) { console.log(`✅ ${type} reminder sent to ${email}`); return; }
+      throw new Error((await r.json()).message);
+    } catch (e) {
+      console.error(`❌ ${type} reminder attempt ${i + 1} failed:`, e.message);
+      if (i < 2) await new Promise(r => setTimeout(r, 3000));
+    }
+  }
+  sendTelegramAlert(`🚨 REMINDER EMAIL FAILED\n${type} reminder to ${email} (${name}) for ${slotLabel}`);
+}
+
+// ─── Reminder Scheduler (runs every 5 min) ────────────────────────────────────
+setInterval(async () => {
+  if (!fs.existsSync(BOOKINGS_LOG)) return;
+  let bookings;
+  try { bookings = JSON.parse(fs.readFileSync(BOOKINGS_LOG, 'utf8')); } catch { return; }
+
+  const now = Date.now();
+  const WINDOW = 6 * 60 * 1000; // ±6 min window
+  let updated = false;
+
+  for (const booking of bookings) {
+    if (!booking.email || !booking.slotStart) continue;
+    const timeUntil = new Date(booking.slotStart).getTime() - now;
+    if (timeUntil < 0) continue; // past
+
+    if (!booking.reminded24h && Math.abs(timeUntil - 24 * 3600000) < WINDOW) {
+      await sendReminderEmail(booking, '24h');
+      booking.reminded24h = true; updated = true;
+    }
+    if (!booking.reminded1h && Math.abs(timeUntil - 3600000) < WINDOW) {
+      await sendReminderEmail(booking, '1h');
+      booking.reminded1h = true; updated = true;
+    }
+  }
+  if (updated) {
+    try { fs.writeFileSync(BOOKINGS_LOG, JSON.stringify(bookings, null, 2)); } catch (e) {
+      console.error('⚠️ Failed to update bookings log after reminder:', e.message);
+    }
+  }
+}, 5 * 60 * 1000);
+
+// ─── Abandoned Chat Follow-up (runs every 15 min) ─────────────────────────────
+setInterval(async () => {
+  const now = Date.now();
+  for (const [convId, lead] of pendingLeads.entries()) {
+    const idle = now - lead.lastSeen;
+    // Clean up very stale entries (> 7 days)
+    if (idle > 7 * 24 * 3600000) { pendingLeads.delete(convId); continue; }
+    // Follow up if idle > 1 hour, < 48 hours, not yet followed up, has email
+    if (!lead.followedUp && lead.email && idle > 3600000 && idle < 48 * 3600000) {
+      const firstName = (lead.name || '').split(' ')[0] || 'there';
+      const subject = `Still looking for a time, ${firstName}?`;
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#06060b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#06060b;padding:32px 16px;">
+  <tr><td align="center">
+  <table width="100%" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);">
+    <tr><td style="background:#0a0a0f;padding:36px 40px 28px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="font-size:28px;font-weight:800;"><span style="color:#fff;">Neural</span><span style="color:#FF6B2B;">Flow</span></div>
+      <div style="margin-top:6px;padding-left:10px;border-left:2px solid #FF6B2B;font-size:10px;font-weight:700;letter-spacing:2px;color:#FF6B2B;text-transform:uppercase;">AI Consulting &amp; Automation</div>
+    </td></tr>
+    <tr><td style="background:#0a0a0f;padding:40px;">
+      <p style="margin:0 0 16px;font-size:16px;color:#fff;">Hey ${firstName},</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#a0a0b0;line-height:1.6;">I noticed you were checking out our consultation booking but didn't get a time locked in — totally fine, life gets busy!</p>
+      <p style="margin:0 0 24px;font-size:15px;color:#a0a0b0;line-height:1.6;">If you're still interested in exploring how NeuralFlow can automate the repetitive parts of your business, I'd love to find a time that works for you.</p>
+      <a href="https://neuralflowai.io" style="display:inline-block;background:#FF6B2B;color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 28px;border-radius:8px;">Book a Free Consultation →</a>
+      <p style="margin:24px 0 0;font-size:13px;color:#a0a0b0;">— Danny Boehmer<br>Founder, NeuralFlow AI</p>
+    </td></tr>
+  </table>
+  </td></tr>
+</table>
+</body></html>`;
+      try {
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: 'Danny @ NeuralFlow <danny@neuralflowai.io>', to: lead.email, subject, html })
+        });
+        if (r.ok) {
+          console.log(`📧 Abandoned chat follow-up sent to ${lead.email}`);
+          lead.followedUp = true;
+        } else {
+          console.error('❌ Follow-up email failed:', (await r.json()).message);
+        }
+      } catch (e) { console.error('❌ Follow-up email error:', e.message); }
+    }
+  }
+}, 15 * 60 * 1000);
 
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err.message, err.stack);
