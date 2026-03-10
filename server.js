@@ -7,20 +7,10 @@ const { Resend } = require('resend');
 const { google } = require('googleapis');
 const fs = require('fs');
 
-const nodemailer = require('nodemailer');
 const https = require('https');
 
 const app = express();
 const port = process.env.PORT || 8080;
-
-// ─── Transporter ─────────────────────────────────────────────────────────────
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -885,6 +875,21 @@ app.post('/api/chat', async (req, res) => {
     const wMatch = lastUserMsg.match(/in\s+(\d+)\s+weeks?/);
     const mMatch = lastUserMsg.match(/in\s+(\d+)\s+months?/);
 
+    // Specific Time Detection — run before branch selection so it works with any date
+    let requestedTime = null;
+    const timeMatch = lastUserMsg.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
+    if (timeMatch) {
+      let hr = parseInt(timeMatch[1]);
+      const min = parseInt(timeMatch[2] || "0");
+      const ampm = timeMatch[3].toLowerCase();
+      if (ampm === 'pm' && hr < 12) hr += 12;
+      if (ampm === 'am' && hr === 12) hr = 0;
+      let roundedMin = min < 15 ? 0 : (min < 45 ? 30 : 60);
+      if (roundedMin === 60) { hr = (hr + 1) % 24; roundedMin = 0; }
+      requestedTime = { hr, min: roundedMin };
+      console.log(`⏰ Detected time: ${hr}:${String(roundedMin).padStart(2, '0')}`);
+    }
+
     // Bug 6 — Flexible user detection
     let userIsFlexible = false;
     if (lastUserMsg.match(/\banytime\b|whatever works|you pick|\bflexible\b|whatever is available|doesn.t matter|what.s your availability|what.s available|when are you free|when is danny free|what times do you have|what do you have open|show me times|show me availability/)) {
@@ -1009,26 +1014,6 @@ app.post('/api/chat', async (req, res) => {
       } else {
         console.log('🔍 Live fallback fetch (empty global cache)');
       }
-      // Specific Time Detection
-      let requestedTime = null;
-      const timeMatch = lastUserMsg.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
-      if (timeMatch) {
-        let hr = parseInt(timeMatch[1]);
-        const min = parseInt(timeMatch[2] || "0");
-        const ampm = timeMatch[3].toLowerCase();
-        if (ampm === 'pm' && hr < 12) hr += 12;
-        if (ampm === 'am' && hr === 12) hr = 0;
-
-        // Round to nearest 30 mins
-        let roundedMin = min < 15 ? 0 : (min < 45 ? 30 : 60);
-        if (roundedMin === 60) {
-          hr = (hr + 1) % 24;
-          roundedMin = 0;
-        }
-        requestedTime = { hr, min: roundedMin };
-        console.log(`⏰ Detected time: ${hr}:${String(roundedMin).padStart(2, '0')}`);
-      }
-
       if (slots && slots.length > 0) {
         conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
       }
@@ -1038,65 +1023,59 @@ app.post('/api/chat', async (req, res) => {
         searchFromDate = lockedEntry.slots[0].start.split('T')[0];
         console.log(`📅 No date in message — using last discussed date: ${searchFromDate}`);
       }
+    }
 
-      // If specific time requested, fetch full day slots so Claude has all alternatives
-      if (requestedTime && searchFromDate) {
-        console.log(`🔄 Specific time requested — fetching full day slots for ${searchFromDate}`);
-        const fullDaySlots = await getAvailableSlots(1, searchFromDate, true);
-        if (fullDaySlots && fullDaySlots.length > 0) {
-          slots = fullDaySlots;
-          conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-        }
+    // If specific time requested, fetch full day slots so Claude has all alternatives
+    if (requestedTime && searchFromDate) {
+      console.log(`🔄 Specific time requested — fetching full day slots for ${searchFromDate}`);
+      const fullDaySlots = await getAvailableSlots(1, searchFromDate, true);
+      if (fullDaySlots && fullDaySlots.length > 0) {
+        slots = fullDaySlots;
+        conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
       }
+    }
 
-      // Live freebusy check for the exact requested time
-      if (requestedTime && searchFromDate) {
-        console.log(`🔍 Checking specific time: ${requestedTime.hr}:${requestedTime.min} on ${searchFromDate}`);
-        const { hours: offsetHours } = getNYOffset(new Date(searchFromDate + "T12:00:00"));
-        // requestedTime.hr is local ET hour — convert to UTC by adding offset
-        const utcHr = requestedTime.hr + offsetHours;
-        const slotStart = new Date(`${searchFromDate}T${String(utcHr).padStart(2, '0')}:${String(requestedTime.min).padStart(2, '0')}:00.000Z`);
-        const slotEnd = new Date(slotStart.getTime() + 60 * 60000); // 1 hour check
+    // Live freebusy check for the exact requested time
+    if (requestedTime && searchFromDate) {
+      console.log(`🔍 Checking specific time: ${requestedTime.hr}:${requestedTime.min} on ${searchFromDate}`);
+      const { hours: offsetHours } = getNYOffset(new Date(searchFromDate + "T12:00:00"));
+      const utcHr = requestedTime.hr + offsetHours;
+      const slotStart = new Date(`${searchFromDate}T${String(utcHr).padStart(2, '0')}:${String(requestedTime.min).padStart(2, '0')}:00.000Z`);
+      const slotEnd = new Date(slotStart.getTime() + 60 * 60000);
 
-        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-        try {
-          const fbRes = await calendar.freebusy.query({
-            requestBody: {
-              timeMin: slotStart.toISOString(),
-              timeMax: slotEnd.toISOString(),
-              items: [{ id: 'primary' }],
-            },
-          });
-          const isBusy = fbRes.data.calendars.primary.busy.length > 0;
-          if (!isBusy) {
-            console.log("✅ Specific slot is FREE, adding to top of slots");
-            const weekdayStr = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(searchFromDate + "T12:00:00").getDay()];
-            const monthStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][new Date(searchFromDate + "T12:00:00").getMonth()];
-            const dateDayStr = new Date(searchFromDate + "T12:00:00").getDate();
-            let hour12 = requestedTime.hr % 12 || 12;
-            const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
-            const label = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${String(requestedTime.min).padStart(2, '0')} ${ampm} ${getNYOffset(new Date(searchFromDate + "T12:00:00")).abbr}`;
-
-            const newSlot = { label, start: slotStart.toISOString(), end: new Date(slotStart.getTime() + 3600000).toISOString() };
-            slots = [newSlot, ...(slots || []).filter(s => s.label !== label)].slice(0, 12);
-          } else {
-            console.log("❌ Specific slot is BUSY");
-            slotsAlert += `\nNOTE: The requested time ${requestedTime.hr % 12 || 12}:${String(requestedTime.min).padStart(2, '0')} ${requestedTime.hr >= 12 ? 'PM' : 'AM'} was just checked and is BUSY. Tell the client it's taken and offer the alternatives below.`;
-          }
-        } catch (e) {
-          console.error("Freebusy check failed:", e.message);
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      try {
+        const fbRes = await calendar.freebusy.query({
+          requestBody: { timeMin: slotStart.toISOString(), timeMax: slotEnd.toISOString(), items: [{ id: 'primary' }] },
+        });
+        const isBusy = fbRes.data.calendars.primary.busy.length > 0;
+        if (!isBusy) {
+          console.log("✅ Specific slot is FREE, adding to top of slots");
+          const weekdayStr = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(searchFromDate + "T12:00:00").getDay()];
+          const monthStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][new Date(searchFromDate + "T12:00:00").getMonth()];
+          const dateDayStr = new Date(searchFromDate + "T12:00:00").getDate();
+          let hour12 = requestedTime.hr % 12 || 12;
+          const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
+          const label = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${String(requestedTime.min).padStart(2, '0')} ${ampm} ${getNYOffset(new Date(searchFromDate + "T12:00:00")).abbr}`;
+          const newSlot = { label, start: slotStart.toISOString(), end: new Date(slotStart.getTime() + 3600000).toISOString() };
+          slots = [newSlot, ...(slots || []).filter(s => s.label !== label)].slice(0, 12);
+        } else {
+          console.log("❌ Specific slot is BUSY");
+          slotsAlert += `\nNOTE: The requested time ${requestedTime.hr % 12 || 12}:${String(requestedTime.min).padStart(2, '0')} ${requestedTime.hr >= 12 ? 'PM' : 'AM'} was just checked and is BUSY. Tell the client it's taken and offer the alternatives below.`;
         }
+      } catch (e) {
+        console.error("Freebusy check failed:", e.message);
       }
+    }
 
-      // Refresh for "what else/any other"
-      if (lastUserMsg.match(/what else|any other|more times|other slots/)) {
-        console.log("🔄 'What else' detected - fetching full day");
-        const fetchDate = searchFromDate || (slots && slots[0] ? slots[0].start.split('T')[0] : null);
-        if (fetchDate) {
-          const moreSlots = await getAvailableSlots(1, fetchDate);
-          if (moreSlots && moreSlots.length > 0) {
-            slots = [...(slots || []), ...moreSlots].filter((v, i, a) => a.findIndex(t => t.start === v.start) === i).slice(0, 12);
-          }
+    // Refresh for "what else/any other"
+    if (lastUserMsg.match(/what else|any other|more times|other slots/)) {
+      console.log("🔄 'What else' detected - fetching full day");
+      const fetchDate = searchFromDate || (slots && slots[0] ? slots[0].start.split('T')[0] : null);
+      if (fetchDate) {
+        const moreSlots = await getAvailableSlots(1, fetchDate);
+        if (moreSlots && moreSlots.length > 0) {
+          slots = [...(slots || []), ...moreSlots].filter((v, i, a) => a.findIndex(t => t.start === v.start) === i).slice(0, 12);
         }
       }
     }
