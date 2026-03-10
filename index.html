@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>NeuralFlow | AI Automation & Consulting</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="description"
@@ -4713,8 +4713,11 @@
       window.visualViewport.addEventListener('resize', () => {
         if (!isChatOpen || window.innerWidth > 768) return;
         const vv = window.visualViewport;
-        chatWindow.style.height = vv.height + 'px';
-        chatWindow.style.top = vv.offsetTop + 'px';
+        // Use setProperty with 'important' so these override the !important CSS rules
+        chatWindow.style.setProperty('height', vv.height + 'px', 'important');
+        chatWindow.style.setProperty('top', vv.offsetTop + 'px', 'important');
+        // Prevent bottom:0 !important from stretching the chat over the keyboard
+        chatWindow.style.setProperty('bottom', 'auto', 'important');
         // Scroll messages to bottom after keyboard opens
         requestAnimationFrame(() => {
           chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -4735,6 +4738,7 @@
     chatCloseBtn.addEventListener('click', () => {
       chatWindow.style.height = '';
       chatWindow.style.top = '';
+      chatWindow.style.bottom = '';
     });
 
     chatForm.addEventListener('submit', async (e) => {
