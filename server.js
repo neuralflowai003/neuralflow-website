@@ -695,6 +695,20 @@ app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html'
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
+app.get('/api/test-email', async (req, res) => {
+  const results = {};
+  try {
+    const t = require('nodemailer').createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }});
+    await t.verify();
+    results.smtp = 'OK';
+    await t.sendMail({ from: process.env.GMAIL_USER, to: process.env.GMAIL_USER, subject: '✅ ARIA Email Test', text: 'Email is working on Railway!' });
+    results.send = 'OK';
+  } catch (e) { results.error = e.message; }
+  results.GMAIL_USER = process.env.GMAIL_USER || 'MISSING';
+  results.GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD ? 'SET (' + process.env.GMAIL_APP_PASSWORD.length + ' chars)' : 'MISSING';
+  res.json(results);
+});
+
 app.get('/api/availability', async (req, res) => {
   res.json({ slots: await getAvailableSlots(90, req.query.date || null) });
 });
