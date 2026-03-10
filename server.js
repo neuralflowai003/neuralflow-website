@@ -643,7 +643,7 @@ Industry: [their likely industry]
 
   // Send emails via Gmail (nodemailer) — with retry + Telegram alert on failure
   const bookingTransporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com', port: 465, secure: true, family: 4,
+    host: 'smtp.gmail.com', port: 587, secure: false, family: 4,
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
   });
 
@@ -698,7 +698,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/api/test-email', async (req, res) => {
   const results = {};
   try {
-    const t = require('nodemailer').createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, family: 4, auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }});
+    const t = require('nodemailer').createTransport({ host: 'smtp.gmail.com', port: 587, secure: false, family: 4, auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }});
     await t.verify();
     results.smtp = 'OK';
     await t.sendMail({ from: process.env.GMAIL_USER, to: process.env.GMAIL_USER, subject: '✅ ARIA Email Test', text: 'Email is working on Railway!' });
@@ -863,7 +863,7 @@ app.post('/api/accept-proposal', async (req, res) => {
 
     // Send emails — non-blocking, each with its own retry + Telegram alert
     const acceptTransporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com', port: 465, secure: true, family: 4,
+      host: 'smtp.gmail.com', port: 587, secure: false, family: 4,
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
     });
 
