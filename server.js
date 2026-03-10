@@ -1069,8 +1069,9 @@ app.post('/api/chat', async (req, res) => {
       if (requestedTime && searchFromDate) {
         console.log(`🔍 Checking specific time: ${requestedTime.hr}:${requestedTime.min} on ${searchFromDate}`);
         const { hours: offsetHours } = getNYOffset(new Date(searchFromDate + "T12:00:00"));
-        const slotStart = new Date(`${searchFromDate}T${String(requestedTime.hr).padStart(2, '0')}:${String(requestedTime.min).padStart(2, '0')}:00.000Z`);
-        slotStart.setTime(slotStart.getTime() + offsetHours * 3600000);
+        // requestedTime.hr is local ET hour — convert to UTC by adding offset
+        const utcHr = requestedTime.hr + offsetHours;
+        const slotStart = new Date(`${searchFromDate}T${String(utcHr).padStart(2, '0')}:${String(requestedTime.min).padStart(2, '0')}:00.000Z`);
         const slotEnd = new Date(slotStart.getTime() + 60 * 60000); // 1 hour check
 
         const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
