@@ -4704,25 +4704,36 @@
       typingIndicator.classList.add('active');
       chatMessages.scrollTop = chatMessages.scrollHeight;
 
-      try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: conversationHistory, conversationId, clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
-        });
-
-        if (!response.ok) throw new Error('Network response was not ok');
-
-        const data = await response.json();
-
-        typingIndicator.classList.remove('active');
-        appendMessage('aria', data.reply);
-        conversationHistory.push({ role: 'assistant', content: data.reply });
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-      } catch (err) {
-        typingIndicator.classList.remove('active');
-        appendMessage('aria', "Sorry, I'm having trouble connecting right now. Please email danny@neuralflowai.io and we'll get back to you shortly!");
-      }
+      const sendMessage = async (attempt = 1) => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: conversationHistory, conversationId, clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
+          if (!response.ok) throw new Error('Network response was not ok');
+          const data = await response.json();
+          typingIndicator.classList.remove('active');
+          if (data.reply) {
+            appendMessage('aria', data.reply);
+            conversationHistory.push({ role: 'assistant', content: data.reply });
+          }
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        } catch (err) {
+          clearTimeout(timeout);
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 2000));
+            return sendMessage(attempt + 1);
+          }
+          typingIndicator.classList.remove('active');
+          appendMessage('aria', "Sorry, I'm having a brief technical issue. Please try again in a moment, or email danny@neuralflowai.io and we'll get back to you shortly!");
+        }
+      };
+      await sendMessage();
     });
 
     // ------------------- Service Modals -------------------

@@ -36,9 +36,19 @@ if (process.env.GOOGLE_REFRESH_TOKEN) {
 }
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors());
+const allowedOrigins = ['https://neuralflowai.io', 'https://www.neuralflowai.io'];
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (server-to-server, curl, Postman in dev)
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  }
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '')));
+
+// ─── Health Check ─────────────────────────────────────────────────────────────
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
 
 // ─── Rate Limiter ─────────────────────────────────────────────────────────────
 const chatRateLimits = new Map();
@@ -918,8 +928,14 @@ app.post('/api/accept-proposal', async (req, res) => {
 app.post('/api/chat', chatRateLimit, async (req, res) => {
   try {
     const { messages, conversationId, clientTimezone } = req.body;
-    if (!messages) return res.status(400).json({ error: 'Messages required' });
-    const convId = conversationId || 'default';
+    if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Messages required' });
+    if (messages.length > 60) return res.status(400).json({ error: 'Conversation too long' });
+    for (const m of messages) {
+      if (!m || typeof m.content !== 'string' || m.content.length > 4000) {
+        return res.status(400).json({ error: 'Invalid message format' });
+      }
+    }
+    const convId = (typeof conversationId === 'string' ? conversationId : 'default').slice(0, 100);
 
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
 
@@ -1470,7 +1486,7 @@ async function sendReminderEmail(booking, type) {
 }
 
 // ─── Reminder Scheduler (runs every 5 min) ────────────────────────────────────
-setInterval(async () => {
+setInterval(async () => { try {
   if (!fs.existsSync(BOOKINGS_LOG)) return;
   let bookings;
   try { bookings = JSON.parse(fs.readFileSync(BOOKINGS_LOG, 'utf8')); } catch { return; }
@@ -1498,10 +1514,11 @@ setInterval(async () => {
       console.error('⚠️ Failed to update bookings log after reminder:', e.message);
     }
   }
+} catch (e) { console.error('⚠️ Reminder scheduler error:', e.message); }
 }, 5 * 60 * 1000);
 
 // ─── Abandoned Chat Follow-up (runs every 15 min) ─────────────────────────────
-setInterval(async () => {
+setInterval(async () => { try {
   const now = Date.now();
   for (const [convId, lead] of pendingLeads.entries()) {
     const idle = now - lead.lastSeen;
@@ -1546,6 +1563,7 @@ setInterval(async () => {
       } catch (e) { console.error('❌ Follow-up email error:', e.message); }
     }
   }
+} catch (e) { console.error('⚠️ Follow-up scheduler error:', e.message); }
 }, 15 * 60 * 1000);
 
 process.on('uncaughtException', (err) => {
