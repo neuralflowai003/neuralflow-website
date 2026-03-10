@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NeuralFlow AI — Stat Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #050508; font-family: 'Inter', sans-serif; padding: 40px; }
+h1 { color: #fff; font-family: 'Space Grotesk', sans-serif; margin-bottom: 10px; font-size: 24px; }
+p.sub { color: #666; margin-bottom: 40px; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, 540px); gap: 30px; }
+.card {
+  width: 540px; height: 540px;
+  background: #0a0a0f;
+  border: 1px solid rgba(255,107,43,0.25);
+  border-radius: 20px;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,107,43,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.card-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #FF6B2B;
+  margin-bottom: 20px;
+}
+.card-headline {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 24px;
+}
+.card-headline span { color: #FF6B2B; }
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.row-label { color: #888; font-size: 14px; }
+.row-val { color: #fff; font-size: 15px; font-weight: 600; }
+.row-val.orange { color: #FF6B2B; }
+.row-val.red { color: #ff4444; }
+.row-val.green { color: #44ff88; }
+.divider { height: 1px; background: rgba(255,107,43,0.2); margin: 4px 0; }
+.checklist { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.checklist li { display: flex; align-items: center; gap: 10px; color: #ccc; font-size: 15px; }
+.checklist li .icon { font-size: 18px; width: 24px; }
+.checklist li.good { color: #fff; }
+.checklist li.bad { color: #666; text-decoration: line-through; }
+.big-stat { text-align: center; padding: 20px 0; }
+.big-stat .number { font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 800; color: #FF6B2B; line-height: 1; }
+.big-stat .label { color: #888; font-size: 14px; margin-top: 8px; }
+.quote { font-size: 22px; font-style: italic; color: #ddd; line-height: 1.5; flex: 1; display: flex; align-items: center; }
+.quote-attr { color: #666; font-size: 13px; margin-top: 12px; }
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  margin-top: 20px;
+}
+.logo { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; color: #fff; }
+.logo span { color: #FF6B2B; }
+.url { font-size: 12px; color: #FF6B2B; letter-spacing: 1px; }
+.tag { font-size: 11px; color: #555; background: rgba(255,107,43,0.08); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255,107,43,0.15); }
+.cta-text { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; color: #fff; line-height: 1.5; flex: 1; }
+.cta-text span { color: #FF6B2B; }
+.print-note { color: #444; font-size: 13px; margin: 30px 0 10px; font-family: 'Space Grotesk', sans-serif; }
+</style>
+</head>
+<body>
+
+<h1>NeuralFlow AI — Stat Cards</h1>
+<p class="sub">Screenshot each card at 540×540px for X / Instagram. Use 1200×628 crop for LinkedIn.</p>
+
+<div class="grid">
+
+  <!-- Card 1: Always On -->
+  <div class="card">
+    <div>
+      <div class="card-label">The Reality Check</div>
+      <div class="card-headline">Your front desk<br>works <span>9 to 5.</span><br>Leads don't.</div>
+    </div>
+    <ul class="checklist">
+      <li class="bad"><span class="icon">✗</span> Works 9–5 only</li>
+      <li class="bad"><span class="icon">✗</span> Takes lunch breaks</li>
+      <li class="bad"><span class="icon">✗</span> Calls in sick</li>
+      <li class="bad"><span class="icon">✗</span> Misses weekend calls</li>
+      <div class="divider" style="margin:8px 0"></div>
+      <li class="good"><span class="icon" style="color:#FF6B2B">✓</span> NeuralFlow AI — 24/7/365</li>
+    </ul>
+    <div class="card-footer">
+      <div class="logo">Neural<span>Flow</span> AI</div>
+      <div class="url">neuralflowai.io</div>
+    </div>
+  </div>
+
+  <!-- Card 2: ROI -->
+  <div class="card">
+    <div>
+      <div class="card-label">The Math</div>
+      <div class="card-headline">Stop doing<br>the math.<br><span>Start fixing it.</span></div>
+    </div>
+    <div class="card-body">
+      <div class="row"><span class="row-label">Avg new client value</span><span class="row-val">$1,200</span></div>
+      <div class="row"><span class="row-label">Missed calls / week</span><span class="row-val red">8 calls</span></div>
+      <div class="row"><span class="row-label">Revenue lost / month</span><span class="row-val red">$3,840</span></div>
+      <div class="divider"></div>
+      <div class="row"><span class="row-label">NeuralFlow AI / mo</span><span class="row-val orange">$497</span></div>
+      <div class="row"><span class="row-label">Net gain / month</span><span class="row-val green">+$3,343</span></div>
+    </div>
+    <div class="card-footer">
+      <div class="logo">Neural<span>Flow</span> AI</div>
+      <div class="url">neuralflowai.io</div>
+    </div>
+  </div>
+
+  <!-- Card 3: Speed to Answer -->
+  <div class="card">
+    <div>
+      <div class="card-label">The Cold Truth</div>
+      <div class="card-headline">The first one<br>to answer<br><span>gets the client.</span></div>
+    </div>
+    <div class="cta-text" style="padding: 20px 0;">
+      A potential client calls.<br><br>
+      You're in a meeting.<br>
+      They hang up.<br>
+      They call the next result on Google.<br>
+      That business <span>answers.</span><br><br>
+      <strong style="color:#fff">You just lost the deal.</strong>
+    </div>
+    <div class="card-footer">
+      <div class="logo">Neural<span>Flow</span> AI</div>
+      <div class="url">neuralflowai.io</div>
+    </div>
+  </div>
+
+  <!-- Card 4: Social Proof -->
+  <div class="card">
+    <div>
+      <div class="card-label">From a client</div>
+    </div>
+    <div class="quote">
+      <div>
+        <div style="font-size:48px;color:#FF6B2B;line-height:1;margin-bottom:16px">"</div>
+        I just got a booking at 11:47pm. We've never had that before.
+        <div class="quote-attr">— Hair salon owner, New Jersey</div>
+      </div>
+    </div>
+    <div class="cta-text" style="font-size:15px;font-weight:400;color:#888;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07)">
+      That's what always being available looks like.
+    </div>
+    <div class="card-footer">
+      <div class="logo">Neural<span>Flow</span> AI</div>
+      <div class="url">neuralflowai.io</div>
+    </div>
+  </div>
+
+  <!-- Card 5: Dental -->
+  <div class="card">
+    <div>
+      <div class="card-label">For Dental Practices</div>
+      <div class="card-headline">Profitable on<br><span>patient #1.</span></div>
+    </div>
+    <div class="card-body">
+      <div class="row"><span class="row-label">Avg patient value</span><span class="row-val">$1,200</span></div>
+      <div class="row"><span class="row-label">NeuralFlow cost/mo</span><span class="row-val orange">$497</span></div>
+      <div class="divider"></div>
+      <div class="row"><span class="row-label">Break even</span><span class="row-val green">1 patient</span></div>
+      <div class="row"><span class="row-label">Typical new bookings/mo</span><span class="row-val green">12–20</span></div>
+    </div>
+    <div class="cta-text" style="font-size:14px;color:#888;font-weight:400;padding-top:16px">
+      Every call we capture after hours is money you were leaving on the table.
+    </div>
+    <div class="card-footer">
+      <div class="logo">Neural<span>Flow</span> AI</div>
+      <div class="url">neuralflowai.io</div>
+    </div>
+  </div>
+
+  <!-- Card 6: No Shows -->
+  <div class="card">
+    <div>
+      <div class="card-label">No-Show Problem</div>
+      <div class="card-headline">No-shows cost<br>practices<br><span>$150K/year.</span></div>
+    </div>
+    <ul class="checklist" style="margin-top:8px">
+      <li class="good"><span class="icon" style="color:#FF6B2B">→</span> Confirmation on booking</li>
+      <li class="good"><span class="icon" style="color:#FF6B2B">→</span> Reminder 48 hours before</li>
+      <li class="good"><span class="icon" style="color:#FF6B2B">→</span> Reminder 24 hours before</li>
+      <li class="good"><span class="icon" style="color:#FF6B2B">→</span> 1-tap reschedule link</li>
+    </ul>
+    <div class="big-stat">
+      <div class="number">55%</div>
+      <div class="label">average no-show reduction</div>
+    </div>
+    <div class="card-footer">
+      <div class="logo">Neural<span>Flow</span> AI</div>
+      <div class="url">neuralflowai.io</div>
+    </div>
+  </div>
+
+</div>
+
+<p class="print-note">💡 To save: Right-click any card → "Save image as" or take a screenshot. Each card is 540×540px.</p>
+
+</body>
+</html>

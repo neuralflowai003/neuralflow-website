@@ -1,0 +1,46 @@
+NEURALFLOW AI LLC — Business Info
+===================================
+
+ENTITY
+  Legal Name:     NeuralFlow AI LLC
+  Entity ID:      0451426174
+  EIN:            41-4724079
+  State:          New Jersey (Domestic LLC)
+  Filed:          March 7, 2026
+  Address:        110 Goldsborough Drive 282, Bayonne, NJ 07002
+  Phone:          (908) 347-5095
+
+CONTACTS
+  Business Email: danny@neuralflowai.io
+  Personal Email: dannyboehmer42@gmail.com
+  Website:        https://neuralflowai.io
+
+NJ REGISTRATIONS
+  Business Registration Doc Locator: 10000172395
+  Entity ID:      0451426174
+  EIN:            41-4724079
+  Filing Date:    03/07/2026
+  ⚠️  Download Business Registration Doc before April 6, 2026
+
+BANKING
+  Mercury:        danny@neuralflowai.io / NeuralFlow2026!Orion (Business account)
+  Stripe:         TBD (connect after Mercury)
+
+ACCOUNTS
+  GitHub:         neuralflowai003
+  Railway:        focused-victory → neuralflow-website
+  Google WS:      danny@neuralflowai.io
+  X/Twitter:      @NeuralFlow_AI
+  LinkedIn:       linkedin.com/company/neuralflowai-io
+  Apollo:         free plan
+  Instantly:      trial ends March 20, 2026
+
+## Telegram Bot
+- Bot: @Orion_ai_003_1bot
+- Token: 8354160885:AAHsmTw_qDhYsEf2Htd2qotMd1kPRm-okmw
+- Danny Chat ID: 8709413106
+
+## X / Twitter
+- Handle: @NeuralFlow_AI
+- Email: neuralflow.ai.contact@gmail.com
+- Password: NeuralFlow2026!Orion

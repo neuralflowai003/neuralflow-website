@@ -52,17 +52,29 @@ app.use(express.static(path.join(__dirname, '')));
 
 // ─── Conversation Cache ───────────────────────────────────────────────────────
 const conversationSlots = new Map();
-const agreedSlots = new Map();
+const agreedSlots = new Map(); // { slot, storedAt }
 setInterval(() => {
-  const expiry = Date.now() - 10 * 60 * 1000;
+  const expiry = Date.now() - 30 * 60 * 1000; // 30 min expiry
   for (const [key, val] of conversationSlots.entries()) {
     if (val.fetchedAt < expiry) conversationSlots.delete(key);
   }
   for (const [key, val] of agreedSlots.entries()) {
-    // Also expire agreed slots after 10 mins
-    agreedSlots.delete(key);
+    if (val.storedAt < expiry) agreedSlots.delete(key); // expire by age, not indiscriminately
   }
 }, 10 * 60 * 1000);
+
+// ─── Telegram Alert Helper ────────────────────────────────────────────────────
+function sendTelegramAlert(msg) {
+  const tgToken = process.env.TELEGRAM_BOT_TOKEN || '8354160885:AAHsmTw_qDhYsEf2Htd2qotMd1kPRm-okmw';
+  const tgChat = process.env.TELEGRAM_CHAT_ID || '8709413106';
+  const payload = JSON.stringify({ chat_id: tgChat, text: msg });
+  const req = https.request(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+  }, () => {});
+  req.on('error', () => {});
+  req.write(payload);
+  req.end();
+}
 
 // ─── Global Slots Cache ───────────────────────────────────────────────────────
 let globalSlotCache = null;
@@ -401,8 +413,12 @@ Industry: [their likely industry]
           console.log('✅ Retry event created:', eventData.id);
         } catch (retryErr) {
           console.error('❌ Retry insert also failed:', retryErr);
+          sendTelegramAlert(`🚨 ARIA CALENDAR FAILED\nCould not create Google Calendar event after all retries.\nBooking: ${name} (${email}) — ${slotLabel}\nError: ${retryErr.message}`);
         }
       }
+    }
+    if (!eventData) {
+      sendTelegramAlert(`🚨 ARIA CALENDAR FAILED\nNo calendar event created for booking.\nClient: ${name} (${email})\nSlot: ${slotLabel}`);
     }
   }
 
@@ -614,29 +630,39 @@ Industry: [their likely industry]
 </table>
 </body></html>`;
 
-  // Send emails via Gmail (nodemailer) — reliable, no domain verification needed
+  // Send emails via Gmail (nodemailer) — with retry + Telegram alert on failure
   const bookingTransporter = nodemailer.createTransport({
     host: 'smtp.gmail.com', port: 465, secure: true,
     auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
   });
 
-  // Client Email
-  bookingTransporter.sendMail({
+  async function sendWithRetry(opts, label, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        await bookingTransporter.sendMail(opts);
+        console.log(`✅ ${label} sent`);
+        return;
+      } catch (e) {
+        console.error(`❌ ${label} attempt ${i + 1} failed:`, e.message);
+        if (i < retries - 1) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
+      }
+    }
+    sendTelegramAlert(`🚨 ARIA EMAIL FAILED\n${label} could not be sent after ${retries} attempts.\nBooking: ${name} (${email}) — ${slotLabel}`);
+  }
+
+  sendWithRetry({
     from: `NeuralFlow AI <${process.env.GMAIL_USER}>`,
     to: email,
     subject: "Your NeuralFlow Consultation is Confirmed ✅",
     html: clientHtml,
-  }).then(() => console.log('✅ Client email sent to', email))
-    .catch(e => console.error('❌ Client email failed:', e.message));
+  }, `Client email to ${email}`);
 
-  // Danny Email
-  bookingTransporter.sendMail({
+  sendWithRetry({
     from: `NeuralFlow ARIA <${process.env.GMAIL_USER}>`,
     to: process.env.GMAIL_USER,
     subject: `🔥 New Booking — ${name} (${company}) | ${dealValueStr} potential`,
     html: dannyHtml,
-  }).then(() => console.log('✅ Danny email sent'))
-    .catch(e => console.error('❌ Danny email failed:', e.message));
+  }, `Danny notification email`);
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
@@ -814,6 +840,7 @@ app.post('/api/chat', async (req, res) => {
     }
     let searchFromDate = null;
     let daysWindow = 7;
+    let slotsAlert = ""; // FIX 6: declare before any block that uses it
 
     const wMatch = lastUserMsg.match(/in\s+(\d+)\s+weeks?/);
     const mMatch = lastUserMsg.match(/in\s+(\d+)\s+months?/);
@@ -1046,7 +1073,7 @@ app.post('/api/chat', async (req, res) => {
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrowFormatted = `${dayNames[tomorrowDate.getDay()]}, ${monthNamesDetailed[tomorrowDate.getMonth()]} ${tomorrowDate.getDate()}`;
 
-    let slotsAlert = "";
+    slotsAlert = ""; // reset before building
     if (userIsFlexible) {
       slotsAlert = "\nUSER IS FLEXIBLE: Show the next available slots immediately without asking for a date preference.";
     } else if (pastDateNote) {
@@ -1178,7 +1205,7 @@ ${slotsText}`;
         return aiReplyText.includes(core);
       });
       if (matchedSlot) {
-        agreedSlots.set(convId, matchedSlot);
+        agreedSlots.set(convId, { slot: matchedSlot, storedAt: Date.now() });
         console.log(`📌 Agreed slot stored for ${convId}: ${matchedSlot.label}`);
       }
     }
@@ -1206,7 +1233,8 @@ ${slotsText}`;
       let matchMethod = '';
 
       // FIX 1: retrieve from agreedSlots map
-      const agreedSlot = agreedSlots.get(convId);
+      const agreedSlotEntry = agreedSlots.get(convId);
+      const agreedSlot = agreedSlotEntry ? agreedSlotEntry.slot : null;
       if (agreedSlot) {
         slot = agreedSlot;
         matchMethod = 'Agreed Slot Map';
@@ -1221,11 +1249,18 @@ ${slotsText}`;
         }
       }
 
+      if (!slot) {
+        // Slot couldn't be matched — alert Danny so he can follow up manually
+        console.error(`❌ BOOK command received but no slot could be matched for convId: ${convId}`, bookData);
+        sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nBOOK command fired but no slot matched.\nClient: ${bookData.name} (${bookData.email})\nCompany: ${bookData.company}\nRequested slot: ${bookData.slotLabel}\nAction needed: Follow up manually.`);
+      }
+
       if (slot) {
         // Fresh fetch at booking
         const exactDate = slot.start.split('T')[0];
         const freshSlots = await getAvailableSlots(1, exactDate);
-        const freshSlot = freshSlots ? freshSlots.find(s => s.label === slot.label) : null;
+        const normalizeLabel = l => l.replace(/\b(EDT|EST)\b/, 'ET');
+        const freshSlot = freshSlots ? freshSlots.find(s => normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
 
         if (!freshSlot) {
           conversationSlots.delete(convId);

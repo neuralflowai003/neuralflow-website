@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NeuralFlow AI — Physical Letter</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #f0f0f0; font-family: 'Inter', sans-serif; padding: 40px; }
+.controls { max-width: 680px; margin: 0 auto 30px; display: flex; gap: 12px; flex-wrap: wrap; }
+.controls input, .controls select {
+  padding: 10px 14px; border-radius: 8px; border: 1px solid #ddd;
+  font-family: 'Inter', sans-serif; font-size: 14px; flex: 1; min-width: 180px;
+}
+.controls button {
+  padding: 10px 20px; background: #FF6B2B; color: #fff; border: none;
+  border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;
+}
+.controls button:hover { background: #e55a1f; }
+.page {
+  width: 680px; min-height: 880px;
+  background: #fff;
+  margin: 0 auto;
+  padding: 70px 72px;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.12);
+  position: relative;
+}
+.letterhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 28px;
+  border-bottom: 2px solid #FF6B2B;
+  margin-bottom: 36px;
+}
+.logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0a0a0f;
+}
+.logo span { color: #FF6B2B; }
+.logo-sub {
+  font-size: 11px;
+  color: #999;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.contact-info {
+  text-align: right;
+  font-size: 12px;
+  color: #777;
+  line-height: 1.8;
+}
+.contact-info a { color: #FF6B2B; text-decoration: none; }
+.date {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 28px;
+}
+.recipient {
+  margin-bottom: 28px;
+}
+.recipient .name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0a0a0f;
+  line-height: 1.6;
+}
+.recipient .biz { color: #555; }
+.recipient .addr { color: #888; font-size: 14px; }
+.salutation {
+  font-size: 15.5px;
+  color: #0a0a0f;
+  margin-bottom: 22px;
+  font-weight: 500;
+}
+.body-text {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.85;
+  margin-bottom: 20px;
+}
+.body-text strong { color: #0a0a0f; }
+.highlight-box {
+  background: #fff8f5;
+  border-left: 4px solid #FF6B2B;
+  padding: 18px 22px;
+  margin: 24px 0;
+  border-radius: 0 8px 8px 0;
+}
+.highlight-box p {
+  font-size: 14px;
+  color: #444;
+  line-height: 1.8;
+  margin: 0;
+}
+.highlight-box strong { color: #FF6B2B; }
+.closing {
+  margin-top: 32px;
+  font-size: 15px;
+  color: #333;
+  line-height: 1.85;
+}
+.signature {
+  margin-top: 36px;
+}
+.signature .sig-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0a0a0f;
+  margin-bottom: 2px;
+}
+.signature .sig-title {
+  font-size: 13px;
+  color: #FF6B2B;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.signature .sig-contact {
+  font-size: 13px;
+  color: #888;
+  margin-top: 6px;
+  line-height: 1.7;
+}
+.ps {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+  font-size: 13.5px;
+  color: #555;
+  line-height: 1.7;
+  font-style: italic;
+}
+.ps strong { color: #0a0a0f; font-style: normal; }
+.footer-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #FF6B2B, #ff9a5c);
+}
+@media print {
+  body { background: #fff; padding: 0; }
+  .controls { display: none; }
+  .page { box-shadow: none; margin: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <input type="text" id="ownerName" placeholder="Owner First Name" value="[Owner Name]">
+  <input type="text" id="bizName" placeholder="Business Name" value="[Business Name]">
+  <input type="text" id="address" placeholder="Street Address" value="[Address]">
+  <input type="text" id="cityState" placeholder="City, State ZIP" value="[City, State ZIP]">
+  <select id="industry">
+    <option value="dental">Dental</option>
+    <option value="chiro">Chiro / PT</option>
+    <option value="medspa">Med Spa</option>
+    <option value="salon">Hair Salon</option>
+    <option value="law">Law Firm</option>
+    <option value="fitness">Fitness / Gym</option>
+    <option value="restaurant">Restaurant</option>
+    <option value="general" selected>General</option>
+  </select>
+  <button onclick="updateLetter()">Update Letter</button>
+  <button onclick="window.print()" style="background:#0a0a0f">🖨️ Print</button>
+</div>
+
+<div class="page" id="letter">
+  <div class="letterhead">
+    <div>
+      <div class="logo">Neural<span>Flow</span> AI</div>
+      <div class="logo-sub">Intelligent Automation</div>
+    </div>
+    <div class="contact-info">
+      danny@neuralflowai.io<br>
+      <a href="https://neuralflowai.io">neuralflowai.io</a><br>
+      Bayonne, NJ 07002
+    </div>
+  </div>
+
+  <div class="date" id="letterDate">March 9, 2026</div>
+
+  <div class="recipient">
+    <div class="name" id="recipientName">[Owner Name]</div>
+    <div class="name biz" id="recipientBiz">[Business Name]</div>
+    <div class="addr" id="recipientAddr">[Address]</div>
+    <div class="addr" id="recipientCity">[City, State ZIP]</div>
+  </div>
+
+  <div class="salutation" id="salutation">Dear [Owner Name],</div>
+
+  <p class="body-text" id="para1">
+    I wanted to reach out personally — because what I have to share is worth more than an email.
+  </p>
+
+  <p class="body-text" id="para2">
+    My name is Danny Boehmer. I'm the founder of <strong>NeuralFlow AI</strong>, based right here in Bayonne, NJ. We work with local business owners like yourself to solve one of the most common — and costly — problems in running a service business: <strong>missed calls and lost leads.</strong>
+  </p>
+
+  <div class="highlight-box">
+    <p id="highlightText">
+      Every call that goes to voicemail is a potential client who finds someone else.
+      For most businesses, that's <strong>$3,000 to $10,000 in lost revenue every single month</strong> —
+      from calls that went unanswered after hours, during busy periods, or over the weekend.
+    </p>
+  </div>
+
+  <p class="body-text" id="para3">
+    We built an AI receptionist that answers every call, 24 hours a day — qualifies the lead, books the appointment, and sends a confirmation automatically. No extra staff. No missed opportunities. Most of our clients recover their full investment within the first week.
+  </p>
+
+  <p class="body-text" id="para4">
+    But the phone is just the start. We also automate client follow-up, no-show reminders, Google review generation, and more — everything that should be running on autopilot in your business but probably isn't yet.
+  </p>
+
+  <p class="closing">
+    I'd love to show you what it looks like for <span id="closingBiz">[Business Name]</span>. It takes 20 minutes and there's no obligation whatsoever.
+  </p>
+
+  <p class="closing" style="margin-top:16px">
+    Visit <strong style="color:#FF6B2B">neuralflowai.io</strong> to chat with our AI directly and see it in action — or simply reply to this letter and I'll reach out personally.
+  </p>
+
+  <div class="signature">
+    <div class="sig-name">Danny Boehmer</div>
+    <div class="sig-title">Founder, NeuralFlow AI</div>
+    <div class="sig-contact">
+      danny@neuralflowai.io<br>
+      neuralflowai.io
+    </div>
+  </div>
+
+  <div class="ps">
+    <strong>P.S.</strong> — The businesses we work with typically see ROI in the first week.
+    I'd love to show you the math for <span id="psBiz">[Business Name]</span> specifically.
+    Even if the timing isn't right today, go to <strong>neuralflowai.io</strong> and chat with ARIA —
+    it takes 2 minutes and you'll see exactly what's possible.
+  </div>
+
+  <div class="footer-bar"></div>
+</div>
+
+<script>
+const industryParagraphs = {
+  dental: {
+    highlight: `Every call that goes to voicemail after hours is a patient calling your competitor next. For most dental practices, that's <strong>5–10 missed patients per week</strong> — at $1,200 per patient, that's over $4,000 in lost revenue every single month.`,
+    para3: `We built an AI receptionist that answers every call 24/7 — qualifies the patient, books the appointment, and sends a confirmation with a Google Calendar link. No extra staff. No missed opportunities. Most dental practices recover their full investment from a single new patient.`
+  },
+  chiro: {
+    highlight: `Every call that rings out during a treatment session is a patient who moves on. For most chiro and PT practices, that's <strong>6–10 missed patients per week</strong> — at $150/visit over a full treatment plan, each one is worth $1,500+.`,
+    para3: `We built an AI receptionist that answers every call while you're with patients — qualifies them, books the appointment, and sends a confirmation automatically. Your schedule stays full without anyone missing a beat.`
+  },
+  medspa: {
+    highlight: `Every call that goes unanswered is a client who expected white-glove service from the first touchpoint — and didn't get it. For med spas, a single missed client is worth <strong>$800–$3,000</strong> in lost treatment revenue.`,
+    para3: `We built an AI receptionist that answers every call 24/7, qualifies the lead, and books consultations automatically — delivering a premium experience from the very first interaction, even at midnight.`
+  },
+  salon: {
+    highlight: `Every missed call is a client who books somewhere else. For hair salons, that's <strong>5–8 lost bookings per week</strong> on average — at $80–$200 per visit, that adds up to thousands in lost revenue every month.`,
+    para3: `We built an AI receptionist that answers every call, books appointments, and sends confirmations — even when you're with a client, closed for the evening, or just busy. Never miss a booking again.`
+  },
+  law: {
+    highlight: `In legal services, <strong>speed to answer is everything</strong>. A potential client calls your office, gets voicemail, and calls the next firm on Google. That firm answers. They get the case. For personal injury and urgent matters, every missed call is a case you'll never know you lost.`,
+    para3: `We built an AI receptionist that answers every call instantly — 24 hours a day — qualifies the potential client, collects their information, and schedules a consultation directly on your calendar. You only talk to people who are ready to move forward.`
+  },
+  fitness: {
+    highlight: `Every missed call is a potential member who joins your competitor down the street. For fitness studios and gyms, <strong>a single member is worth $600–$1,800 per year</strong> — and most businesses miss 5–8 inquiry calls per week.`,
+    para3: `We built an AI receptionist that answers every call, books trial sessions and classes, and sends confirmation emails automatically — turning every inquiry into a real lead, even when you're on the floor coaching.`
+  },
+  restaurant: {
+    highlight: `During a dinner rush, <strong>every unanswered reservation call is a table filled at the restaurant next door</strong>. For private events and large party bookings, a single missed inquiry can mean $2,000–$10,000 in lost revenue.`,
+    para3: `We built an AI system that handles reservation calls, answers questions about your menu, hours, and availability, and books tables automatically — so your staff can stay focused on the room, not the phone.`
+  },
+  general: {
+    highlight: `Every call that goes to voicemail is a potential client who finds someone else. For most service businesses, that's <strong>$3,000 to $10,000 in lost revenue every single month</strong> — from calls that went unanswered after hours, during busy periods, or over the weekend.`,
+    para3: `We built an AI receptionist that answers every call 24/7 — qualifies the lead, books the appointment, and sends a confirmation automatically. No extra staff. No missed opportunities. Most clients recover their full investment within the first week.`
+  }
+};
+
+function updateLetter() {
+  const name = document.getElementById('ownerName').value || '[Owner Name]';
+  const biz = document.getElementById('bizName').value || '[Business Name]';
+  const addr = document.getElementById('address').value || '[Address]';
+  const city = document.getElementById('cityState').value || '[City, State ZIP]';
+  const industry = document.getElementById('industry').value;
+  const copy = industryParagraphs[industry];
+
+  document.getElementById('recipientName').textContent = name;
+  document.getElementById('recipientBiz').textContent = biz;
+  document.getElementById('recipientAddr').textContent = addr;
+  document.getElementById('recipientCity').textContent = city;
+  document.getElementById('salutation').textContent = `Dear ${name},`;
+  document.getElementById('highlightText').innerHTML = copy.highlight;
+  document.getElementById('para3').textContent = copy.para3;
+  document.getElementById('closingBiz').textContent = biz;
+  document.getElementById('psBiz').textContent = biz;
+}
+
+// Set today's date
+const d = new Date();
+document.getElementById('letterDate').textContent = d.toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'});
+</script>
+</body>
+</html>
