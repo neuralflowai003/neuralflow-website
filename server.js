@@ -641,39 +641,28 @@ Industry: [their likely industry]
 </table>
 </body></html>`;
 
-  // Send emails via Gmail (nodemailer) — with retry + Telegram alert on failure
-  const bookingTransporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com', port: 587, secure: false, family: 4,
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
-  });
-
-  async function sendWithRetry(opts, label, retries = 3) {
-    for (let i = 0; i < retries; i++) {
+  // Send emails via Resend API (HTTP/443 — works on Railway, no SMTP needed)
+  async function sendWithResend(to, subject, html, label) {
+    for (let i = 0; i < 3; i++) {
       try {
-        await bookingTransporter.sendMail(opts);
-        console.log(`✅ ${label} sent`);
-        return;
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to, subject, html })
+        });
+        const data = await res.json();
+        if (res.ok) { console.log(`✅ ${label} sent (Resend id: ${data.id})`); return; }
+        throw new Error(data.message || JSON.stringify(data));
       } catch (e) {
         console.error(`❌ ${label} attempt ${i + 1} failed:`, e.message);
-        if (i < retries - 1) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
+        if (i < 2) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
       }
     }
-    sendTelegramAlert(`🚨 ARIA EMAIL FAILED\n${label} could not be sent after ${retries} attempts.\nBooking: ${name} (${email}) — ${slotLabel}`);
+    sendTelegramAlert(`🚨 ARIA EMAIL FAILED\n${label} failed after 3 attempts.\nBooking: ${name} (${email}) — ${slotLabel}`);
   }
 
-  sendWithRetry({
-    from: `NeuralFlow AI <${process.env.GMAIL_USER}>`,
-    to: email,
-    subject: "Your NeuralFlow Consultation is Confirmed ✅",
-    html: clientHtml,
-  }, `Client email to ${email}`);
-
-  sendWithRetry({
-    from: `NeuralFlow ARIA <${process.env.GMAIL_USER}>`,
-    to: process.env.GMAIL_USER,
-    subject: `🔥 New Booking — ${name} (${company}) | ${dealValueStr} potential`,
-    html: dannyHtml,
-  }, `Danny notification email`);
+  sendWithResend(email, "Your NeuralFlow Consultation is Confirmed ✅", clientHtml, `Client email to ${email}`);
+  sendWithResend(process.env.GMAIL_USER, `🔥 New Booking — ${name} (${company}) | ${dealValueStr} potential`, dannyHtml, `Danny notification email`);
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
