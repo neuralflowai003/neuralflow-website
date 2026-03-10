@@ -80,6 +80,10 @@ function sendTelegramAlert(msg) {
 let globalSlotCache = null;
 let globalSlotCacheUpdatedAt = 0;
 
+// ─── Cached OAuth Token ───────────────────────────────────────────────────────
+let cachedAccessToken = null;
+let tokenExpiresAt = 0;
+
 async function refreshGlobalSlotCache() {
   try {
     const slots = await getAvailableSlots(90, null);
@@ -94,10 +98,6 @@ async function refreshGlobalSlotCache() {
 }
 refreshGlobalSlotCache();
 setInterval(refreshGlobalSlotCache, 2 * 60 * 1000);
-
-// ─── Cached OAuth Token ───────────────────────────────────────────────────────
-let cachedAccessToken = null;
-let tokenExpiresAt = 0;
 
 // ─── Helper: DST-Aware NY Offset ──────────────────────────────────────────────
 function getNYOffset(date) {
