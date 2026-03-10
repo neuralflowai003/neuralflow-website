@@ -1140,59 +1140,90 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
     const isETTimezone = !clientTimezone || /^America\/(New_York|Indiana|Detroit|Kentucky|Louisville|Toronto|Montreal|Ottawa)/.test(clientTimezone);
 
+    // Sort slots chronologically and group by day
     let slotsText;
     if (!hasEmail) {
       slotsText = "GATE: Do not show available times yet. Collect Full Name, Email, and Company first.";
     } else if (!slots || slots.length === 0) {
       slotsText = slots === null
         ? "CALENDAR OFFLINE: Say: 'Our scheduling system has a brief hiccup — can I grab your email and I'll personally send you a few available times within the hour?'"
-        : `NO SLOTS FOUND.${slotsAlert ? slotsAlert : " Widen the search or ask the client for a different date."}`;
+        : `NO SLOTS FOUND.${slotsAlert ? slotsAlert : " Ask the client for a different date."}`;
     } else {
-      slotsText = `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => {
-        let label = s.label;
-        if (clientTimezone && !isETTimezone) {
-          const localTime = formatSlotInClientTz(s.start, clientTimezone);
-          if (localTime) label += ` / ${localTime} your time`;
+      // Always sort chronologically before displaying
+      const sorted = [...slots].sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      // Group by day so Claude can see which slots belong to the same day
+      const byDay = {};
+      for (const s of sorted) {
+        const dayKey = s.start.split('T')[0];
+        if (!byDay[dayKey]) byDay[dayKey] = [];
+        byDay[dayKey].push(s);
+      }
+
+      let idx = 1;
+      const lines = [];
+      for (const [dayKey, daySlots] of Object.entries(byDay)) {
+        const d = new Date(dayKey + 'T12:00:00');
+        lines.push(`--- ${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()} ---`);
+        for (const s of daySlots) {
+          let label = s.label;
+          if (clientTimezone && !isETTimezone) {
+            const localTime = formatSlotInClientTz(s.start, clientTimezone);
+            if (localTime) label += ` / ${localTime} your time`;
+          }
+          lines.push(`${idx}. ${label} [start:${s.start}]`);
+          idx++;
         }
-        return `${i + 1}. ${label} [start:${s.start}]`;
-      }).join('\n')}`;
+      }
+      slotsText = `AVAILABLE SLOTS:${slotsAlert}\n${lines.join('\n')}`;
     }
 
     const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company. Danny Boehmer is the founder. Website: neuralflowai.io.
 
-TODAY: ${todayFormatted} | TIME: ${timeFormatted} ET
-Tomorrow is ${tomorrowFormatted}. Default to slots starting tomorrow unless client specifies a date.
+RIGHT NOW: ${todayFormatted}, ${timeFormatted} Eastern Time
+You must always use this date and time when reasoning about scheduling. Never guess or assume what day or month it is — it is ${todayFormatted}. Tomorrow is ${tomorrowFormatted}.
 
 CONVERSATION FLOW — follow this exact order:
 1. Greet warmly, ask what brings them to NeuralFlow today
-2. Ask 2-3 questions to understand their business needs and pain points (what do they want automated, what's slowing them down, what's their biggest time sink)
+2. Ask 2-3 questions to understand their business needs and pain points (what they want automated, what's slowing them down, what's their biggest time sink)
 3. Collect in this order: Full Name → Email → Company name
    EMAIL VALIDATION: A valid email has exactly one @ and a dot after it. If the format looks wrong, say: "Could you double-check that email? I want to make sure your invite reaches you." Do not proceed until you have a valid email.
 4. Once you have name, email, company, and understand their needs — present available slots
 5. When they confirm a slot — output the BOOK command
 
+HOW TO PRESENT SLOTS:
+The slot list below is grouped by day in chronological order. Always work forward in time — never offer a slot on an earlier date after offering a later one.
+
+When showing slots for the first time (or when a client hasn't specified a date):
+- Show exactly 3 times from the FIRST day listed — one morning, one afternoon, one evening
+- All 3 must be from the same day
+- End with: "If none of these work, just tell me a different date or time and I'll check Danny's calendar."
+
+When the client asks for a specific date or time range (e.g. "next week", "March 20th", "how about Tuesday"):
+- Show 3 times from the earliest available day within that range (one morning, one afternoon, one evening from the same day)
+
+When the client asks for more options on the same day:
+- Show the remaining times available for that day from the list
+
 SCHEDULING RULES:
 - Plain text only — no asterisks, no bold, no markdown, no bullet symbols
-- Copy slot labels EXACTLY character-for-character from the list below — do not reformat or paraphrase
-- Show 3 options first: one morning (9-11 AM), one afternoon (1-4 PM), one evening (5-9 PM). End with: "If none of these work, just tell me a different time or date and I'll check Danny's calendar."
-- If client asks for more options or a specific time, check and show what's available — never say "fully booked" unless confirmed zero availability
-- Never offer a slot less than 24 hours from now
-- Never invent or create slots that aren't in the list below
-- Never include the year when stating dates. Say "Tuesday, April 15" not "Tuesday, April 15, 2026"
+- Copy slot labels EXACTLY character-for-character from the list — never reformat or paraphrase
+- Never offer a slot less than 24 hours from now (today is ${todayFormatted})
+- Never invent slots that aren't in the list
+- Never include the year when stating dates (say "Tuesday, April 15" not "Tuesday, April 15, 2026")
 - The slotStart in the BOOK command must always match the [start:ISO] from the exact slot you confirmed
 
 CONFIRMATION FLOW:
-Before booking, send this exact message:
+Before booking, send exactly:
 "Just to confirm — I'm booking [exact slot label] for [Full Name] at [email]. Shall I go ahead?"
-Accept any clear yes as confirmation: yes, correct, go ahead, book it, sounds good, perfect, that works, great, sure, absolutely, confirmed, do it, let's do it, looks good, yep, yup.
+Accept any clear yes: yes, correct, go ahead, book it, sounds good, perfect, that works, great, sure, absolutely, confirmed, do it, let's do it, looks good, yep, yup.
 Never book on an ambiguous reply.
 
 ON CONFIRMATION — output immediately:
 BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company","notes":"what they want automated | pain points and challenges"}
 Then say: "You're all set! A calendar invite will be sent to [email] shortly."
 
-Keep replies to 2-3 sentences. Be warm, conversational, and professional.
-Never mention pricing, costs, or rates.
+Keep replies to 2-3 sentences. Be warm, conversational, and professional. Never mention pricing.
 
 ${slotsText}`;
 
