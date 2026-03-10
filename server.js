@@ -985,10 +985,9 @@ app.post('/api/chat', async (req, res) => {
     if (searchFromDate) {
       const d = new Date(searchFromDate + "T12:00:00");
       const day = d.getDay();
-      if (day === 0 || day === 6) {
+      if (day === 0) { // Only block Sundays — Saturdays are available
         const originalDate = searchFromDate;
-        if (day === 0) d.setDate(d.getDate() + 1); // Sunday -> Monday
-        else d.setDate(d.getDate() + 2); // Saturday -> Monday
+        d.setDate(d.getDate() + 1); // Sunday -> Monday
         searchFromDate = d.toISOString().split('T')[0];
         weekendRedirectDate = { from: originalDate, to: searchFromDate };
         weekendNote = true;
