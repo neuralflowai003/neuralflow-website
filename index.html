@@ -1552,6 +1552,7 @@
     }
 
     @media (max-width: 768px) {
+      /* Expanded mode on tablet — centre modal */
       .chat-window.chat-expanded {
         width: 95vw;
         height: 85vh;
@@ -1562,6 +1563,7 @@
         transform: translate(-50%, -50%) !important;
       }
 
+      /* Active (open) chat — true fullscreen, no fixed height so keyboard pushes layout */
       .chat-window.active {
         position: fixed !important;
         top: 0 !important;
@@ -1569,23 +1571,32 @@
         right: 0 !important;
         bottom: 0 !important;
         width: 100% !important;
-        height: 100dvh !important;
+        /* Use 100% instead of 100dvh — JS will adjust height via visualViewport */
+        height: 100% !important;
         border-radius: 0 !important;
         z-index: 99999 !important;
         display: flex !important;
         flex-direction: column !important;
         transform: none !important;
+        transition: height 0.1s ease !important;
       }
 
       .chat-messages {
         flex: 1 !important;
         overflow-y: auto !important;
         -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
       }
 
       .chat-input-area {
         flex-shrink: 0 !important;
-        padding-bottom: env(safe-area-inset-bottom, 8px) !important;
+        /* Sit above iOS home indicator and stay clear of keyboard */
+        padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+      }
+
+      /* Hide expand button on mobile — fullscreen is the only mode */
+      .chat-expand-btn {
+        display: none !important;
       }
     }
 
@@ -1809,11 +1820,13 @@
     }
 
     @media(max-width: 480px) {
-      .chat-window {
-        width: calc(100% - 40px);
-        height: 80vh;
-        bottom: 90px;
-        right: 20px;
+      /* Closed/inactive state only — active state is handled by 768px fullscreen rule above */
+      .chat-window:not(.active) {
+        width: calc(100% - 32px);
+        height: 72vh;
+        bottom: 85px;
+        right: 16px;
+        left: 16px;
       }
 
       .chat-widget-btn {
@@ -4690,6 +4703,38 @@
       const isExpanded = chatWindow.classList.toggle('chat-expanded');
       chatExpandBtn.innerHTML = isExpanded ? '&#x2715;' : '&#x26F6;';
       chatExpandBtn.title = isExpanded ? 'Collapse chat' : 'Expand chat';
+    });
+
+    // ── Mobile keyboard handling ──────────────────────────────────────────────
+    // When the virtual keyboard opens on iOS/Android it resizes the viewport.
+    // We use visualViewport to pin the chat window to the visible area so the
+    // input stays visible and messages stay scrolled to the bottom.
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        if (!isChatOpen || window.innerWidth > 768) return;
+        const vv = window.visualViewport;
+        chatWindow.style.height = vv.height + 'px';
+        chatWindow.style.top = vv.offsetTop + 'px';
+        // Scroll messages to bottom after keyboard opens
+        requestAnimationFrame(() => {
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+      });
+    }
+
+    // Scroll to bottom and ensure input visible when user taps the input field
+    chatInput.addEventListener('focus', () => {
+      if (window.innerWidth > 768) return;
+      setTimeout(() => {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        chatInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 350); // wait for keyboard animation to finish
+    });
+
+    // Reset inline styles when chat closes so desktop layout is unaffected
+    chatCloseBtn.addEventListener('click', () => {
+      chatWindow.style.height = '';
+      chatWindow.style.top = '';
     });
 
     chatForm.addEventListener('submit', async (e) => {
