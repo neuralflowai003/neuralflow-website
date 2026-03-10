@@ -917,285 +917,237 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     if (!messages) return res.status(400).json({ error: 'Messages required' });
     const convId = conversationId || 'default';
 
-    // Date Detection
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
 
-    // Fix 6: Pre-warm global cache on cold boot message
+    // Pre-warm global cache on first message
     if ((!globalSlotCache || globalSlotCache.length === 0) && messages.length <= 2) {
       await refreshGlobalSlotCache();
     }
-    let searchFromDate = null;
-    let daysWindow = 7;
-    let slotsAlert = ""; // FIX 6: declare before any block that uses it
 
-    const wMatch = lastUserMsg.match(/in\s+(\d+)\s+weeks?/);
-    const mMatch = lastUserMsg.match(/in\s+(\d+)\s+months?/);
-
-    // Specific Time Detection — run before branch selection so it works with any date
+    // ── 1. Specific time detection ────────────────────────────────────────────
     let requestedTime = null;
     const timeMatch = lastUserMsg.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
     if (timeMatch) {
       let hr = parseInt(timeMatch[1]);
-      const min = parseInt(timeMatch[2] || "0");
+      const min = parseInt(timeMatch[2] || '0');
       const ampm = timeMatch[3].toLowerCase();
       if (ampm === 'pm' && hr < 12) hr += 12;
       if (ampm === 'am' && hr === 12) hr = 0;
-      let roundedMin = min < 15 ? 0 : (min < 45 ? 30 : 60);
+      let roundedMin = min < 15 ? 0 : min < 45 ? 30 : 60;
       if (roundedMin === 60) { hr = (hr + 1) % 24; roundedMin = 0; }
       requestedTime = { hr, min: roundedMin };
       console.log(`⏰ Detected time: ${hr}:${String(roundedMin).padStart(2, '0')}`);
     }
 
-    // Bug 6 — Flexible user detection
-    let userIsFlexible = false;
-    if (lastUserMsg.match(/\banytime\b|whatever works|you pick|\bflexible\b|whatever is available|doesn.t matter|what.s your availability|what.s available|when are you free|when is danny free|what times do you have|what do you have open|show me times|show me availability/)) {
-      userIsFlexible = true;
-    }
+    // ── 2. Date phrase detection (runs FIRST, before flexible check) ──────────
+    let searchFromDate = null;
+    let daysWindow = 7;
+    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    const wMatch = lastUserMsg.match(/\bin\s+(\d+)\s+weeks?\b/);
+    const mMatch = lastUserMsg.match(/\bin\s+(\d+)\s+months?\b/);
 
-    if (!userIsFlexible) {
-      // Bug 1 — End of month detection (before all other checks)
-      if (lastUserMsg.match(/end of (the )?month/)) {
-        const d = new Date();
-        const target20 = new Date(d.getFullYear(), d.getMonth(), 20);
-        if (d >= target20) {
-          // Past the 20th — use next month's 20th
-          searchFromDate = new Date(d.getFullYear(), d.getMonth() + 1, 20).toISOString().split('T')[0];
-        } else {
-          searchFromDate = target20.toISOString().split('T')[0];
-        }
-        daysWindow = 10;
-      } else if (lastUserMsg.match(/couple weeks?|few weeks?/)) {
-        const d = new Date(); d.setDate(d.getDate() + 14);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-      } else if (lastUserMsg.match(/next week|following week/)) {
-        const d = new Date(); d.setDate(d.getDate() + 7);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-      } else if (wMatch) {
-        const d = new Date(); d.setDate(d.getDate() + parseInt(wMatch[1]) * 7);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-        // Bug 5 — Month-based phrase detection
-      } else if (lastUserMsg.match(/next month/)) {
-        const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-      } else if (lastUserMsg.match(/in a few months?|a couple months?|in 2 months?/)) {
-        const d = new Date(); d.setDate(d.getDate() + 60);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-      } else if (lastUserMsg.match(/in 3 months?/)) {
-        const d = new Date(); d.setDate(d.getDate() + 90);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-      } else if (mMatch) {
-        const d = new Date(); d.setDate(d.getDate() + parseInt(mMatch[1]) * 30);
-        searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-      } else {
-        const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-        const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
-        if (dateMatch) {
-          const monthStr = dateMatch[1];
-          const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
-          if (dayNum >= 1 && dayNum <= 31) {
-            const d = new Date();
-            if (monthStr) {
-              d.setMonth(monthNames.indexOf(monthStr));
-            } else {
-              const priorEntry = conversationSlots.get(convId);
-              if (priorEntry && priorEntry.slots && priorEntry.slots.length > 0) {
-                const refStart = new Date(priorEntry.slots[0].start);
-                const inferredMonth = refStart.getUTCMonth();
-                const inferredYear = refStart.getUTCFullYear();
-                const candidate = new Date(inferredYear, inferredMonth, dayNum, 12, 0, 0);
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                if (candidate > today) {
-                  d.setFullYear(inferredYear);
-                  d.setMonth(inferredMonth);
-                }
-              }
+    if (lastUserMsg.match(/\bend of (the )?month\b/)) {
+      const d = new Date();
+      const target = new Date(d.getFullYear(), d.getMonth(), 20);
+      if (d.getDate() >= 20) target.setMonth(target.getMonth() + 1);
+      searchFromDate = target.toISOString().split('T')[0]; daysWindow = 10;
+    } else if (lastUserMsg.match(/\bnext week\b|\bfollowing week\b/)) {
+      const d = new Date(); d.setDate(d.getDate() + 7);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+    } else if (lastUserMsg.match(/\bcouple weeks?\b|\bfew weeks?\b/)) {
+      const d = new Date(); d.setDate(d.getDate() + 14);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+    } else if (wMatch) {
+      const d = new Date(); d.setDate(d.getDate() + parseInt(wMatch[1]) * 7);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+    } else if (lastUserMsg.match(/\bnext month\b/)) {
+      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+    } else if (lastUserMsg.match(/\bin a few months?\b|\ba couple months?\b|\bin 2 months?\b/)) {
+      const d = new Date(); d.setDate(d.getDate() + 60);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+    } else if (lastUserMsg.match(/\bin 3 months?\b/)) {
+      const d = new Date(); d.setDate(d.getDate() + 90);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+    } else if (mMatch) {
+      const d = new Date(); d.setDate(d.getDate() + parseInt(mMatch[1]) * 30);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+    } else {
+      // Specific date: "March 15", "the 15th", "15th"
+      const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
+      if (dateMatch) {
+        const monthStr = dateMatch[1];
+        const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
+        if (dayNum >= 1 && dayNum <= 31) {
+          const d = new Date();
+          if (monthStr) {
+            d.setMonth(monthNames.indexOf(monthStr));
+          } else {
+            const prior = conversationSlots.get(convId);
+            if (prior?.slots?.length > 0) {
+              const ref = new Date(prior.slots[0].start);
+              const candidate = new Date(ref.getUTCFullYear(), ref.getUTCMonth(), dayNum, 12);
+              if (candidate > new Date()) { d.setFullYear(ref.getUTCFullYear()); d.setMonth(ref.getUTCMonth()); }
             }
-            d.setDate(dayNum);
-            if (d < new Date(new Date().setHours(0, 0, 0, 0))) d.setFullYear(d.getFullYear() + 1);
-            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
           }
-        } else {
-          for (const [i, month] of monthNames.entries()) {
-            if (lastUserMsg.includes(month)) {
-              const d = new Date(); d.setMonth(i);
-              if (d < new Date(new Date().setHours(0, 0, 0, 0))) d.setFullYear(d.getFullYear() + 1);
-              d.setDate(1);
-              searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
-              break;
-            }
+          d.setDate(dayNum);
+          if (d < new Date(new Date().setHours(0,0,0,0))) d.setFullYear(d.getFullYear() + 1);
+          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
+        }
+      } else {
+        // Month only: "in March", "March"
+        for (const [i, month] of monthNames.entries()) {
+          if (lastUserMsg.includes(month)) {
+            const d = new Date(); d.setMonth(i);
+            if (d < new Date(new Date().setHours(0,0,0,0))) d.setFullYear(d.getFullYear() + 1);
+            d.setDate(1);
+            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+            break;
           }
         }
       }
     }
 
+    // ── 3. Flexible detection — ONLY if no specific date/time was found ────────
+    const userIsFlexible = !searchFromDate && !requestedTime &&
+      !!(lastUserMsg.match(/\banytime\b|whatever works|you pick|\bflexible\b|whatever is available|doesn.t matter|what.s your availability|what.s available|when are you free|when is danny free|what times do you have|what do you have open|show me times|show me availability/));
+
+    // ── 4. Validate date — reject past, redirect Sundays ─────────────────────
     let pastDateNote = false;
+    let weekendNote = false;
     if (searchFromDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const reqDate = new Date(searchFromDate + "T12:00:00");
-      reqDate.setHours(0, 0, 0, 0);
-      if (reqDate < today) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const reqD = new Date(searchFromDate + 'T12:00:00'); reqD.setHours(0,0,0,0);
+      if (reqD < today) {
         searchFromDate = null;
         pastDateNote = true;
-      }
-    }
-
-    let weekendNote = false;
-    let weekendRedirectDate = null;
-    if (searchFromDate) {
-      const d = new Date(searchFromDate + "T12:00:00");
-      const day = d.getDay();
-      if (day === 0) { // Only block Sundays — Saturdays are available
-        const originalDate = searchFromDate;
-        d.setDate(d.getDate() + 1); // Sunday -> Monday
+      } else if (new Date(searchFromDate + 'T12:00:00').getDay() === 0) {
+        const d = new Date(searchFromDate + 'T12:00:00');
+        d.setDate(d.getDate() + 1);
         searchFromDate = d.toISOString().split('T')[0];
-        weekendRedirectDate = { from: originalDate, to: searchFromDate };
         weekendNote = true;
       }
     }
 
-    // Cache Logic — Bug 2: always live-fetch when a specific date was requested
-    const lockedEntry = conversationSlots.get(convId);
+    // ── 5. Fetch slots ────────────────────────────────────────────────────────
     let slots;
-
-    if (userIsFlexible) {
-      // Bug 6: flexible user — use global cache directly
-      console.log('📦 Flexible user — using global slot cache directly');
-      slots = globalSlotCache && globalSlotCache.length > 0
-        ? globalSlotCache.filter(s => new Date(s.start) > new Date())
-        : await getAvailableSlots(7, null);
-    } else if (searchFromDate) {
-      // Bug 2: always live-fetch for any specific date/range
-      console.log('🔍 Live fetch for specific date:', searchFromDate);
+    if (searchFromDate) {
+      // Specific date requested — always live fetch
+      console.log('🔍 Live fetch:', searchFromDate, 'window:', daysWindow);
       slots = await getAvailableSlots(daysWindow, searchFromDate);
-
-      // Fallback: If no slots on that exact date/range, widen search to 7 days
       if (!slots || slots.length === 0) {
-        console.log('🔍 No slots on requested date, widening search to 7 days');
+        console.log('🔍 No slots found, widening to 7 days from', searchFromDate);
         slots = await getAvailableSlots(7, searchFromDate);
       }
+      if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+    } else if (requestedTime) {
+      // Time-only request — use last discussed date or default
+      const prior = conversationSlots.get(convId);
+      const fallbackDate = prior?.slots?.[0]?.start.split('T')[0] || null;
+      if (fallbackDate) {
+        searchFromDate = fallbackDate;
+        console.log('⏰ Time-only request — fetching full day for', searchFromDate);
+        slots = await getAvailableSlots(1, searchFromDate, true);
+        if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+      } else {
+        slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
+      }
+    } else if (userIsFlexible) {
+      console.log('📦 Flexible user — using global cache');
+      slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
+      if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     } else {
-      // Default — use global cache if available
-      const validCached = lockedEntry ? lockedEntry.slots.filter(s => new Date(s.start) > new Date()) : [];
+      // Default — use conversation cache if fresh, else global cache
+      const cached = conversationSlots.get(convId);
+      const validCached = cached?.slots?.filter(s => new Date(s.start) > new Date()) || [];
       if (validCached.length > 0) {
         slots = validCached;
-      } else if (globalSlotCache && globalSlotCache.length > 0) {
-        console.log('📦 Using global slot cache:', globalSlotCache.length, 'slots, age:', Math.round((Date.now() - globalSlotCacheUpdatedAt) / 1000), 'sec');
-        slots = globalSlotCache.filter(s => new Date(s.start) > new Date());
+        console.log('📦 Using conversation cache:', slots.length, 'slots');
       } else {
-        console.log('🔍 Live fallback fetch (empty global cache)');
-      }
-      if (slots && slots.length > 0) {
-        conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-      }
-
-      // If user asked for a specific time but no date was mentioned, use the most recently discussed date from cached slots
-      if (requestedTime && !searchFromDate && lockedEntry && lockedEntry.slots && lockedEntry.slots.length > 0) {
-        searchFromDate = lockedEntry.slots[0].start.split('T')[0];
-        console.log(`📅 No date in message — using last discussed date: ${searchFromDate}`);
+        slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
+        if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
       }
     }
 
-    // If specific time requested, fetch full day slots so Claude has all alternatives
-    if (requestedTime && searchFromDate) {
-      console.log(`🔄 Specific time requested — fetching full day slots for ${searchFromDate}`);
-      const fullDaySlots = await getAvailableSlots(1, searchFromDate, true);
-      if (fullDaySlots && fullDaySlots.length > 0) {
-        slots = fullDaySlots;
-        conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+    // Expand to full-day slots when user asks for more options
+    if (lastUserMsg.match(/\bwhat else\b|\bany other\b|\bmore times\b|\bother slots\b/)) {
+      const fetchDate = searchFromDate || slots?.[0]?.start.split('T')[0];
+      if (fetchDate) {
+        const more = await getAvailableSlots(1, fetchDate, true);
+        if (more?.length > 0) {
+          slots = [...(slots||[]), ...more].filter((v,i,a) => a.findIndex(t => t.start === v.start) === i).slice(0, 12);
+          conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+        }
       }
     }
 
-    // Live freebusy check for the exact requested time
-    let freebusyNote = "";
+    // ── 6. Live freebusy check for exact time request ─────────────────────────
+    let freebusyNote = '';
     if (requestedTime && searchFromDate) {
-      console.log(`🔍 Checking specific time: ${requestedTime.hr}:${requestedTime.min} on ${searchFromDate}`);
-      const { hours: offsetHours } = getNYOffset(new Date(searchFromDate + "T12:00:00"));
+      const { hours: offsetHours, abbr } = getNYOffset(new Date(searchFromDate + 'T12:00:00'));
       const utcHr = requestedTime.hr + offsetHours;
-      const slotStart = new Date(`${searchFromDate}T${String(utcHr).padStart(2, '0')}:${String(requestedTime.min).padStart(2, '0')}:00.000Z`);
-      const slotEnd = new Date(slotStart.getTime() + 60 * 60000);
-
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      const slotStart = new Date(`${searchFromDate}T${String(utcHr).padStart(2,'0')}:${String(requestedTime.min).padStart(2,'0')}:00.000Z`);
+      const slotEnd = new Date(slotStart.getTime() + 3600000);
       try {
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
         const fbRes = await calendar.freebusy.query({
-          requestBody: { timeMin: slotStart.toISOString(), timeMax: slotEnd.toISOString(), items: [{ id: 'primary' }] },
+          requestBody: { timeMin: slotStart.toISOString(), timeMax: slotEnd.toISOString(), items: [{ id: 'primary' }] }
         });
         const isBusy = fbRes.data.calendars.primary.busy.length > 0;
         if (!isBusy) {
-          console.log("✅ Specific slot is FREE, adding to top of slots");
-          const weekdayStr = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date(searchFromDate + "T12:00:00").getDay()];
-          const monthStr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][new Date(searchFromDate + "T12:00:00").getMonth()];
-          const dateDayStr = new Date(searchFromDate + "T12:00:00").getDate();
-          let hour12 = requestedTime.hr % 12 || 12;
+          const d = new Date(searchFromDate + 'T12:00:00');
+          const weekdayStr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+          const monthStr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+          const hour12 = requestedTime.hr % 12 || 12;
           const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
-          const label = `${weekdayStr}, ${monthStr} ${dateDayStr} at ${hour12}:${String(requestedTime.min).padStart(2, '0')} ${ampm} ${getNYOffset(new Date(searchFromDate + "T12:00:00")).abbr}`;
-          const newSlot = { label, start: slotStart.toISOString(), end: new Date(slotStart.getTime() + 3600000).toISOString() };
-          slots = [newSlot, ...(slots || []).filter(s => s.label !== label)].slice(0, 12);
+          const label = `${weekdayStr}, ${monthStr} ${d.getDate()} at ${hour12}:${String(requestedTime.min).padStart(2,'0')} ${ampm} ${abbr}`;
+          const newSlot = { label, start: slotStart.toISOString(), end: slotEnd.toISOString() };
+          slots = [newSlot, ...(slots||[]).filter(s => s.label !== label)].slice(0, 12);
+          conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+          console.log('✅ Requested time is free, added to slots');
         } else {
-          console.log("❌ Specific slot is BUSY");
-          freebusyNote = `\nNOTE: The requested time ${requestedTime.hr % 12 || 12}:${String(requestedTime.min).padStart(2, '0')} ${requestedTime.hr >= 12 ? 'PM' : 'AM'} was just checked and is BUSY. Tell the client it's taken and offer the alternatives below.`;
+          freebusyNote = `\nNOTE: ${requestedTime.hr % 12 || 12}:${String(requestedTime.min).padStart(2,'0')} ${requestedTime.hr >= 12 ? 'PM' : 'AM'} is BUSY — tell the client it's taken and offer the alternatives below.`;
+          console.log('❌ Requested time is busy');
         }
-      } catch (e) {
-        console.error("Freebusy check failed:", e.message);
-      }
+      } catch (e) { console.error('Freebusy check failed:', e.message); }
     }
 
-    // Refresh for "what else/any other"
-    if (lastUserMsg.match(/what else|any other|more times|other slots/)) {
-      console.log("🔄 'What else' detected - fetching full day");
-      const fetchDate = searchFromDate || (slots && slots[0] ? slots[0].start.split('T')[0] : null);
-      if (fetchDate) {
-        const moreSlots = await getAvailableSlots(1, fetchDate);
-        if (moreSlots && moreSlots.length > 0) {
-          slots = [...(slots || []), ...moreSlots].filter((v, i, a) => a.findIndex(t => t.start === v.start) === i).slice(0, 12);
-        }
-      }
-    }
-
-    // System Prompt Build
+    // ── 7. Build system prompt ────────────────────────────────────────────────
     const now = new Date();
     const estDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const monthNamesDetailed = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const todayFormatted = `${dayNames[estDate.getDay()]}, ${monthNamesDetailed[estDate.getMonth()]} ${estDate.getDate()}, ${estDate.getFullYear()}`;
-    const timeFormatted = `${estDate.getHours().toString().padStart(2, '0')}:${estDate.getMinutes().toString().padStart(2, '0')}`;
+    const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const todayFormatted = `${DAY_NAMES[estDate.getDay()]}, ${MONTH_NAMES[estDate.getMonth()]} ${estDate.getDate()}, ${estDate.getFullYear()}`;
+    const timeFormatted = `${String(estDate.getHours()).padStart(2,'0')}:${String(estDate.getMinutes()).padStart(2,'0')}`;
+    const tomorrow = new Date(estDate); tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowFormatted = `${DAY_NAMES[tomorrow.getDay()]}, ${MONTH_NAMES[tomorrow.getMonth()]} ${tomorrow.getDate()}`;
 
-    const tomorrowDate = new Date(estDate);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrowFormatted = `${dayNames[tomorrowDate.getDay()]}, ${monthNamesDetailed[tomorrowDate.getMonth()]} ${tomorrowDate.getDate()}`;
-
-    slotsAlert = ""; // reset before building
-    // Always tell Claude the exact day name for the requested date — never let it guess
-    if (searchFromDate) {
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const requestedDayName = dayNames[new Date(searchFromDate + "T12:00:00").getDay()];
-      slotsAlert = `\nDATE CONTEXT: The client requested ${searchFromDate} which is a ${requestedDayName}. Use this exact day name when referring to this date.`;
-    }
-    if (userIsFlexible) {
-      slotsAlert = "\nUSER IS FLEXIBLE: Show the next available slots immediately without asking for a date preference.";
-    } else if (pastDateNote) {
-      slotsAlert = "\nNOTE: Client asked for a past date. Tell them: 'That date has already passed — here are the next available times:'";
-    } else if (searchFromDate && (!slots || slots.length === 0)) {
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const requestedDayName = dayNames[new Date(searchFromDate + "T12:00:00").getDay()];
-      slotsAlert = `\nDATE CONTEXT: ${searchFromDate} is a ${requestedDayName}.\nNOTE: No availability found on that day. Tell the client: 'I don't have any openings on that day — here are the closest available times:' then show alternatives below.`;
-    } else if (weekendNote && weekendRedirectDate) {
-      slotsAlert = `\nNOTE: The client asked for ${weekendRedirectDate.from} which is a Sunday. Tell the client: 'We don't schedule on Sundays — here are the closest times starting Monday ${weekendRedirectDate.to}:'`;
+    // Context note for Claude about the date/time situation
+    let slotsAlert = '';
+    if (pastDateNote) {
+      slotsAlert = "\nNOTE: Client requested a past date. Say: 'That date has already passed — here are the next available times:'";
     } else if (weekendNote) {
-      slotsAlert += "\nNOTE: Client asked for a Sunday. Slots below are for the nearest available weekday instead. Tell the client: 'We don't schedule on Sundays — here are the closest available times:'";
+      slotsAlert = "\nNOTE: Client asked for a Sunday. Redirected to Monday. Say: 'We don't schedule on Sundays — here are the nearest times starting Monday:'";
+    } else if (searchFromDate) {
+      const dayName = DAY_NAMES[new Date(searchFromDate + 'T12:00:00').getDay()];
+      slotsAlert = `\nDATE CONTEXT: Showing slots from ${searchFromDate} (${dayName}). Use this exact day name.`;
+      if (slots && slots.length === 0) {
+        slotsAlert += `\nNO SLOTS on ${searchFromDate}. Say: 'I don't have any openings on that day — here are the closest available times:' then show the alternatives below.`;
+      }
     }
     if (freebusyNote) slotsAlert += freebusyNote;
 
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
+    const isETTimezone = !clientTimezone || /^America\/(New_York|Indiana|Detroit|Kentucky|Louisville|Toronto|Montreal|Ottawa)/.test(clientTimezone);
+
     let slotsText;
-
-    const isETTimezone = !clientTimezone || /^America\/(New_York|Indiana|Detroit|Kentucky|Louisville|Toronto|Montreal|Ottawa|Iqaluit|Thunder_Bay|Nipigon|Pangnirtung|Moncton|Glace_Bay|Halifax)/.test(clientTimezone);
-
     if (!hasEmail) {
-      slotsText = "GATE: Do not show any available times yet. You must first collect the client's Full Name, Email, and Company. You have not collected their email yet.";
-    } else if (!slots) {
-      slotsText = "CALENDAR OFFLINE: Tell the client warmly: 'Our scheduling system is having a brief hiccup — no worries! Can I grab your email and I'll personally send you a few available times within the hour?' Then collect their email and preferred timeframe. End with: 'Perfect, I'll have Danny reach out shortly with available times.'";
-    } else if (slots.length > 0) {
+      slotsText = "GATE: Do not show available times yet. Collect Full Name, Email, and Company first.";
+    } else if (!slots || slots.length === 0) {
+      slotsText = slots === null
+        ? "CALENDAR OFFLINE: Say: 'Our scheduling system has a brief hiccup — can I grab your email and I'll personally send you a few available times within the hour?'"
+        : `NO SLOTS FOUND.${slotsAlert ? slotsAlert : " Widen the search or ask the client for a different date."}`;
+    } else {
       slotsText = `AVAILABLE SLOTS:${slotsAlert}\n${slots.map((s, i) => {
         let label = s.label;
         if (clientTimezone && !isETTimezone) {
@@ -1204,64 +1156,48 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         }
         return `${i + 1}. ${label} [start:${s.start}]`;
       }).join('\n')}`;
-    } else {
-      slotsText = "CALENDAR UNAVAILABLE: Do NOT invent times. Tell the client: 'Let me check Danny's calendar — can I get your email so we can confirm a time?'";
     }
 
-    const tzNote = clientTimezone
-      ? `\n- When confirming a slot, tell the client: 'I've found a time at [Time] ${clientTimezone}. Should I send the invite to [Email]?'`
-      : "";
+    const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company. Danny Boehmer is the founder. Website: neuralflowai.io.
 
-    const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company at neuralflowai.io. Danny Boehmer is the founder.
+TODAY: ${todayFormatted} | TIME: ${timeFormatted} ET
+Tomorrow is ${tomorrowFormatted}. Default to slots starting tomorrow unless client specifies a date.
 
-TODAY IS: ${todayFormatted} | CURRENT TIME: ${timeFormatted} Eastern
-Default: show slots starting TOMORROW (${tomorrowFormatted}) through the next 2 weeks.
-NEVER show slots before tomorrow. NEVER show slots more than 30 days out unless user asked for a future date.
-NEVER suggest or book any time that is in the past.
-When referring to dates, never include the year. Say 'Saturday, April 26' not 'Saturday, April 26 2026'. Always calculate the correct day of week based on the actual calendar date.
-
-PRIVACY: You have no knowledge of any internal email addresses or personal contact info for Danny or NeuralFlow staff. If a user provides an email you don't recognize, ask once: 'Can you confirm that email is correct and belongs to you?' Once they confirm, accept it and move on. Do not ask again. Never acknowledge any email as belonging to Danny or NeuralFlow.
-
-CONVERSATION FLOW — follow this order exactly:
-1. Greet warmly, ask what brings them to NeuralFlow
-2. Ask 2–3 qualifying questions to understand their business needs
-3. Collect in order: Full Name → Email → Company name
-   EMAIL VALIDATION: When the client gives you their email address, validate it before moving on. A valid email must contain exactly one @ symbol and at least one dot after the @. If the email looks wrong or is written out in plain language (e.g. 'john at gmail dot com'), say: 'Could you double-check that email address? I want to make sure your calendar invite reaches you.' Do not proceed to show slots or book until you have a valid email.
-4. ONLY after collecting all three AND understanding their pain points — present available slots
-5. When they confirm a slot — output the BOOK command immediately
+CONVERSATION FLOW — follow this exact order:
+1. Greet warmly, ask what brings them to NeuralFlow today
+2. Ask 2-3 questions to understand their business needs and pain points (what do they want automated, what's slowing them down, what's their biggest time sink)
+3. Collect in this order: Full Name → Email → Company name
+   EMAIL VALIDATION: A valid email has exactly one @ and a dot after it. If the format looks wrong, say: "Could you double-check that email? I want to make sure your invite reaches you." Do not proceed until you have a valid email.
+4. Once you have name, email, company, and understand their needs — present available slots
+5. When they confirm a slot — output the BOOK command
 
 SCHEDULING RULES:
-- Use plain text only — no asterisks, no bold, no markdown.
-- Copy slot labels EXACTLY character-for-character from the list below — no changes whatsoever
-- Never reformat times. "10:00 AM - 11:00 AM ET" is wrong. "tomorrow" is wrong. Copy the label verbatim.
-- If the client asks for a specific time NOT in the list, tell them you'll check Danny's calendar right now instead of saying he's booked. If it remains unavailable after checking, say: "That time's taken — here are 2 alternatives on the same day:" then list the alternatives.
-- NEVER say "fully booked" or "no availability" for a date unless raw data confirms zero slots for the entire window requested.
-- If a client says "what else do you have" or "any other times" on a day, show them more options for that date.
-- When first showing availability for a day, show exactly 3 options: one morning (9-11AM), one afternoon (1-4PM), one evening (5-9PM). This keeps it clean and easy to choose.
-- After listing the 3 slots, always end with: 'If none of these work, just tell me a different time or date and I'll check Danny's calendar.'
-- If the client asks for a specific time or says "what else do you have", check and offer additional times beyond the initial 3.
-- NEVER tell a client you don't have a date on the calendar or that you can't check a date. If no slots are available on a requested date, say: 'I don't have any openings on that day — here are the closest available times:' and show alternatives. Always show alternatives, never leave the client without options.
-- Never invent or add slots that are not in the list${tzNote}
-- BOOKING BUFFER: Never offer any slot less than 24 hours from now. If client asks for very soon, say: 'I want to make sure Danny has time to prepare — here are the next available times:'
-- SCHEDULE HOURS: Available Monday through Sunday, 9AM to 9PM EST.
-- CRITICAL: The time you tell the client IS the time that will be booked. Never confirm a time verbally and then output a different slotStart in the BOOK command. The slotStart must always be the [start:...] value from the exact slot you told the client about.
-- When outputting the BOOK command, copy the [start:...] value from the chosen slot exactly into the slotStart field.
-- CONFIRMATION REQUIRED: Before outputting the BOOK command, you must first send a confirmation message in this exact format:
-'Just to confirm — I'm booking [exact slot label] for [Full Name] at [email address]. Shall I go ahead?'
-Only output the BOOK command after the client confirms. Accept any clear affirmative: yes, correct, go ahead, book it, sounds good, perfect, that works, great, sure, absolutely, confirmed, do it, let's do it, looks good, yep, yup, or similar. Never book on an ambiguous reply.
-- After confirming a booking, always say: 'You're all set for [exact slot label]. A calendar invite will be sent to [email] shortly — see you then!'
+- Plain text only — no asterisks, no bold, no markdown, no bullet symbols
+- Copy slot labels EXACTLY character-for-character from the list below — do not reformat or paraphrase
+- Show 3 options first: one morning (9-11 AM), one afternoon (1-4 PM), one evening (5-9 PM). End with: "If none of these work, just tell me a different time or date and I'll check Danny's calendar."
+- If client asks for more options or a specific time, check and show what's available — never say "fully booked" unless confirmed zero availability
+- Never offer a slot less than 24 hours from now
+- Never invent or create slots that aren't in the list below
+- Never include the year when stating dates. Say "Tuesday, April 15" not "Tuesday, April 15, 2026"
+- The slotStart in the BOOK command must always match the [start:ISO] from the exact slot you confirmed
 
-ON CONFIRMATION — output this immediately, no delays:
-BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company Name","notes":"what they want | pain points"}
-Then say: "Perfect! Booking that now — you'll get a calendar invite at [email] shortly!"
+CONFIRMATION FLOW:
+Before booking, send this exact message:
+"Just to confirm — I'm booking [exact slot label] for [Full Name] at [email]. Shall I go ahead?"
+Accept any clear yes as confirmation: yes, correct, go ahead, book it, sounds good, perfect, that works, great, sure, absolutely, confirmed, do it, let's do it, looks good, yep, yup.
+Never book on an ambiguous reply.
 
-Keep replies to 2–3 sentences. Be warm and professional.
-NEVER mention pricing, costs, or rates under any circumstances.
+ON CONFIRMATION — output immediately:
+BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company","notes":"what they want automated | pain points and challenges"}
+Then say: "You're all set! A calendar invite will be sent to [email] shortly."
+
+Keep replies to 2-3 sentences. Be warm, conversational, and professional.
+Never mention pricing, costs, or rates.
 
 ${slotsText}`;
 
-    // AI Calls
-    let aiReplyText = "";
+    // ── 8. Call Claude (with OpenRouter fallback) ─────────────────────────────
+    let aiReplyText = '';
     try {
       let resAnthropic;
       for (let attempt = 0; attempt < 2; attempt++) {
@@ -1300,17 +1236,16 @@ ${slotsText}`;
       aiReplyText = data.choices[0].message.content;
     }
 
-    aiReplyText = aiReplyText.replace(/\*\*(.*?)\*\*/g, '$1');
-    aiReplyText = aiReplyText.replace(/\*(.*?)\*/g, '$1');
-    aiReplyText = aiReplyText.replace(/^#{1,6}\s+/gm, '');
-    aiReplyText = aiReplyText.replace(/^\*\s+/gm, '- ');
+    // Strip markdown formatting
+    aiReplyText = aiReplyText.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1')
+      .replace(/^#{1,6}\s+/gm, '').replace(/^\*\s+/gm, '- ');
 
-    // Confirmation phrase tracking (FIX 1)
+    // Track confirmation phrase — store the agreed slot so booking uses the right time
     const lowerReply = aiReplyText.toLowerCase();
-    if (lowerReply.includes("just to confirm") || lowerReply.includes("i'm booking")) {
+    if (lowerReply.includes('just to confirm') || lowerReply.includes("i'm booking")) {
       const activeSlots = conversationSlots.get(convId)?.slots || slots || [];
       const matchedSlot = activeSlots.find(s => {
-        const core = s.label.replace(/\s*\[start:[^\]]+\]/g, '').trim();
+        const core = s.label.replace(/\s*\[start:[^\]]+\]/g, '').replace(/\s*\/\s*\d{1,2}:\d{2}\s*(AM|PM)\s+\w+\s+your time/i, '').trim();
         return aiReplyText.includes(core);
       });
       if (matchedSlot) {
@@ -1319,7 +1254,7 @@ ${slotsText}`;
       }
     }
 
-    // Book command parser
+    // ── 9. BOOK command parser ────────────────────────────────────────────────
     const bookMatch = aiReplyText.match(/BOOK:(\{[^{}]*\})/);
     if (bookMatch) {
       let bookData;
@@ -1327,48 +1262,50 @@ ${slotsText}`;
         bookData = JSON.parse(bookMatch[1]);
       } catch (e) {
         console.error('Failed to parse BOOK JSON:', e.message);
-        return res.json({ reply: 'Sorry, I had trouble parsing that. Could you confirm the email again?', booked: false });
+        return res.json({ reply: 'Sorry, I had trouble with that. Could you confirm the email address again?', booked: false });
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!bookData.email || !emailRegex.test(bookData.email)) {
-        console.log('⚠️ Invalid email provided during booking:', bookData.email);
-        const reply = "Could you double-check that email address? I want to make sure your calendar invite reaches you.";
-        return res.json({ reply, booked: false });
+        console.log('⚠️ Invalid email in BOOK command:', bookData.email);
+        return res.json({ reply: "Could you double-check that email address? I want to make sure your calendar invite reaches you.", booked: false });
       }
 
       const activeSlots = conversationSlots.get(convId)?.slots || slots || [];
       let slot = null;
       let matchMethod = '';
 
-      // FIX 1: retrieve from agreedSlots map
-      const agreedSlotEntry = agreedSlots.get(convId);
-      const agreedSlot = agreedSlotEntry ? agreedSlotEntry.slot : null;
-      if (agreedSlot) {
-        slot = agreedSlot;
+      // Priority 1: agreed slot stored at confirmation step
+      const agreedEntry = agreedSlots.get(convId);
+      if (agreedEntry?.slot) {
+        slot = agreedEntry.slot;
         matchMethod = 'Agreed Slot Map';
-        console.log(`📌 agreedSlot: ${slot.label} ${slot.start}`);
-      } else {
-        // Fallback for edge cases where confirmation wasn't caught
+        console.log(`📌 Using agreedSlot: ${slot.label}`);
+      }
+
+      // Priority 2: exact ISO match from active slots
+      if (!slot) {
         slot = activeSlots.find(s => s.start === bookData.slotStart);
-        if (slot) matchMethod = 'Exact ISO Fallback';
-        if (!slot) {
-          slot = activeSlots.find(s => s.label === bookData.slotLabel);
-          if (slot) matchMethod = 'Exact Label Fallback';
-        }
+        if (slot) matchMethod = 'Exact ISO Match';
+      }
+
+      // Priority 3: label match
+      if (!slot) {
+        slot = activeSlots.find(s => s.label === bookData.slotLabel);
+        if (slot) matchMethod = 'Label Match';
+      }
+
+      // Priority 4: use BOOK data directly (last resort)
+      if (!slot && bookData.slotStart) {
+        const end = bookData.slotEnd || new Date(new Date(bookData.slotStart).getTime() + 3600000).toISOString();
+        slot = { start: bookData.slotStart, end, label: bookData.slotLabel || bookData.slotStart };
+        matchMethod = 'Direct BOOK Fallback';
+        console.log(`⚠️ No cache match — using BOOK data directly: ${slot.label}`);
       }
 
       if (!slot) {
-        // No cache match — use slotStart/slotEnd directly from BOOK command (last resort)
-        if (bookData.slotStart) {
-          const slotEndFallback = bookData.slotEnd || new Date(new Date(bookData.slotStart).getTime() + 3600000).toISOString();
-          slot = { start: bookData.slotStart, end: slotEndFallback, label: bookData.slotLabel || bookData.slotStart };
-          matchMethod = 'Direct BOOK Data Fallback';
-          console.log(`⚠️ No cache match — using BOOK data directly: ${slot.label}`);
-        } else {
-          console.error(`❌ BOOK command received but no slot could be matched for convId: ${convId}`, bookData);
-          sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nBOOK command fired but no slot matched and no slotStart/End in data.\nClient: ${bookData.name} (${bookData.email})\nRequested slot: ${bookData.slotLabel}`);
-        }
+        console.error(`❌ No slot matched for convId: ${convId}`, bookData);
+        sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nNo slot matched.\nClient: ${bookData.name} (${bookData.email})\nRequested: ${bookData.slotLabel}`);
       }
 
       if (slot) {
@@ -1379,7 +1316,7 @@ ${slotsText}`;
         const freshSlot = freshSlots ? freshSlots.find(s => normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
 
         // Only block if we have fresh data AND it's explicitly unavailable
-        if (freshSlots && freshSlots.length > 0 && !freshSlot && matchMethod !== 'Direct BOOK Data Fallback') {
+        if (freshSlots && freshSlots.length > 0 && !freshSlot && matchMethod !== 'Direct BOOK Fallback') {
           conversationSlots.delete(convId);
           agreedSlots.delete(convId);
           const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
