@@ -47,7 +47,7 @@ if (process.env.GOOGLE_REFRESH_TOKEN) {
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '')));
 
 // ─── Conversation Cache ───────────────────────────────────────────────────────
@@ -305,10 +305,8 @@ Industry: [their likely industry]
   const dealValue = implNum + monthlyNum * 12;
   const dealValueStr = dealValue > 0 ? `$${dealValue.toLocaleString()}` : 'TBD';
 
-  // Google Calendar URL helper
+  // Google Calendar URL helper (gcalUrl built after meetLink is set below)
   const toGCalDate = (iso) => iso ? iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '') : '';
-  const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Consultation+with+NeuralFlow&dates=${toGCalDate(slotStart)}/${toGCalDate(slotEnd)}&details=Strategy+session+with+Danny+Boehmer+%7C+neuralflowai.io&location=${encodeURIComponent(meetLink || '')}`;
-  // calEventUrl set after calendar insert below
 
   const leadNotes = notes ? notes.split('|')[0]?.trim() || '' : '';
   const leadPain = notes ? notes.split('|')[1]?.trim() || '' : '';
@@ -317,7 +315,8 @@ Industry: [their likely industry]
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-    // Always refresh token immediately before insert (Bug 5)
+    // Always refresh token immediately before insert
+    let tokenRefreshOk = true;
     try {
       const result = await oauth2Client.getAccessToken();
       if (result && result.token) {
@@ -326,7 +325,15 @@ Industry: [their likely industry]
       }
     } catch (e) {
       console.error('⚠️ Token refresh before calendar insert failed:', e.message);
+      tokenRefreshOk = false;
+      if (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000) {
+        sendTelegramAlert(`🚨 GOOGLE TOKEN EXPIRED\nCalendar token refresh failed and no valid cached token.\nBooking: ${name} (${email}) — ${slotLabel}\nError: ${e.message}\nAction needed: Re-authorize at /oauth/start`);
+      }
     }
+
+    if (!tokenRefreshOk && (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000)) {
+      console.error('⚠️ Skipping calendar insert — no valid token available');
+    } else {
 
     const structuredDesc = `🧑 LEAD\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n🎯 WHAT THEY WANT\n${leadNotes}\n\n⚠️ PAIN POINTS\n${leadPain}\n\n💰 RECOMMENDED PRICING\n${pricingDetails}\n\n📋 PREP NOTES\n- Review their industry and look for relevant NeuralFlow case studies\n- Come with 2-3 specific automation ideas for their use case\n- Be ready to discuss timeline and next steps\n\n🤖 Booked via ARIA | neuralflowai.io`;
 
@@ -420,9 +427,13 @@ Industry: [their likely industry]
     if (!eventData) {
       sendTelegramAlert(`🚨 ARIA CALENDAR FAILED\nNo calendar event created for booking.\nClient: ${name} (${email})\nSlot: ${slotLabel}`);
     }
+    } // end else (token available)
   }
 
   const calEventUrl = eventHtmlLink || `https://calendar.google.com/calendar/r/search?q=${encodeURIComponent(name)}`;
+
+  // Build gcalUrl AFTER meetLink is set so location includes the Meet link
+  const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Consultation+with+NeuralFlow&dates=${toGCalDate(slotStart)}/${toGCalDate(slotEnd)}&details=Strategy+session+with+Danny+Boehmer+%7C+neuralflowai.io&location=${encodeURIComponent(meetLink || '')}`;
 
   // ── Shared style tokens ──────────────────────────────────────────────────────
   const bg = '#0a0a0f';
@@ -700,20 +711,49 @@ app.post('/api/book', async (req, res) => {
 
 app.post('/api/contact', async (req, res) => {
   const { name, email, scope } = req.body;
+  let sent = false;
+
   if (resend) {
-    await resend.emails.send({
-      from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
-      to: process.env.GMAIL_USER,
-      subject: `🔥 New Contact Form — ${name}`,
-      html: `<p>Name: ${name}<br/>Email: ${email}<br/>Scope: ${scope}</p>`,
-    }).catch(() => {});
-    await resend.emails.send({
-      from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
-      to: email,
-      subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
-      html: `<p>Hi ${name.split(' ')[0]}, I'll get back to you within 24 hours! - Danny</p>`,
-    }).catch(() => {});
+    try {
+      await resend.emails.send({
+        from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
+        to: process.env.GMAIL_USER,
+        subject: `🔥 New Contact Form — ${name}`,
+        html: `<p>Name: ${name}<br/>Email: ${email}<br/>Scope: ${scope}</p>`,
+      });
+      await resend.emails.send({
+        from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
+        to: email,
+        subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
+        html: `<p>Hi ${name.split(' ')[0]}, I'll get back to you within 24 hours! - Danny</p>`,
+      });
+      sent = true;
+    } catch (e) {
+      console.error('Resend contact form failed:', e.message);
+    }
   }
+
+  if (!sent) {
+    try {
+      await transporter.sendMail({
+        from: `NeuralFlow AI <${process.env.GMAIL_USER}>`,
+        to: process.env.GMAIL_USER,
+        subject: `🔥 New Contact Form — ${name}`,
+        html: `<p>Name: ${name}<br/>Email: ${email}<br/>Scope: ${scope}</p>`,
+      });
+      await transporter.sendMail({
+        from: `NeuralFlow AI <${process.env.GMAIL_USER}>`,
+        to: email,
+        subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
+        html: `<p>Hi ${name.split(' ')[0]}, I'll get back to you within 24 hours! - Danny</p>`,
+      });
+      sent = true;
+    } catch (e) {
+      console.error('Gmail contact form fallback failed:', e.message);
+      sendTelegramAlert(`🚨 CONTACT FORM — email delivery failed\nName: ${name}\nEmail: ${email}\nScope: ${scope}\nError: ${e.message}`);
+    }
+  }
+
   res.json({ success: true });
 });
 
@@ -737,7 +777,7 @@ app.post('/api/accept-proposal', async (req, res) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Content-Length': payload.length,
+          'Content-Length': Buffer.byteLength(payload),
         },
       }, (resTg) => {
         let response = '';
@@ -807,15 +847,28 @@ app.post('/api/accept-proposal', async (req, res) => {
       `,
     };
 
-    // Send emails — non-blocking, don't fail if email errors
+    // Send emails — non-blocking, each with its own retry + Telegram alert
     const acceptTransporter = nodemailer.createTransport({
       host: 'smtp.gmail.com', port: 465, secure: true,
       auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
     });
-    Promise.all([
-      acceptTransporter.sendMail(dannyMailOptions),
-      acceptTransporter.sendMail(clientMailOptions)
-    ]).catch(err => console.error('Email send error:', err.message));
+
+    async function sendAcceptMailWithRetry(opts, label, retries = 3) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          await acceptTransporter.sendMail(opts);
+          console.log(`✅ ${label} sent`);
+          return;
+        } catch (e) {
+          console.error(`❌ ${label} attempt ${i + 1} failed:`, e.message);
+          if (i < retries - 1) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
+        }
+      }
+      sendTelegramAlert(`🚨 ACCEPT-PROPOSAL EMAIL FAILED\n${label} could not be sent after ${retries} attempts.\nClient: ${name} (${email})\nBusiness: ${businessName}`);
+    }
+
+    sendAcceptMailWithRetry(dannyMailOptions, `Accept-proposal Danny email`);
+    sendAcceptMailWithRetry(clientMailOptions, `Accept-proposal client email to ${email}`);
 
     res.json({ ok: true });
   } catch (err) {
@@ -1294,13 +1347,24 @@ ${slotsText}`;
   }
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('💥 Uncaught Exception:', err.message, err.stack);
+  sendTelegramAlert('🚨 SERVER CRASH\nuncaughtException: ' + err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('💥 Unhandled Rejection:', reason);
+  sendTelegramAlert('🚨 SERVER ERROR\nunhandledRejection: ' + String(reason));
+});
+
 app.listen(port, () => {
   console.log(`Server running on ${port}`);
   // Self-ping every 4 minutes to prevent Railway cold starts
   setInterval(() => {
-    const https = require('https');
-    https.get('https://neuralflowai.io/api/availability', (res) => {
-      console.log(`🏓 Keep-alive ping: ${res.statusCode}`);
-    }).on('error', (e) => console.log(`Keep-alive error: ${e.message}`));
+    const pingReq = https.get('https://neuralflowai.io/api/availability', { timeout: 8000 }, (res) => {
+      console.log('🏓 Keep-alive ping:', res.statusCode);
+      res.resume();
+    });
+    pingReq.on('timeout', () => { pingReq.destroy(); });
+    pingReq.on('error', (e) => console.log('Keep-alive error:', e.message));
   }, 4 * 60 * 1000);
 });
