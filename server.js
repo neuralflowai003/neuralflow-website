@@ -685,16 +685,17 @@ app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html'
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/api/test-email', async (req, res) => {
-  const results = {};
+  const results = { RESEND_API_KEY: process.env.RESEND_API_KEY ? 'SET' : 'MISSING' };
   try {
-    const t = require('nodemailer').createTransport({ host: 'smtp.gmail.com', port: 587, secure: false, family: 4, auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }});
-    await t.verify();
-    results.smtp = 'OK';
-    await t.sendMail({ from: process.env.GMAIL_USER, to: process.env.GMAIL_USER, subject: '✅ ARIA Email Test', text: 'Email is working on Railway!' });
-    results.send = 'OK';
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to: process.env.GMAIL_USER, subject: '✅ ARIA Resend Test', html: '<p>Resend is working on Railway!</p>' })
+    });
+    const data = await r.json();
+    if (r.ok) { results.send = 'OK'; results.resend_id = data.id; }
+    else { results.error = data.message || JSON.stringify(data); }
   } catch (e) { results.error = e.message; }
-  results.GMAIL_USER = process.env.GMAIL_USER || 'MISSING';
-  results.GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD ? 'SET (' + process.env.GMAIL_APP_PASSWORD.length + ' chars)' : 'MISSING';
   res.json(results);
 });
 
