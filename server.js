@@ -737,24 +737,7 @@ app.post('/api/contact', async (req, res) => {
   }
 
   if (!sent) {
-    try {
-      await transporter.sendMail({
-        from: `NeuralFlow AI <${process.env.GMAIL_USER}>`,
-        to: process.env.GMAIL_USER,
-        subject: `🔥 New Contact Form — ${name}`,
-        html: `<p>Name: ${name}<br/>Email: ${email}<br/>Scope: ${scope}</p>`,
-      });
-      await transporter.sendMail({
-        from: `NeuralFlow AI <${process.env.GMAIL_USER}>`,
-        to: email,
-        subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
-        html: `<p>Hi ${name.split(' ')[0]}, I'll get back to you within 24 hours! - Danny</p>`,
-      });
-      sent = true;
-    } catch (e) {
-      console.error('Gmail contact form fallback failed:', e.message);
-      sendTelegramAlert(`🚨 CONTACT FORM — email delivery failed\nName: ${name}\nEmail: ${email}\nScope: ${scope}\nError: ${e.message}`);
-    }
+    sendTelegramAlert(`🚨 CONTACT FORM — Resend failed\nName: ${name}\nEmail: ${email}\nScope: ${scope}`);
   }
 
   res.json({ success: true });
@@ -850,28 +833,28 @@ app.post('/api/accept-proposal', async (req, res) => {
       `,
     };
 
-    // Send emails — non-blocking, each with its own retry + Telegram alert
-    const acceptTransporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com', port: 587, secure: false, family: 4,
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD }
-    });
-
-    async function sendAcceptMailWithRetry(opts, label, retries = 3) {
-      for (let i = 0; i < retries; i++) {
+    // Send emails via Resend API — non-blocking
+    async function sendAcceptWithResend(to, subject, html, label) {
+      for (let i = 0; i < 3; i++) {
         try {
-          await acceptTransporter.sendMail(opts);
-          console.log(`✅ ${label} sent`);
-          return;
+          const r = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to, subject, html })
+          });
+          const data = await r.json();
+          if (r.ok) { console.log(`✅ ${label} sent (Resend id: ${data.id})`); return; }
+          throw new Error(data.message || JSON.stringify(data));
         } catch (e) {
           console.error(`❌ ${label} attempt ${i + 1} failed:`, e.message);
-          if (i < retries - 1) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
+          if (i < 2) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
         }
       }
-      sendTelegramAlert(`🚨 ACCEPT-PROPOSAL EMAIL FAILED\n${label} could not be sent after ${retries} attempts.\nClient: ${name} (${email})\nBusiness: ${businessName}`);
+      sendTelegramAlert(`🚨 ACCEPT-PROPOSAL EMAIL FAILED\n${label} failed after 3 attempts.\nClient: ${name} (${email})\nBusiness: ${businessName}`);
     }
 
-    sendAcceptMailWithRetry(dannyMailOptions, `Accept-proposal Danny email`);
-    sendAcceptMailWithRetry(clientMailOptions, `Accept-proposal client email to ${email}`);
+    sendAcceptWithResend('danny@neuralflowai.io', dannyMailOptions.subject, dannyMailOptions.html, `Accept-proposal Danny email`);
+    sendAcceptWithResend(email, clientMailOptions.subject, clientMailOptions.html, `Accept-proposal client email to ${email}`);
 
     res.json({ ok: true });
   } catch (err) {
@@ -1315,8 +1298,9 @@ ${slotsText}`;
 
       if (!slot) {
         // No cache match — use slotStart/slotEnd directly from BOOK command (last resort)
-        if (bookData.slotStart && bookData.slotEnd) {
-          slot = { start: bookData.slotStart, end: bookData.slotEnd, label: bookData.slotLabel || bookData.slotStart };
+        if (bookData.slotStart) {
+          const slotEndFallback = bookData.slotEnd || new Date(new Date(bookData.slotStart).getTime() + 3600000).toISOString();
+          slot = { start: bookData.slotStart, end: slotEndFallback, label: bookData.slotLabel || bookData.slotStart };
           matchMethod = 'Direct BOOK Data Fallback';
           console.log(`⚠️ No cache match — using BOOK data directly: ${slot.label}`);
         } else {
