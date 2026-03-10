@@ -1129,16 +1129,24 @@ app.post('/api/chat', async (req, res) => {
     const tomorrowFormatted = `${dayNames[tomorrowDate.getDay()]}, ${monthNamesDetailed[tomorrowDate.getMonth()]} ${tomorrowDate.getDate()}`;
 
     slotsAlert = ""; // reset before building
+    // Always tell Claude the exact day name for the requested date — never let it guess
+    if (searchFromDate) {
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const requestedDayName = dayNames[new Date(searchFromDate + "T12:00:00").getDay()];
+      slotsAlert = `\nDATE CONTEXT: The client requested ${searchFromDate} which is a ${requestedDayName}. Use this exact day name when referring to this date.`;
+    }
     if (userIsFlexible) {
       slotsAlert = "\nUSER IS FLEXIBLE: Show the next available slots immediately without asking for a date preference.";
     } else if (pastDateNote) {
       slotsAlert = "\nNOTE: Client asked for a past date. Tell them: 'That date has already passed — here are the next available times:'";
-    } else if (slotsAlert === "" && searchFromDate && (!slots || slots.length === 0)) {
-      slotsAlert = `\nNOTE: No availability found on the requested timeframe. Tell the client: 'I don't have any openings on that day — here are the closest available times:' then show alternatives below.`;
+    } else if (searchFromDate && (!slots || slots.length === 0)) {
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const requestedDayName = dayNames[new Date(searchFromDate + "T12:00:00").getDay()];
+      slotsAlert = `\nDATE CONTEXT: ${searchFromDate} is a ${requestedDayName}.\nNOTE: No availability found on that day. Tell the client: 'I don't have any openings on that day — here are the closest available times:' then show alternatives below.`;
     } else if (weekendNote && weekendRedirectDate) {
-      slotsAlert = `\nNOTE: The client asked for a weekend (${weekendRedirectDate.from}). Tell the client: 'We don't schedule on Sundays — here are the closest times starting Monday ${weekendRedirectDate.to}:'`;
+      slotsAlert = `\nNOTE: The client asked for ${weekendRedirectDate.from} which is a Sunday. Tell the client: 'We don't schedule on Sundays — here are the closest times starting Monday ${weekendRedirectDate.to}:'`;
     } else if (weekendNote) {
-      slotsAlert = "\nNOTE: The client asked for a Sunday. Slots below are for the nearest available weekday instead. Tell the client: 'We don't schedule on Sundays — here are the closest available times:'";
+      slotsAlert += "\nNOTE: Client asked for a Sunday. Slots below are for the nearest available weekday instead. Tell the client: 'We don't schedule on Sundays — here are the closest available times:'";
     }
 
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
