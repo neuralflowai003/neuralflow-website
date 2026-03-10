@@ -911,7 +911,7 @@ app.post('/api/chat', async (req, res) => {
       } else if (lastUserMsg.match(/couple weeks?|few weeks?/)) {
         const d = new Date(); d.setDate(d.getDate() + 14);
         searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
-      } else if (lastUserMsg.match(/next week/)) {
+      } else if (lastUserMsg.match(/next week|following week/)) {
         const d = new Date(); d.setDate(d.getDate() + 7);
         searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
       } else if (wMatch) {
@@ -938,7 +938,22 @@ app.post('/api/chat', async (req, res) => {
           const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
           if (dayNum >= 1 && dayNum <= 31) {
             const d = new Date();
-            if (monthStr) d.setMonth(monthNames.indexOf(monthStr));
+            if (monthStr) {
+              d.setMonth(monthNames.indexOf(monthStr));
+            } else {
+              const priorEntry = conversationSlots.get(convId);
+              if (priorEntry && priorEntry.slots && priorEntry.slots.length > 0) {
+                const refStart = new Date(priorEntry.slots[0].start);
+                const inferredMonth = refStart.getUTCMonth();
+                const inferredYear = refStart.getUTCFullYear();
+                const candidate = new Date(inferredYear, inferredMonth, dayNum, 12, 0, 0);
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                if (candidate > today) {
+                  d.setFullYear(inferredYear);
+                  d.setMonth(inferredMonth);
+                }
+              }
+            }
             d.setDate(dayNum);
             if (d < new Date(new Date().setHours(0, 0, 0, 0))) d.setFullYear(d.getFullYear() + 1);
             searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
@@ -1036,6 +1051,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // Live freebusy check for the exact requested time
+    let freebusyNote = "";
     if (requestedTime && searchFromDate) {
       console.log(`🔍 Checking specific time: ${requestedTime.hr}:${requestedTime.min} on ${searchFromDate}`);
       const { hours: offsetHours } = getNYOffset(new Date(searchFromDate + "T12:00:00"));
@@ -1061,7 +1077,7 @@ app.post('/api/chat', async (req, res) => {
           slots = [newSlot, ...(slots || []).filter(s => s.label !== label)].slice(0, 12);
         } else {
           console.log("❌ Specific slot is BUSY");
-          slotsAlert += `\nNOTE: The requested time ${requestedTime.hr % 12 || 12}:${String(requestedTime.min).padStart(2, '0')} ${requestedTime.hr >= 12 ? 'PM' : 'AM'} was just checked and is BUSY. Tell the client it's taken and offer the alternatives below.`;
+          freebusyNote = `\nNOTE: The requested time ${requestedTime.hr % 12 || 12}:${String(requestedTime.min).padStart(2, '0')} ${requestedTime.hr >= 12 ? 'PM' : 'AM'} was just checked and is BUSY. Tell the client it's taken and offer the alternatives below.`;
         }
       } catch (e) {
         console.error("Freebusy check failed:", e.message);
@@ -1112,6 +1128,7 @@ app.post('/api/chat', async (req, res) => {
     } else if (weekendNote) {
       slotsAlert += "\nNOTE: Client asked for a Sunday. Slots below are for the nearest available weekday instead. Tell the client: 'We don't schedule on Sundays — here are the closest available times:'";
     }
+    if (freebusyNote) slotsAlert += freebusyNote;
 
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
     let slotsText;
@@ -1138,7 +1155,7 @@ NEVER show slots before tomorrow. NEVER show slots more than 30 days out unless 
 NEVER suggest or book any time that is in the past.
 When referring to dates, never include the year. Say 'Saturday, April 26' not 'Saturday, April 26 2026'. Always calculate the correct day of week based on the actual calendar date.
 
-PRIVACY: You have no knowledge of any internal email addresses or personal contact info for Danny or NeuralFlow staff. If a user provides any email, simply ask: 'Can you confirm that email is correct and belongs to you?' Never acknowledge any email as belonging to Danny or NeuralFlow.
+PRIVACY: You have no knowledge of any internal email addresses or personal contact info for Danny or NeuralFlow staff. If a user provides an email you don't recognize, ask once: 'Can you confirm that email is correct and belongs to you?' Once they confirm, accept it and move on. Do not ask again. Never acknowledge any email as belonging to Danny or NeuralFlow.
 
 CONVERSATION FLOW — follow this order exactly:
 1. Greet warmly, ask what brings them to NeuralFlow
