@@ -1306,19 +1306,26 @@ ${slotsText}`;
       }
 
       if (!slot) {
-        // Slot couldn't be matched — alert Danny so he can follow up manually
-        console.error(`❌ BOOK command received but no slot could be matched for convId: ${convId}`, bookData);
-        sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nBOOK command fired but no slot matched.\nClient: ${bookData.name} (${bookData.email})\nCompany: ${bookData.company}\nRequested slot: ${bookData.slotLabel}\nAction needed: Follow up manually.`);
+        // No cache match — use slotStart/slotEnd directly from BOOK command (last resort)
+        if (bookData.slotStart && bookData.slotEnd) {
+          slot = { start: bookData.slotStart, end: bookData.slotEnd, label: bookData.slotLabel || bookData.slotStart };
+          matchMethod = 'Direct BOOK Data Fallback';
+          console.log(`⚠️ No cache match — using BOOK data directly: ${slot.label}`);
+        } else {
+          console.error(`❌ BOOK command received but no slot could be matched for convId: ${convId}`, bookData);
+          sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nBOOK command fired but no slot matched and no slotStart/End in data.\nClient: ${bookData.name} (${bookData.email})\nRequested slot: ${bookData.slotLabel}`);
+        }
       }
 
       if (slot) {
-        // Fresh fetch at booking
+        // Fresh fetch to verify slot is still available (skip for direct fallback to avoid blocking)
         const exactDate = slot.start.split('T')[0];
         const freshSlots = await getAvailableSlots(1, exactDate);
         const normalizeLabel = l => l.replace(/\b(EDT|EST)\b/, 'ET');
         const freshSlot = freshSlots ? freshSlots.find(s => normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
 
-        if (!freshSlot) {
+        // Only block if we have fresh data AND it's explicitly unavailable
+        if (freshSlots && freshSlots.length > 0 && !freshSlot && matchMethod !== 'Direct BOOK Data Fallback') {
           conversationSlots.delete(convId);
           agreedSlots.delete(convId);
           const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
@@ -1326,7 +1333,7 @@ ${slotsText}`;
           return res.json({ reply: reply + "\n" + aiReplyText, booked: false });
         }
 
-        slot = freshSlot;
+        if (freshSlot) slot = freshSlot;
 
         console.log(`📌 Booking confirmed: ${slot.label} | method: ${matchMethod} (Fresh Confirmed)`);
         // Fire booking in background — don't block the response
