@@ -1118,14 +1118,14 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       }
       if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     } else if (requestedTime) {
-      // Time-only request — use last discussed date or default
+      // Time-only: reuse stored slots for the established date — no re-fetch needed
+      // We already fetched all available hours for that date
       const prior = conversationSlots.get(convId);
-      const fallbackDate = prior?.slots?.[0]?.start.split('T')[0] || null;
-      if (fallbackDate) {
-        searchFromDate = fallbackDate;
-        console.log('⏰ Time-only request — fetching full day for', searchFromDate);
-        slots = await getAvailableSlots(1, searchFromDate, true);
-        if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+      const validStored = prior?.slots?.filter(s => new Date(s.start) > new Date()) || [];
+      if (validStored.length > 0) {
+        slots = validStored;
+        searchFromDate = slots[0].start.split('T')[0];
+        console.log('⏰ Time-only — reusing stored slots for', searchFromDate);
       } else {
         slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
       }
@@ -1158,39 +1158,67 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       }
     }
 
-    // ── 6. Live freebusy check for exact time request ─────────────────────────
+    // ── 6. Specific time check ────────────────────────────────────────────────
     let freebusyNote = '';
-    let confirmedFreeSlot = null; // set when a specific time is verified available
-    if (requestedTime && searchFromDate) {
-      const { hours: offsetHours, abbr } = getNYOffset(new Date(searchFromDate + 'T12:00:00'));
-      const utcHr = requestedTime.hr + offsetHours;
-      const slotStart = new Date(`${searchFromDate}T${String(utcHr).padStart(2,'0')}:${String(requestedTime.min).padStart(2,'0')}:00.000Z`);
-      const slotEnd = new Date(slotStart.getTime() + 3600000);
-      try {
-        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-        const fbRes = await calendar.freebusy.query({
-          requestBody: { timeMin: slotStart.toISOString(), timeMax: slotEnd.toISOString(), items: [{ id: 'primary' }] }
+    let confirmedFreeSlot = null;
+    if (requestedTime) {
+      const dateToCheck = searchFromDate;
+      if (dateToCheck) {
+        // Step 1: Check stored slots first — we already have all available times for this date
+        const storedSlots = conversationSlots.get(convId)?.slots || slots || [];
+        const storedMatch = storedSlots.find(s => {
+          if (s.start.split('T')[0] !== dateToCheck) return false;
+          const m = s.label.match(/at (\d+):(\d+) (AM|PM)/i);
+          if (!m) return false;
+          let hr = parseInt(m[1]);
+          if (m[3].toUpperCase() === 'PM' && hr < 12) hr += 12;
+          if (m[3].toUpperCase() === 'AM' && hr === 12) hr = 0;
+          return hr === requestedTime.hr && parseInt(m[2]) === requestedTime.min;
         });
-        const isBusy = fbRes.data.calendars.primary.busy.length > 0;
-        const hour12 = requestedTime.hr % 12 || 12;
-        const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
-        const minStr = String(requestedTime.min).padStart(2,'0');
-        if (!isBusy) {
-          const d = new Date(searchFromDate + 'T12:00:00');
-          const weekdayStr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
-          const monthStr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
-          const label = `${weekdayStr}, ${monthStr} ${d.getDate()} at ${hour12}:${minStr} ${ampm} ${abbr}`;
-          const newSlot = { label, start: slotStart.toISOString(), end: slotEnd.toISOString() };
-          slots = [newSlot, ...(slots||[]).filter(s => s.label !== label)].slice(0, 12);
-          conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-          confirmedFreeSlot = newSlot;
-          freebusyNote = `The client asked for ${hour12}:${minStr} ${ampm}. You checked Google Calendar — it IS available. Your ENTIRE response must be exactly: "I just checked — ${hour12}:${minStr} ${ampm} is available on ${label.split(' at ')[0]}! Want me to lock that in?" Nothing else. No other slots.`;
-          console.log('✅ Requested time is free, added to slots');
+
+        if (storedMatch) {
+          // Found in our stored available slots — confirmed free, no extra API call
+          confirmedFreeSlot = storedMatch;
+          const tm = storedMatch.label.match(/at (\d+):(\d+) (AM|PM)/i);
+          const dayLabel = storedMatch.label.split(' at ')[0];
+          freebusyNote = `The client asked for ${tm[1]}:${tm[2]} ${tm[3]}. It IS available (already in calendar data). Your ENTIRE response must be exactly: "I just checked — ${tm[1]}:${tm[2]} ${tm[3]} is available on ${dayLabel}! Want me to lock that in?" Nothing else. No other slots.`;
+          console.log('✅ Specific time found in stored slots:', storedMatch.label);
         } else {
-          freebusyNote = `\nCLIENT REQUESTED TIME: ${hour12}:${minStr} ${ampm} — just checked and it is BUSY/taken. Tell the client that time is not available and offer 2-3 alternatives from the same day listed below.`;
-          console.log('❌ Requested time is busy');
+          // Step 2: Not in stored slots — run live freebusy check (e.g. user typed noon or unusual time)
+          try {
+            const { hours: offsetHours, abbr } = getNYOffset(new Date(dateToCheck + 'T12:00:00'));
+            const utcHr = requestedTime.hr + offsetHours;
+            const slotStart = new Date(`${dateToCheck}T${String(utcHr).padStart(2,'0')}:${String(requestedTime.min).padStart(2,'0')}:00.000Z`);
+            const slotEnd = new Date(slotStart.getTime() + 3600000);
+            const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+            const fbRes = await calendar.freebusy.query({
+              requestBody: { timeMin: slotStart.toISOString(), timeMax: slotEnd.toISOString(), items: [{ id: 'primary' }] }
+            });
+            const isBusy = fbRes.data.calendars.primary.busy.length > 0;
+            const hour12 = requestedTime.hr % 12 || 12;
+            const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
+            const minStr = String(requestedTime.min).padStart(2, '0');
+            if (!isBusy) {
+              const d = new Date(dateToCheck + 'T12:00:00');
+              const weekdayStr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+              const monthStr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+              const label = `${weekdayStr}, ${monthStr} ${d.getDate()} at ${hour12}:${minStr} ${ampm} ${abbr}`;
+              const newSlot = { label, start: slotStart.toISOString(), end: slotEnd.toISOString() };
+              slots = [newSlot, ...(slots||[]).filter(s => s.label !== label)].slice(0, 12);
+              conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+              confirmedFreeSlot = newSlot;
+              freebusyNote = `The client asked for ${hour12}:${minStr} ${ampm}. It IS available. Your ENTIRE response must be exactly: "I just checked — ${hour12}:${minStr} ${ampm} is available on ${label.split(' at ')[0]}! Want me to lock that in?" Nothing else. No other slots.`;
+              console.log('✅ Freebusy: requested time is free');
+            } else {
+              const hour12 = requestedTime.hr % 12 || 12;
+              const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
+              const minStr = String(requestedTime.min).padStart(2, '0');
+              freebusyNote = `CLIENT REQUESTED TIME: ${hour12}:${minStr} ${ampm} — checked Google Calendar and it is BUSY/taken. Tell the client that time is not available and offer 2-3 alternatives from the same day listed below.`;
+              console.log('❌ Freebusy: requested time is busy');
+            }
+          } catch (e) { console.error('Freebusy check failed:', e.message); }
         }
-      } catch (e) { console.error('Freebusy check failed:', e.message); }
+      }
     }
 
     // ── 7. Build system prompt ────────────────────────────────────────────────
@@ -1405,8 +1433,25 @@ ${slotsText}`;
       if (matchedSlot) {
         // Extract name + email from "I'm booking [slot] for [Name] at [email]"
         const nameEmailMatch = aiReplyText.match(/for\s+([A-Za-z][A-Za-z '\-]{1,40}?)\s+at\s+([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/i);
-        const confirmedName = nameEmailMatch?.[1]?.trim() || '';
-        const confirmedEmail = nameEmailMatch?.[2]?.trim() || '';
+        let confirmedName = nameEmailMatch?.[1]?.trim() || '';
+        let confirmedEmail = nameEmailMatch?.[2]?.trim() || '';
+
+        // Fallback: scan conversation for email if not found in confirmation message
+        if (!confirmedEmail) {
+          for (const m of [...messages].reverse()) {
+            const em = m.content.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+            if (em) { confirmedEmail = em[0]; break; }
+          }
+        }
+        // Fallback: scan user messages for name patterns
+        if (!confirmedName) {
+          for (const m of messages) {
+            if (m.role === 'user') {
+              const nm = m.content.match(/(?:i'?m|my name is|this is|i am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
+              if (nm) { confirmedName = nm[1]; break; }
+            }
+          }
+        }
 
         // Extract company — scan all assistant messages for it
         let confirmedCompany = '';
