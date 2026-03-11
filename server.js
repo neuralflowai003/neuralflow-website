@@ -955,7 +955,25 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     }
     const convId = (typeof conversationId === 'string' ? conversationId : 'default').slice(0, 100);
 
-    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content?.toLowerCase() || '';
+    const lastUserMsgRaw = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+    const lastUserMsg = lastUserMsgRaw.toLowerCase();
+
+    // ── DIRECT BOOKING: detect user confirming a stored booking ──────────────
+    // This runs before Claude — so if the user says any form of "yes", we book
+    // immediately without depending on Claude outputting a BOOK command.
+    const YES_REGEX = /^\s*(yes|yep|yup|yeah|sure|ok|okay|correct|perfect|great|absolutely|definitely|for sure|sounds good|that works|looks good|go ahead|book it|do it|lock it in|lock that in|confirmed|please|yes please|please do|please book|book that|let'?s do it|make it happen|i confirm|confirmed|book me in|set it up|done|go for it|100|👍)\s*[.!]*\s*$/i;
+    const agreedEntry = agreedSlots.get(convId);
+    if (agreedEntry?.slot && agreedEntry?.email && YES_REGEX.test(lastUserMsgRaw.trim()) && Date.now() - agreedEntry.storedAt < 15 * 60 * 1000) {
+      const { slot, name, email, company, notes } = agreedEntry;
+      console.log(`🔒 Direct booking — bypassing Claude for ${convId}: ${slot.label} | ${name} | ${email}`);
+      bookAppointment({ name, email, company: company || '', notes: notes || '', slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label })
+        .catch(err => console.error('Direct booking error:', err.message));
+      conversationSlots.delete(convId);
+      agreedSlots.delete(convId);
+      pendingLeads.delete(convId);
+      const confirmLabel = labelFromSlotStart(slot.start);
+      return res.json({ reply: `You're all set! A calendar invite will be sent to ${email} shortly. We're looking forward to speaking with you on ${confirmLabel}. See you then!`, booked: true });
+    }
 
     // Pre-warm global cache on first message
     if ((!globalSlotCache || globalSlotCache.length === 0) && messages.length <= 2) {
@@ -1339,7 +1357,7 @@ ${slotsText}`;
     aiReplyText = aiReplyText.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1')
       .replace(/^#{1,6}\s+/gm, '').replace(/^\*\s+/gm, '- ');
 
-    // Track confirmation phrase — store the agreed slot so booking uses the right time
+    // Track confirmation phrase — store slot + full booking data so server can book directly on yes
     const lowerReply = aiReplyText.toLowerCase();
     if (lowerReply.includes('just to confirm') || lowerReply.includes("i'm booking")) {
       const activeSlots = conversationSlots.get(convId)?.slots || slots || [];
@@ -1348,8 +1366,28 @@ ${slotsText}`;
         return aiReplyText.includes(core);
       });
       if (matchedSlot) {
-        agreedSlots.set(convId, { slot: matchedSlot, storedAt: Date.now() });
-        console.log(`📌 Agreed slot stored for ${convId}: ${matchedSlot.label}`);
+        // Extract name + email from "I'm booking [slot] for [Name] at [email]"
+        const nameEmailMatch = aiReplyText.match(/for\s+([A-Za-z][A-Za-z '\-]{1,40}?)\s+at\s+([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/i);
+        const confirmedName = nameEmailMatch?.[1]?.trim() || '';
+        const confirmedEmail = nameEmailMatch?.[2]?.trim() || '';
+
+        // Extract company — scan all assistant messages for it
+        let confirmedCompany = '';
+        for (const m of [...messages].reverse()) {
+          if (m.role === 'assistant') {
+            const compMatch = m.content.match(/(?:from|at|with|company[:\s]+)([A-Z][A-Za-z0-9 &,.\-]{1,40}?)(?:\s*[,!?\n]|$)/);
+            if (compMatch && !compMatch[1].match(/^(NeuralFlow|ARIA|our|the|your|my)\b/i)) {
+              confirmedCompany = compMatch[1].trim();
+              break;
+            }
+          }
+        }
+
+        // Build notes from user messages
+        const userMsgs = messages.filter(m => m.role === 'user').map(m => m.content).join(' | ').slice(0, 600);
+
+        agreedSlots.set(convId, { slot: matchedSlot, storedAt: Date.now(), name: confirmedName, email: confirmedEmail, company: confirmedCompany, notes: userMsgs });
+        console.log(`📌 Agreed slot stored: ${matchedSlot.label} | name="${confirmedName}" email="${confirmedEmail}" company="${confirmedCompany}"`);
       }
     }
 
