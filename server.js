@@ -1175,7 +1175,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         slotsAlert += `\nNO SLOTS on ${searchFromDate}. Say: 'I don't have any openings on that day — here are the closest available times:' then show the alternatives below.`;
       }
     }
-    if (freebusyNote) slotsAlert += freebusyNote;
+    // freebusyNote is injected as a top-level override in the system prompt (see below)
 
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
     const isETTimezone = !clientTimezone || /^America\/(New_York|Indiana|Detroit|Kentucky|Louisville|Toronto|Montreal|Ottawa)/.test(clientTimezone);
@@ -1229,10 +1229,16 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       slotsText = `AVAILABLE SLOTS:${slotsAlert}\n${lines.join('\n')}`;
     }
 
-    const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company. Danny Boehmer is the founder. Website: neuralflowai.io.
+    const timeOverride = freebusyNote
+      ? `\n⚠️ PRIORITY OVERRIDE — SPECIFIC TIME REQUESTED:\n${freebusyNote}\nThis overrides all other slot display rules for this response. Do NOT show 3 slots. Respond ONLY to the requested time as instructed above.\n`
+      : '';
 
+    const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company. Website: neuralflowai.io.
+${timeOverride}
 RIGHT NOW: ${todayFormatted}, ${timeFormatted} Eastern Time
 You must always use this date and time when reasoning about scheduling. Never guess or assume what day or month it is — it is ${todayFormatted}. Tomorrow is ${tomorrowFormatted}.
+
+PRIVACY RULE — CRITICAL: You have no knowledge of who works at NeuralFlow, who the founder is, or what any internal email addresses are. When a user provides an email, you know nothing about whose email it is — it is simply the user's email for their calendar invite. Never say "that might be [anyone's] email", never suggest an email belongs to a specific person, never connect an email to a name you might know. Just validate format only.
 
 CONVERSATION FLOW — follow this exact order:
 1. Greet warmly, ask what brings them to NeuralFlow today
