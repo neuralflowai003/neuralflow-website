@@ -1114,19 +1114,21 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
           requestBody: { timeMin: slotStart.toISOString(), timeMax: slotEnd.toISOString(), items: [{ id: 'primary' }] }
         });
         const isBusy = fbRes.data.calendars.primary.busy.length > 0;
+        const hour12 = requestedTime.hr % 12 || 12;
+        const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
+        const minStr = String(requestedTime.min).padStart(2,'0');
         if (!isBusy) {
           const d = new Date(searchFromDate + 'T12:00:00');
           const weekdayStr = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
           const monthStr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
-          const hour12 = requestedTime.hr % 12 || 12;
-          const ampm = requestedTime.hr >= 12 ? 'PM' : 'AM';
-          const label = `${weekdayStr}, ${monthStr} ${d.getDate()} at ${hour12}:${String(requestedTime.min).padStart(2,'0')} ${ampm} ${abbr}`;
+          const label = `${weekdayStr}, ${monthStr} ${d.getDate()} at ${hour12}:${minStr} ${ampm} ${abbr}`;
           const newSlot = { label, start: slotStart.toISOString(), end: slotEnd.toISOString() };
           slots = [newSlot, ...(slots||[]).filter(s => s.label !== label)].slice(0, 12);
           conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+          freebusyNote = `\nCLIENT REQUESTED TIME: ${hour12}:${minStr} ${ampm} — just checked Google Calendar and it IS available. It is slot 1 in the list below. Respond with: "I just checked — ${hour12}:${minStr} ${ampm} is available! Want me to lock that in?" Do NOT show other slots unless they decline this one.`;
           console.log('✅ Requested time is free, added to slots');
         } else {
-          freebusyNote = `\nNOTE: ${requestedTime.hr % 12 || 12}:${String(requestedTime.min).padStart(2,'0')} ${requestedTime.hr >= 12 ? 'PM' : 'AM'} is BUSY — tell the client it's taken and offer the alternatives below.`;
+          freebusyNote = `\nCLIENT REQUESTED TIME: ${hour12}:${minStr} ${ampm} — just checked and it is BUSY/taken. Tell the client that time is not available and offer 2-3 alternatives from the same day listed below.`;
           console.log('❌ Requested time is busy');
         }
       } catch (e) { console.error('Freebusy check failed:', e.message); }
@@ -1230,16 +1232,22 @@ CONVERSATION FLOW — follow this exact order:
 HOW TO PRESENT SLOTS:
 The slot list below is grouped by day in chronological order. Always work forward in time — never offer a slot on an earlier date after offering a later one.
 
-When showing slots for the first time (or when a client hasn't specified a date):
-- Show exactly 3 times from the FIRST day listed — one morning, one afternoon, one evening
+When showing slots for the first time (or when a client picks a day but hasn't chosen a time):
+- Show exactly 3 times from that day — one morning, one afternoon, one evening
 - All 3 must be from the same day
-- End with: "If none of these work, just tell me a different date or time and I'll check Danny's calendar."
+- End with: "If none of these work, just tell me any time that works and I'll check Danny's calendar."
+
+When the client asks for a SPECIFIC TIME (e.g. "how about 3pm", "can we do 2:30", "what about 4pm"):
+- The server has already checked Google Calendar for that exact time. Read the CLIENT REQUESTED TIME note in the slot data carefully.
+- If the note says the time IS available: respond immediately with "I just checked — [time] is available! Want me to lock that in?" Use the exact slot label from the list. Do NOT show other slots.
+- If the note says the time is BUSY: tell the client that time is taken and offer 2-3 alternatives from the same day.
+- Never ignore a specific time request and fall back to showing the original 3 options.
 
 When the client asks for a specific date or time range (e.g. "next week", "March 20th", "how about Tuesday"):
 - Show 3 times from the earliest available day within that range (one morning, one afternoon, one evening from the same day)
 
-When the client asks for more options on the same day:
-- Show the remaining times available for that day from the list
+When the client asks for more options on the same day ("what else do you have", "any other times"):
+- Show the remaining available times for that day from the list
 
 SCHEDULING RULES:
 - Plain text only — no asterisks, no bold, no markdown, no bullet symbols
