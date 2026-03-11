@@ -159,6 +159,23 @@ function logBooking(data) {
   }
 }
 
+// ─── Label from ISO — always derive display label from the actual booked time ──
+// Never trust the slotLabel text ARIA writes; regenerate it from the ISO timestamp.
+function labelFromSlotStart(isoStr) {
+  const d = new Date(isoStr);
+  const { hours: offsetHours, abbr } = getNYOffset(d);
+  const nyTime = new Date(d.getTime() - offsetHours * 3600000);
+  const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // Use noon reference for correct day-of-week (matches getAvailableSlots logic)
+  const noonRef = new Date(nyTime.getUTCFullYear(), nyTime.getUTCMonth(), nyTime.getUTCDate(), 12);
+  let hr = nyTime.getUTCHours();
+  const ampm = hr >= 12 ? 'PM' : 'AM';
+  hr = hr % 12 || 12;
+  const min = String(nyTime.getUTCMinutes()).padStart(2, '0');
+  return `${DAY_NAMES[noonRef.getDay()]}, ${MONTH_NAMES[nyTime.getUTCMonth()]} ${nyTime.getUTCDate()} at ${hr}:${min} ${ampm} ${abbr}`;
+}
+
 // ─── Timezone Slot Formatter ──────────────────────────────────────────────────
 function formatSlotInClientTz(isoStr, tz) {
   try {
@@ -283,7 +300,8 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
 
 // ─── Booking Logic ────────────────────────────────────────────────────────────
 async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
-  slotLabel = slotLabel.replace(/\s*\[start:[^\]]+\]/g, '').replace(/\s*\/\s*\d{1,2}:\d{2}\s*(AM|PM)\s+\w+\s+your time/i, '').trim();
+  // Always regenerate the label from the ISO timestamp — ARIA's slotLabel text can be wrong
+  slotLabel = labelFromSlotStart(slotStart);
   logBooking({ name, email, company, slotLabel, slotStart, notes });
   let meetLink = null;
   let eventHtmlLink = null;
