@@ -189,6 +189,26 @@ function formatSlotInClientTz(isoStr, tz) {
   } catch { return null; }
 }
 
+// ─── Pick one morning / afternoon / evening slot per day ─────────────────────
+// Parses the hour from the slot label ("at 9:00 AM ET") so we don't fight UTC offsets
+function pickDaySlots(allSlots) {
+  if (!allSlots || allSlots.length === 0) return allSlots;
+  const byDay = {};
+  for (const s of allSlots) {
+    const day = s.start.split('T')[0];
+    if (!byDay[day]) byDay[day] = { morning: null, afternoon: null, evening: null };
+    const m = s.label.match(/at (\d+):(\d+) (AM|PM)/i);
+    if (!m) continue;
+    let hr = parseInt(m[1]);
+    if (m[3].toUpperCase() === 'PM' && hr < 12) hr += 12;
+    if (m[3].toUpperCase() === 'AM' && hr === 12) hr = 0;
+    if (hr >= 7  && hr < 12 && !byDay[day].morning)   byDay[day].morning   = s;
+    if (hr >= 12 && hr < 17 && !byDay[day].afternoon) byDay[day].afternoon = s;
+    if (hr >= 17            && !byDay[day].evening)   byDay[day].evening   = s;
+  }
+  return Object.values(byDay).flatMap(d => [d.morning, d.afternoon, d.evening].filter(Boolean));
+}
+
 // ─── Slot Fetching ────────────────────────────────────────────────────────────
 async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours = false) {
   if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
@@ -1088,9 +1108,9 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // ── 5. Fetch slots ────────────────────────────────────────────────────────
     let slots;
     if (searchFromDate) {
-      // Fetch full day with all hours so ARIA always has morning/afternoon/evening options
-      console.log('🔍 Live fetch (allHours):', searchFromDate);
-      slots = await getAvailableSlots(1, searchFromDate, true);
+      // Fetch ALL available hours for exactly that one day (daysWindow=0 = single iteration)
+      console.log('🔍 Live fetch single day (allHours):', searchFromDate);
+      slots = await getAvailableSlots(0, searchFromDate, true);
       if (!slots || slots.length === 0) {
         // Nothing on that exact day — widen search across multiple days
         console.log('🔍 No slots on', searchFromDate, '— widening to 7 days');
@@ -1212,17 +1232,25 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       }
     }
 
+    // Determine which slots to show Claude
+    // For specific date requests, limit to one morning/afternoon/evening per day
+    // so Claude always gets exactly 3 options (not a wall of 12 times)
+    const wantsMoreOptions = lastUserMsg.match(/\bwhat else\b|\bany other\b|\bmore times\b|\bother slots\b/);
+    const slotsForDisplay = (searchFromDate && !wantsMoreOptions && !confirmedFreeSlot)
+      ? pickDaySlots(slots)
+      : slots;
+
     // Sort slots chronologically and group by day
     let slotsText;
     if (!hasEmail) {
       slotsText = "GATE: Do not show available times yet. Collect Full Name, Email, and Company first.";
-    } else if (!slots || slots.length === 0) {
+    } else if (!slotsForDisplay || slotsForDisplay.length === 0) {
       slotsText = slots === null
         ? "CALENDAR OFFLINE: Say: 'Our scheduling system has a brief hiccup — can I grab your email and I'll personally send you a few available times within the hour?'"
         : `NO SLOTS FOUND.${slotsAlert ? slotsAlert : " Ask the client for a different date."}`;
     } else {
       // Always sort chronologically before displaying
-      const sorted = [...slots].sort((a, b) => new Date(a.start) - new Date(b.start));
+      const sorted = [...slotsForDisplay].sort((a, b) => new Date(a.start) - new Date(b.start));
 
       // Group by day so Claude can see which slots belong to the same day
       const byDay = {};
