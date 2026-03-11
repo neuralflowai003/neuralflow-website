@@ -210,7 +210,7 @@ function pickDaySlots(allSlots) {
 }
 
 // ─── Slot Fetching ────────────────────────────────────────────────────────────
-async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours = false) {
+async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours = false, maxSlots = null) {
   if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) return null;
 
   if (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000) {
@@ -255,7 +255,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
     const d = new Date(windowStart);
     d.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i <= daysWindow && slots.length < 12; i++) {
+    for (let i = 0; i <= daysWindow && slots.length < (maxSlots || 12); i++) {
       const currentDay = new Date(d);
       currentDay.setDate(currentDay.getDate() + i);
       const dow = currentDay.getDay();
@@ -272,7 +272,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
       const targetHours = [9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21];
       const hoursToCheck = allHours ? targetHours : [9, 13, 17];
       const maxPerDay = allHours ? 12 : 3;
-      const maxTotal = allHours ? 24 : 9;
+      const maxTotal = maxSlots || (allHours ? 24 : 9);
       for (const hr of hoursToCheck) {
         if (slotsPerDay[dateStr] >= maxPerDay) break;
         if (slots.length >= maxTotal) break;
@@ -1058,6 +1058,8 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // ── 2. Date phrase detection (runs FIRST, before flexible check) ──────────
     let searchFromDate = null;
     let daysWindow = 7;
+    let isNextWeek = false;
+    let isMonthRange = false;
     const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
     const wMatch = lastUserMsg.match(/\bin\s+(\d+)\s+weeks?\b/);
     const mMatch = lastUserMsg.match(/\bin\s+(\d+)\s+months?\b/);
@@ -1072,7 +1074,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       searchFromDate = target.toISOString().split('T')[0]; daysWindow = 10;
     } else if (lastUserMsg.match(/\bnext week\b|\bfollowing week\b/)) {
       const d = new Date(); d.setDate(d.getDate() + 7);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isNextWeek = true;
     } else if (lastUserMsg.match(/\bcouple weeks?\b|\bfew weeks?\b/)) {
       const d = new Date(); d.setDate(d.getDate() + 14);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
@@ -1081,7 +1083,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
     } else if (lastUserMsg.match(/\bnext month\b/)) {
       const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
     } else if (lastUserMsg.match(/\bin a few months?\b|\ba couple months?\b|\bin 2 months?\b/)) {
       const d = new Date(); d.setDate(d.getDate() + 60);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
@@ -1120,7 +1122,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
             const d = new Date(); d.setMonth(i);
             if (d < new Date(new Date().setHours(0,0,0,0))) d.setFullYear(d.getFullYear() + 1);
             d.setDate(1);
-            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
             break;
           }
         }
@@ -1151,13 +1153,21 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // ── 5. Fetch slots ────────────────────────────────────────────────────────
     let slots;
     if (searchFromDate) {
-      // Fetch ALL available hours for exactly that one day (daysWindow=0 = single iteration)
-      console.log('🔍 Live fetch single day (allHours):', searchFromDate);
-      slots = await getAvailableSlots(0, searchFromDate, true);
-      if (!slots || slots.length === 0) {
-        // Nothing on that exact day — widen search across multiple days
-        console.log('🔍 No slots on', searchFromDate, '— widening to 7 days');
-        slots = await getAvailableSlots(7, searchFromDate);
+      if (isNextWeek) {
+        console.log('🔍 Live fetch next week:', searchFromDate);
+        slots = await getAvailableSlots(7, searchFromDate, false, 18);
+      } else if (isMonthRange) {
+        console.log('🔍 Live fetch month range:', searchFromDate);
+        slots = await getAvailableSlots(14, searchFromDate, false, 42);
+      } else {
+        // Fetch ALL available hours for exactly that one day (daysWindow=0 = single iteration)
+        console.log('🔍 Live fetch single day (allHours):', searchFromDate);
+        slots = await getAvailableSlots(0, searchFromDate, true);
+        if (!slots || slots.length === 0) {
+          // Nothing on that exact day — widen search across multiple days
+          console.log('🔍 No slots on', searchFromDate, '— widening to 7 days');
+          slots = await getAvailableSlots(7, searchFromDate);
+        }
       }
       if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     } else if (requestedTime) {
@@ -1298,7 +1308,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // For specific date requests, limit to one morning/afternoon/evening per day
     // so Claude always gets exactly 3 options (not a wall of 12 times)
     const wantsMoreOptions = lastUserMsg.match(/\bwhat else\b|\bany other\b|\bmore times\b|\bother slots\b/);
-    const slotsForDisplay = (searchFromDate && !wantsMoreOptions && !confirmedFreeSlot)
+    const slotsForDisplay = (searchFromDate && !wantsMoreOptions && !confirmedFreeSlot && !isNextWeek && !isMonthRange)
       ? pickDaySlots(slots)
       : slots;
 
