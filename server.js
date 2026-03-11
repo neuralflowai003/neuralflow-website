@@ -1287,6 +1287,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       if (slots && slots.length === 0) {
         slotsAlert += `\nNO SLOTS on ${searchFromDate}. Say: 'I don't have any openings on that day — here are the closest available times:' then show the alternatives below.`;
       }
+      if (isNextWeek && slots && slots.length > 0) {
+        slotsAlert += `\nNEXT WEEK VIEW: Show ALL available days from the list below, each on its own line grouped by date with all available times. Do NOT limit to 3 slots or a single day.`;
+      }
+      if (isMonthRange && slots && slots.length > 0) {
+        slotsAlert += `\nMONTH VIEW: Show ALL available days from the list below, each on its own line grouped by date with all available times. Do NOT ask the client to specify a date — just show them what is available.`;
+      }
     }
     // freebusyNote is injected as a top-level override in the system prompt (see below)
 
@@ -1407,6 +1413,9 @@ SCHEDULING RULES:
 - Never invent slots that aren't in the list
 - Never include the year when stating dates (say "Tuesday, April 15" not "Tuesday, April 15, 2026")
 - The slotStart in the BOOK command must always match the [start:ISO] from the exact slot you confirmed
+
+AVAILABILITY: You MUST ONLY tell a client a time/date is unavailable if the server has explicitly told you it is BUSY in the slot data. If you have no data for a requested time, do NOT assume it is unavailable — say you will check and ask the client to confirm the date so the server can verify. Never make up availability.
+NEXT WEEK: When a client asks for "next week", show ALL available days that week grouped by date. List each day on its own line with all available times. Do not limit to 3 slots or a single day.
 
 CONFIRMATION FLOW:
 Before booking, send exactly:
