@@ -326,7 +326,10 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
   let meetLink = null;
   let eventHtmlLink = null;
 
-  let pricingDetails = 'Implementation: $TBD\nMonthly: $TBD/mo\nROI: TBD';
+  let summary = '';
+  let painSummary = '';
+  let teamTools = '';
+  let pricingDetails = 'Implementation: $3,500\nMonthly: $750/mo\nROI: Estimated 8-12 hours/week saved — break even in ~3 months';
   let objections = '';
   let salesAngles = '';
   let nextSteps = '';
@@ -334,62 +337,77 @@ async function bookAppointment({ name, email, company, slotStart, slotEnd, slotL
 
   if (notes) {
     try {
-      const parts = notes.split('|');
-      const whatTheyWant = parts[0]?.trim() || '';
-      const painPoints = parts[1]?.trim() || '';
+      const briefPrompt = `You are a B2B AI sales strategist for NeuralFlow, an AI consulting and automation company. Analyze this conversation between ARIA (our AI receptionist) and a prospective client. Write a complete sales brief Danny will read before the call.
 
-      const pricingPrompt = `You are a B2B AI sales strategist for NeuralFlow, an AI consulting and automation company. Analyze this lead and return a structured sales brief.
+CONVERSATION:
+${notes}
 
-Pain points: ${painPoints}
-Company: ${company}
-What they want: ${whatTheyWant}
+Company: ${company || 'Unknown'}
+
+Important: Make confident, specific estimates. Never write TBD. If info is missing, make reasonable B2B assumptions. Be direct and opinionated.
 
 Reply in EXACTLY this format with no extra text:
+
+SUMMARY:
+[2-3 sentence polished summary of what this lead wants automated or improved. Be specific. Start with "They're looking to..."]
+
+PAIN_POINTS:
+[2-3 sentences on their biggest pain points and time sinks. Be specific to what they said. Start with "Their main challenge is..."]
+
+TEAM_TOOLS:
+Team: [size mentioned, or estimate based on company type — e.g. "5-15 person team (SMB)"]
+Tools: [tools mentioned, or reasonable assumption — e.g. "Likely using Google Workspace, some CRM"]
+
 PRICING:
 Implementation: $X,XXX
 Monthly: $XXX/mo
-ROI: [1-2 sentence estimate of time/money saved and break-even]
+ROI: [Specific estimate: X hours/week saved × $Y/hr = $Z/mo — break even in N months]
 
 OBJECTIONS:
-- Objection: "[likely objection 1]" → Rebuttal: "[sharp one-line rebuttal]"
-- Objection: "[likely objection 2]" → Rebuttal: "[sharp one-line rebuttal]"
-- Objection: "[likely objection 3]" → Rebuttal: "[sharp one-line rebuttal]"
+- "[likely objection]" → "[sharp one-line rebuttal]"
+- "[likely objection]" → "[sharp one-line rebuttal]"
+- "[likely objection]" → "[sharp one-line rebuttal]"
 
 SALES_ANGLES:
-- [Specific talking point 1 tailored to their pain points]
-- [Specific talking point 2 tailored to their situation]
-- [Specific talking point 3 with a concrete ROI hook]
+- [Specific hook tied to their pain point]
+- [Concrete ROI example for their situation]
+- [Urgency or competitive angle]
 
 NEXT_STEPS:
-- [Prep action 1 specific to their industry/use case]
-- [Prep action 2 specific to their pain points]
-- [Prep action 3]
-- Suggested close: [One sentence tailored close for this exact lead]
+- [Specific prep action for this lead's industry/use case]
+- [Specific demo or talking point to prepare]
+- Suggested close: [One tailored sentence to close this specific lead]
 
 COMPETITOR_INTEL:
 Industry: [their likely industry]
-- [Competitor type 1] are already automating [specific process] using [tool/approach]
-- [Competitor type 2] have deployed [specific AI workflow] saving [X hours/$/mo]
-- Urgency: "Companies in [industry] are already automating [X] — every month you wait is [Y] in lost efficiency."`;
+- [Relevant automation trend in their space]
+- [What competitors are already doing]
+- Urgency: "[Specific urgency statement for their industry]"`;
 
-      const pricingRes = await anthropic.messages.create({
+      const briefRes = await anthropic.messages.create({
         model: 'claude-haiku-4-5',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: pricingPrompt }]
+        max_tokens: 900,
+        messages: [{ role: 'user', content: briefPrompt }]
       });
-      const raw = pricingRes.content[0].text.trim();
+      const raw = briefRes.content[0].text.trim();
 
-      const pricingMatch = raw.match(/PRICING:\n([\s\S]*?)(?:\n\nOBJECTIONS:|$)/);
+      const summaryMatch    = raw.match(/SUMMARY:\n([\s\S]*?)(?:\n\nPAIN_POINTS:|$)/);
+      const painMatch       = raw.match(/PAIN_POINTS:\n([\s\S]*?)(?:\n\nTEAM_TOOLS:|$)/);
+      const teamMatch       = raw.match(/TEAM_TOOLS:\n([\s\S]*?)(?:\n\nPRICING:|$)/);
+      const pricingMatch    = raw.match(/PRICING:\n([\s\S]*?)(?:\n\nOBJECTIONS:|$)/);
       const objectionsMatch = raw.match(/OBJECTIONS:\n([\s\S]*?)(?:\n\nSALES_ANGLES:|$)/);
-      const salesMatch = raw.match(/SALES_ANGLES:\n([\s\S]*?)(?:\n\nNEXT_STEPS:|$)/);
-      const nextMatch = raw.match(/NEXT_STEPS:\n([\s\S]*?)(?:\n\nCOMPETITOR_INTEL:|$)/);
-      const compMatch = raw.match(/COMPETITOR_INTEL:\n([\s\S]*?)$/);
+      const salesMatch      = raw.match(/SALES_ANGLES:\n([\s\S]*?)(?:\n\nNEXT_STEPS:|$)/);
+      const nextMatch       = raw.match(/NEXT_STEPS:\n([\s\S]*?)(?:\n\nCOMPETITOR_INTEL:|$)/);
+      const compMatch       = raw.match(/COMPETITOR_INTEL:\n([\s\S]*?)$/);
 
-      if (pricingMatch) pricingDetails = pricingMatch[1].trim();
-      if (objectionsMatch) objections = objectionsMatch[1].trim();
-      if (salesMatch) salesAngles = salesMatch[1].trim();
-      if (nextMatch) nextSteps = nextMatch[1].trim();
-      if (compMatch) competitorIntel = compMatch[1].trim();
+      if (summaryMatch)    summary         = summaryMatch[1].trim();
+      if (painMatch)       painSummary     = painMatch[1].trim();
+      if (teamMatch)       teamTools       = teamMatch[1].trim();
+      if (pricingMatch)    pricingDetails  = pricingMatch[1].trim();
+      if (objectionsMatch) objections      = objectionsMatch[1].trim();
+      if (salesMatch)      salesAngles     = salesMatch[1].trim();
+      if (nextMatch)       nextSteps       = nextMatch[1].trim();
+      if (compMatch)       competitorIntel = compMatch[1].trim();
     } catch (e) {
       console.log('AI Sales Brief failed:', e.message);
     }
@@ -406,8 +424,8 @@ Industry: [their likely industry]
   // Google Calendar URL helper (gcalUrl built after meetLink is set below)
   const toGCalDate = (iso) => iso ? iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '') : '';
 
-  const leadNotes = notes ? notes.split('|')[0]?.trim() || '' : '';
-  const leadPain = notes ? notes.split('|')[1]?.trim() || '' : '';
+  const leadNotes = summary || (notes ? notes.split('|')[0]?.trim() : '') || 'See conversation';
+  const leadPain  = painSummary || (notes ? notes.split('|')[1]?.trim() : '') || 'See conversation';
 
   // ── Google Calendar Event Insert ──────────────────────────────────────────────
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
@@ -433,7 +451,28 @@ Industry: [their likely industry]
       console.error('⚠️ Skipping calendar insert — no valid token available');
     } else {
 
-    const structuredDesc = `🧑 LEAD\nName: ${name}\nEmail: ${email}\nCompany: ${company}\n\n🎯 WHAT THEY WANT\n${leadNotes}\n\n⚠️ PAIN POINTS\n${leadPain}\n\n💰 RECOMMENDED PRICING\n${pricingDetails}\n\n📋 PREP NOTES\n- Review their industry and look for relevant NeuralFlow case studies\n- Come with 2-3 specific automation ideas for their use case\n- Be ready to discuss timeline and next steps\n\n🤖 Booked via ARIA | neuralflowai.io`;
+    const structuredDesc = [
+      `🧑 LEAD`,
+      `Name: ${name}`,
+      `Email: ${email}`,
+      `Company: ${company || 'Unknown'}`,
+      ``,
+      `🎯 WHAT THEY WANT`,
+      leadNotes || 'Not captured',
+      ``,
+      `⚠️ PAIN POINTS`,
+      leadPain || 'Not captured',
+      teamTools ? `\n👥 TEAM & TOOLS\n${teamTools}` : '',
+      ``,
+      `💰 PRICING ESTIMATE`,
+      pricingDetails,
+      ``,
+      salesAngles ? `🎯 SALES ANGLES\n${salesAngles}\n` : '',
+      nextSteps ? `📋 PREP & NEXT STEPS\n${nextSteps}\n` : '',
+      objections ? `⚡ LIKELY OBJECTIONS\n${objections}\n` : '',
+      competitorIntel ? `🕵️ COMPETITIVE CONTEXT\n${competitorIntel}\n` : '',
+      `🤖 Booked via ARIA | neuralflowai.io`
+    ].filter(l => l !== null && l !== undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 
     let eventData = null;
     const delays = [2000, 4000, 8000];
@@ -692,8 +731,9 @@ Industry: [their likely industry]
       </table>
     </td></tr>
 
-    ${sectionCard('🎯', 'What They Want', leadNotes || 'Not specified')}
-    ${sectionCard('⚠️', 'Pain Points', leadPain || 'Not specified')}
+    ${sectionCard('🎯', 'What They Want', leadNotes || 'Not captured')}
+    ${sectionCard('⚠️', 'Pain Points', leadPain || 'Not captured')}
+    ${teamTools ? sectionCard('👥', 'Team & Current Tools', teamTools) : ''}
     ${objections ? sectionCard('⚡', 'Likely Objections & Rebuttals', objections) : ''}
     ${salesAngles ? sectionCard('🎯', 'Sales Angles', salesAngles) : ''}
     ${nextSteps ? sectionCard('📋', 'Recommended Next Steps', nextSteps) : ''}
@@ -1465,8 +1505,8 @@ ${slotsText}`;
           }
         }
 
-        // Build notes from user messages
-        const userMsgs = messages.filter(m => m.role === 'user').map(m => m.content).join(' | ').slice(0, 600);
+        // Build full conversation transcript for the AI sales brief
+        const userMsgs = messages.slice(-30).map(m => `${m.role === 'user' ? 'CLIENT' : 'ARIA'}: ${m.content}`).join('\n').slice(0, 2000);
 
         agreedSlots.set(convId, { slot: matchedSlot, storedAt: Date.now(), name: confirmedName, email: confirmedEmail, company: confirmedCompany, notes: userMsgs });
         console.log(`📌 Agreed slot stored: ${matchedSlot.label} | name="${confirmedName}" email="${confirmedEmail}" company="${confirmedCompany}"`);
