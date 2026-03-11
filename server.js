@@ -1415,7 +1415,8 @@ ${slotsText}`;
         const freshSlot = freshSlots ? freshSlots.find(s => normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
 
         // Only block if we have fresh data AND it's explicitly unavailable
-        if (freshSlots && freshSlots.length > 0 && !freshSlot && matchMethod !== 'Direct BOOK Fallback') {
+        // Skip for Agreed Slot Map — user confirmed it and we already did freebusy check
+        if (freshSlots && freshSlots.length > 0 && !freshSlot && matchMethod !== 'Direct BOOK Fallback' && matchMethod !== 'Agreed Slot Map') {
           conversationSlots.delete(convId);
           agreedSlots.delete(convId);
           const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
