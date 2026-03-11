@@ -1088,11 +1088,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // ── 5. Fetch slots ────────────────────────────────────────────────────────
     let slots;
     if (searchFromDate) {
-      // Specific date requested — always live fetch
-      console.log('🔍 Live fetch:', searchFromDate, 'window:', daysWindow);
-      slots = await getAvailableSlots(daysWindow, searchFromDate);
+      // Fetch full day with all hours so ARIA always has morning/afternoon/evening options
+      console.log('🔍 Live fetch (allHours):', searchFromDate);
+      slots = await getAvailableSlots(1, searchFromDate, true);
       if (!slots || slots.length === 0) {
-        console.log('🔍 No slots found, widening to 7 days from', searchFromDate);
+        // Nothing on that exact day — widen search across multiple days
+        console.log('🔍 No slots on', searchFromDate, '— widening to 7 days');
         slots = await getAvailableSlots(7, searchFromDate);
       }
       if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
@@ -1139,6 +1140,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
 
     // ── 6. Live freebusy check for exact time request ─────────────────────────
     let freebusyNote = '';
+    let confirmedFreeSlot = null; // set when a specific time is verified available
     if (requestedTime && searchFromDate) {
       const { hours: offsetHours, abbr } = getNYOffset(new Date(searchFromDate + 'T12:00:00'));
       const utcHr = requestedTime.hr + offsetHours;
@@ -1161,7 +1163,8 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
           const newSlot = { label, start: slotStart.toISOString(), end: slotEnd.toISOString() };
           slots = [newSlot, ...(slots||[]).filter(s => s.label !== label)].slice(0, 12);
           conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
-          freebusyNote = `\nCLIENT REQUESTED TIME: ${hour12}:${minStr} ${ampm} — just checked Google Calendar and it IS available. It is slot 1 in the list below. Respond with: "I just checked — ${hour12}:${minStr} ${ampm} is available! Want me to lock that in?" Do NOT show other slots unless they decline this one.`;
+          confirmedFreeSlot = newSlot;
+          freebusyNote = `The client asked for ${hour12}:${minStr} ${ampm}. You checked Google Calendar — it IS available. Your ENTIRE response must be exactly: "I just checked — ${hour12}:${minStr} ${ampm} is available on ${label.split(' at ')[0]}! Want me to lock that in?" Nothing else. No other slots.`;
           console.log('✅ Requested time is free, added to slots');
         } else {
           freebusyNote = `\nCLIENT REQUESTED TIME: ${hour12}:${minStr} ${ampm} — just checked and it is BUSY/taken. Tell the client that time is not available and offer 2-3 alternatives from the same day listed below.`;
@@ -1245,6 +1248,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         }
       }
       slotsText = `AVAILABLE SLOTS:${slotsAlert}\n${lines.join('\n')}`;
+    }
+
+    // When a specific time is confirmed free, replace slot list with ONLY that slot
+    // so Claude cannot fall back to showing the general list
+    if (confirmedFreeSlot) {
+      slotsText = `CONFIRMED AVAILABLE:\n1. ${confirmedFreeSlot.label} [start:${confirmedFreeSlot.start}]`;
     }
 
     const timeOverride = freebusyNote
