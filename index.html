@@ -2022,6 +2022,7 @@
         <a href="#work" class="nav-link magnetic" data-strength="20">Work</a>
         <a href="#process" class="nav-link magnetic" data-strength="20">Process</a>
         <a href="#about" class="nav-link magnetic" data-strength="20">About</a>
+        <a href="#roi" class="nav-link magnetic" data-strength="20">ROI Calculator</a>
       </div>
       <a href="#contact" class="btn btn-ghost magnetic" data-strength="40"
         style="padding: 10px 24px; font-size: 0.8rem;">Let's Talk</a>
@@ -4193,6 +4194,42 @@
     </div>
   </section>
 
+  <!-- ROI CALCULATOR CTA -->
+  <section class="section" id="roi" style="padding:100px 0;background:linear-gradient(180deg,#0a0a0a 0%,#0d0d1a 100%);">
+    <div class="container" style="max-width:900px;margin:0 auto;text-align:center;">
+      <div class="reveal">
+        <div style="display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(0,229,255,0.2);background:rgba(0,229,255,0.05);border-radius:999px;padding:6px 16px;font-size:11px;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;color:#00e5ff;margin-bottom:24px;">
+          ✦ Free · No account needed
+        </div>
+        <h2 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:800;line-height:1.1;margin-bottom:20px;">
+          What's your manual work<br><span style="color:#00e5ff;">actually costing you?</span>
+        </h2>
+        <p style="font-size:1.1rem;color:rgba(255,255,255,0.5);max-width:540px;margin:0 auto 40px;">
+          Describe a repetitive task and our AI calculates the exact dollar value of automating it — labor savings, error reduction, 3-year ROI projection.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:32px;margin-bottom:48px;">
+          <div style="text-align:center;">
+            <div style="font-size:2rem;font-weight:800;color:#00e5ff;">60 sec</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.4);">to get your ROI report</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:2rem;font-weight:800;color:#00e5ff;">AI-powered</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.4);">analysis by Claude</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:2rem;font-weight:800;color:#00e5ff;">$0</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.4);">completely free</div>
+          </div>
+        </div>
+        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener noreferrer"
+          class="btn btn-solid magnetic" data-strength="50"
+          style="font-size:1rem;padding:16px 40px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;">
+          Calculate My Automation ROI →
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- CONTACT -->
   <section class="contact-section" id="contact">
     <div class="container contact-layout">
@@ -4784,6 +4821,29 @@
       };
       await sendMessage();
     });
+
+    // ------------------- ROI deep-link: auto-open ARIA with context -------------------
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('open_chat') === '1') {
+        const task = params.get('roi_task') || '';
+        const savings = params.get('roi_savings') || '';
+        setTimeout(() => {
+          if (!isChatOpen) toggleChat();
+          if (task && savings) {
+            setTimeout(() => {
+              const roiMsg = `Hi ARIA! I just used the ROI calculator and it showed I could save ${savings}/year by automating "${task}". I'd love to learn more about how NeuralFlow can help me do that.`;
+              chatInput.value = roiMsg;
+              chatInput.dispatchEvent(new Event('input'));
+              chatInput.focus();
+            }, 800);
+          }
+        }, 600);
+        // clean URL
+        const clean = window.location.pathname;
+        window.history.replaceState({}, '', clean);
+      }
+    })();
 
     // ------------------- Service Modals -------------------
     const modalData = {

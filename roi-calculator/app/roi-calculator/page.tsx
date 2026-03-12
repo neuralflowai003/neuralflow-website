@@ -151,7 +151,13 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
     { year: 'Year 3', savings: Math.round(live.projection[2]) },
   ];
 
-  const shareText = `Just ran my workflow through NeuralFlow AI's ROI calculator:\n\n✅ ${live.inputs.taskName}\n💰 ${fmt(live.totalAnnualSavings)}/year in savings\n📈 ${Math.round(live.automationPotential * 100)}% automatable\n⏱ Breakeven in ${live.breakevenMonth} months\n\nneuralflowai.io/roi-calculator`;
+  const roiUrl = 'https://neuralflow-roi-production.up.railway.app/roi-calculator';
+
+  const shareText = `Just ran my workflow through NeuralFlow AI's ROI calculator:\n\n✅ ${live.inputs.taskName}\n💰 ${fmt(live.totalAnnualSavings)}/year in potential savings\n📈 ${Math.round(live.automationPotential * 100)}% automatable\n⏱ Breakeven in ${live.breakevenMonth < 999 ? live.breakevenMonth + ' months' : 'under a year'}\n\nFind out what YOUR team is leaving on the table 👇`;
+
+  const linkedInUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(roiUrl)}&title=${encodeURIComponent('AI Automation ROI Calculator')}&summary=${encodeURIComponent(shareText)}`;
+
+  const ariaUrl = `https://neuralflowai.io/?roi_task=${encodeURIComponent(live.inputs.taskName)}&roi_savings=${encodeURIComponent(fmt(live.totalAnnualSavings))}&open_chat=1`;
 
   return (
     <motion.div
@@ -303,20 +309,21 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
       {/* CTAs */}
       <div className="flex flex-col sm:flex-row gap-3">
         <a
-          href="/book"
+          href={ariaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex-1 flex items-center justify-center gap-2 bg-cyan-400 hover:bg-cyan-300 text-zinc-950 font-bold text-sm py-3.5 px-6 rounded-xl transition-colors"
         >
-          Book a Free Strategy Call →
+          Talk to ARIA About This →
         </a>
-        <button
-          onClick={() => {
-            navigator.clipboard?.writeText(shareText);
-            alert('Copied to clipboard! Paste into LinkedIn.');
-          }}
+        <a
+          href={linkedInUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 border border-white/10 hover:border-white/20 text-white/60 hover:text-white text-sm py-3.5 px-6 rounded-xl transition-colors"
         >
-          Share Results
-        </button>
+          Share on LinkedIn
+        </a>
       </div>
     </motion.div>
   );
