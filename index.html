@@ -23,6 +23,15 @@
   <meta property="og:url" content="https://neuralflowai.io">
   <meta name="twitter:card" content="summary_large_image">
 
+  <!-- Google Analytics — replace G-XXXXXXXXXX with your GA4 Measurement ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -1520,6 +1529,26 @@
       transform-origin: bottom right;
     }
     .aria-nudge-bubble:hover { border-color: rgba(255,107,43,0.85); }
+    @keyframes nudgeBounce {
+      0%,100% { transform: scale(1); }
+      15%      { transform: scale(1.07); }
+      35%      { transform: scale(0.97); }
+      55%      { transform: scale(1.03); }
+    }
+    .aria-nudge-bubble.no-audio {
+      animation: nudgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards,
+                 nudgeBounce 0.55s ease-in-out 0.45s 1;
+    }
+    @keyframes ariaMobileNudge {
+      0%   { box-shadow: 0 4px 20px rgba(255,107,43,0.4), 0 0 0 0   rgba(255,107,43,0.75); }
+      70%  { box-shadow: 0 4px 20px rgba(255,107,43,0.4), 0 0 0 18px rgba(255,107,43,0); }
+      100% { box-shadow: 0 4px 20px rgba(255,107,43,0.4), 0 0 0 0   rgba(255,107,43,0); }
+    }
+    .aria-mobile-nudge {
+      animation: ariaMobileNudge 0.9s ease-out 3 !important;
+      transform: scale(1.08) !important;
+      transition: transform 0.2s ease !important;
+    }
     .nudge-close {
       position: absolute;
       top: 7px;
@@ -4979,12 +5008,12 @@
       await sendMessage();
     });
 
-    // ------------------- ARIA nudge bubble (5s, desktop only, once per session) -------------------
+    // ------------------- ARIA nudge (5s, once per session) -------------------
     (function () {
-      if (window.innerWidth < 768) return;
       if (sessionStorage.getItem('aria_auto_fired')) return;
+      var isMobile = window.innerWidth < 768;
 
-      // Pre-unlock AudioContext on first user interaction so chime can play at bubble time
+      // Pre-unlock AudioContext on first user interaction (desktop only)
       var audioCtx = null;
       function unlockAudio() {
         if (audioCtx) return;
@@ -4996,13 +5025,17 @@
         document.removeEventListener('click',  unlockAudio, true);
         document.removeEventListener('keydown',unlockAudio, true);
       }
-      document.addEventListener('scroll', unlockAudio, true);
-      document.addEventListener('click',  unlockAudio, true);
-      document.addEventListener('keydown',unlockAudio, true);
+      if (!isMobile) {
+        document.addEventListener('scroll', unlockAudio, true);
+        document.addEventListener('click',  unlockAudio, true);
+        document.addEventListener('keydown',unlockAudio, true);
+      }
 
+      // Returns true if chime played, false if audio was blocked
       function playChime() {
         try {
-          var ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+          var ctx = audioCtx;
+          if (!ctx || ctx.state === 'suspended') return false;
           var playTone = function (freq, t0, dur, vol) {
             var osc = ctx.createOscillator();
             var gain = ctx.createGain();
@@ -5017,23 +5050,32 @@
           var t = ctx.currentTime;
           playTone(880,  t,        0.18, 0.08);
           playTone(1108, t + 0.13, 0.22, 0.06);
-        } catch(e) {}
+          return true;
+        } catch(e) { return false; }
       }
 
       setTimeout(function () {
         if (isChatOpen) return;
         sessionStorage.setItem('aria_auto_fired', '1');
 
-        // Play chime when bubble appears
-        playChime();
+        // --- MOBILE: pulse the chat button 3 times, no bubble ---
+        if (isMobile) {
+          var btn = document.getElementById('chatWidgetBtn');
+          if (btn) {
+            btn.classList.add('aria-mobile-nudge');
+            setTimeout(function () { btn.classList.remove('aria-mobile-nudge'); }, 3000);
+          }
+          return;
+        }
 
-        // Build speech bubble above chat button
+        // --- DESKTOP: speech bubble ---
+        var chimePlayed = playChime();
+
         var bubble = document.createElement('div');
-        bubble.className = 'aria-nudge-bubble';
+        bubble.className = 'aria-nudge-bubble' + (chimePlayed ? '' : ' no-audio');
         bubble.innerHTML = '👋 Hey! Ask me anything — I can book a call or run a quick ROI estimate in seconds.<button class="nudge-close" aria-label="Dismiss">&times;</button>';
         document.body.appendChild(bubble);
 
-        // Auto-dismiss after 12s
         var dismissTimer = setTimeout(function () {
           if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
         }, 12000);
@@ -5043,13 +5085,11 @@
           if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
         }
 
-        // Clicking bubble opens chat
         bubble.addEventListener('click', function () {
           dismiss();
           if (!isChatOpen) toggleChat();
         });
 
-        // X button dismisses without opening
         bubble.querySelector('.nudge-close').addEventListener('click', function (e) {
           e.stopPropagation();
           dismiss();
