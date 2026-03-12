@@ -30,11 +30,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        {/* Google Analytics — replace G-XXXXXXXXXX with your GA4 Measurement ID */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX" />
+        {/* Google Analytics — replace G-PGWCHZ95J9 with your GA4 Measurement ID */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGWCHZ95J9" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-XXXXXXXXXX');`,
+            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-PGWCHZ95J9');`,
           }}
         />
       </head>
