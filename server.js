@@ -50,6 +50,84 @@ app.use(express.static(path.join(__dirname, '')));
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
 
+app.get('/bookings', (req, res) => {
+  const pass = process.env.BOOKINGS_PASSWORD || 'neuralflow2026';
+  if (req.query.p !== pass) {
+    return res.send(`<!DOCTYPE html><html><head><title>NeuralFlow Bookings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#06060b;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}form{background:#13131a;padding:40px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);text-align:center}h2{color:#fff;margin:0 0 20px;font-size:20px}input{width:100%;padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#0a0a0f;color:#fff;font-size:14px;margin-bottom:12px}button{width:100%;padding:12px;background:#FF6B2B;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}</style></head><body><form method="GET"><h2>NeuralFlow Bookings</h2><input type="password" name="p" placeholder="Password" autofocus><button type="submit">View Bookings</button></form></body></html>`);
+  }
+  let bookings = [];
+  try { bookings = JSON.parse(fs.readFileSync(BOOKINGS_LOG, 'utf8')); } catch {}
+  bookings = bookings.slice().reverse(); // newest first
+  const rows = bookings.map((b, i) => {
+    const dt = b.slotLabel || b.slotStart || 'Unknown';
+    const booked = b.bookedAt ? new Date(b.bookedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+    return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">
+      <td style="padding:14px 12px;color:#fff;font-weight:600">${b.name || '—'}</td>
+      <td style="padding:14px 12px;color:#a0a0b0">${b.company || '—'}</td>
+      <td style="padding:14px 12px"><a href="mailto:${b.email}" style="color:#FF6B2B;text-decoration:none">${b.email || '—'}</a></td>
+      <td style="padding:14px 12px;color:#fff">${dt}</td>
+      <td style="padding:14px 12px;color:#a0a0b0;font-size:12px">${booked}</td>
+    </tr>`;
+  }).join('');
+  res.send(`<!DOCTYPE html><html><head><title>NeuralFlow Bookings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#06060b;font-family:-apple-system,sans-serif;color:#fff;padding:24px}h1{margin:0 0 4px;font-size:22px}p{margin:0 0 24px;color:#a0a0b0;font-size:14px}.card{background:#13131a;border-radius:12px;border:1px solid rgba(255,255,255,0.07);overflow:hidden}table{width:100%;border-collapse:collapse}th{padding:12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#FF6B2B;border-bottom:1px solid rgba(255,255,255,0.08)}td{font-size:13px}.empty{padding:40px;text-align:center;color:#a0a0b0}</style></head><body>
+    <h1><span style="color:#fff">Neural</span><span style="color:#FF6B2B">Flow</span> Bookings</h1>
+    <p>${bookings.length} booking${bookings.length !== 1 ? 's' : ''} total</p>
+    <div class="card"><table>
+      <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Session Time</th><th>Booked At</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="5" class="empty">No bookings yet</td></tr>'}</tbody>
+    </table></div>
+    </body></html>`);
+});
+
+app.get('/api/test', async (req, res) => {
+  const pass = process.env.BOOKINGS_PASSWORD || 'neuralflow2026';
+  if (req.query.p !== pass) return res.status(401).json({ error: 'Unauthorized' });
+
+  const results = {};
+
+  // Test 1: Resend API
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to: process.env.GMAIL_USER, subject: '✅ ARIA E2E Test — Email Working', html: '<p>ARIA end-to-end test passed. Email delivery is working.</p>' })
+    });
+    results.email = r.ok ? '✅ OK' : `❌ Failed (${r.status})`;
+  } catch (e) { results.email = `❌ Error: ${e.message}`; }
+
+  // Test 2: Google Calendar (read-only — list next event)
+  try {
+    if (!process.env.GOOGLE_REFRESH_TOKEN && !fs.existsSync(TOKEN_PATH)) {
+      results.calendar = '⚠️ No Google token configured';
+    } else {
+      await oauth2Client.getAccessToken();
+      const cal = google.calendar({ version: 'v3', auth: oauth2Client });
+      await cal.events.list({ calendarId: 'primary', maxResults: 1, singleEvents: true, orderBy: 'startTime', timeMin: new Date().toISOString() });
+      results.calendar = '✅ OK';
+    }
+  } catch (e) { results.calendar = `❌ Error: ${e.message}`; }
+
+  // Test 3: Telegram
+  try {
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN || '8354160885:AAHsmTw_qDhYsEf2Htd2qotMd1kPRm-okmw';
+    const tgChat = process.env.TELEGRAM_CHAT_ID || '8709413106';
+    const r = await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: tgChat, text: '✅ ARIA E2E test — Telegram working' })
+    });
+    results.telegram = r.ok ? '✅ OK' : `❌ Failed (${r.status})`;
+  } catch (e) { results.telegram = `❌ Error: ${e.message}`; }
+
+  // Test 4: Anthropic API
+  try {
+    const ping = await anthropic.messages.create({ model: 'claude-haiku-4-5', max_tokens: 10, messages: [{ role: 'user', content: 'Say OK' }] });
+    results.anthropic = ping.content?.[0]?.text ? '✅ OK' : '❌ No response';
+  } catch (e) { results.anthropic = `❌ Error: ${e.message}`; }
+
+  const allOk = Object.values(results).every(v => v.startsWith('✅'));
+  res.json({ status: allOk ? 'all systems go' : 'issues detected', results });
+});
+
 // ─── Rate Limiter ─────────────────────────────────────────────────────────────
 const chatRateLimits = new Map();
 setInterval(() => {
@@ -319,10 +397,10 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
 }
 
 // ─── Booking Logic ────────────────────────────────────────────────────────────
-async function bookAppointment({ name, email, company, slotStart, slotEnd, slotLabel, notes }) {
+async function bookAppointment({ name, email, company, phone, slotStart, slotEnd, slotLabel, notes }) {
   // Always regenerate the label from the ISO timestamp — ARIA's slotLabel text can be wrong
   slotLabel = labelFromSlotStart(slotStart);
-  logBooking({ name, email, company, slotLabel, slotStart, notes });
+  logBooking({ name, email, phone: phone || '', company, slotLabel, slotStart, notes });
   let meetLink = null;
   let eventHtmlLink = null;
 
@@ -455,6 +533,7 @@ Industry: [their likely industry]
       `🧑 LEAD`,
       `Name: ${name}`,
       `Email: ${email}`,
+      `Phone: ${phone || 'Not provided'}`,
       `Company: ${company || 'Unknown'}`,
       ``,
       `🎯 WHAT THEY WANT`,
@@ -712,6 +791,7 @@ Industry: [their likely industry]
             <tr><td style="padding:6px 0;font-size:13px;color:${textMuted};width:90px;">Name</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#fff;">${name}</td></tr>
             <tr><td style="padding:6px 0;font-size:13px;color:${textMuted};">Email</td><td style="padding:6px 0;font-size:14px;color:${accent};"><a href="mailto:${email}" style="color:${accent};text-decoration:none;">${email}</a></td></tr>
             <tr><td style="padding:6px 0;font-size:13px;color:${textMuted};">Company</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#fff;">${company}</td></tr>
+            ${phone ? `<tr><td style="padding:6px 0;font-size:13px;color:${textMuted};">Phone</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#fff;">${phone}</td></tr>` : ''}
           </table>
         </td></tr>
       </table>
@@ -1026,7 +1106,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     if (agreedEntry?.slot && agreedEntry?.email && YES_REGEX.test(lastUserMsgRaw.trim()) && Date.now() - agreedEntry.storedAt < 15 * 60 * 1000) {
       const { slot, name, email, company, notes } = agreedEntry;
       console.log(`🔒 Direct booking — bypassing Claude for ${convId}: ${slot.label} | ${name} | ${email}`);
-      bookAppointment({ name, email, company: company || '', notes: notes || '', slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label })
+      bookAppointment({ name, email, phone: agreedEntry.phone || '', company: company || '', notes: notes || '', slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label })
         .catch(err => console.error('Direct booking error:', err.message));
       conversationSlots.delete(convId);
       agreedSlots.delete(convId);
@@ -1299,13 +1379,17 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const hasEmail = messages.some(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
     const isETTimezone = !clientTimezone || /^America\/(New_York|Indiana|Detroit|Kentucky|Louisville|Toronto|Montreal|Ottawa)/.test(clientTimezone);
 
-    // Track pending leads for abandoned chat follow-up
+    // Track pending leads for abandoned chat follow-up + Telegram alert on first email capture
     if (hasEmail) {
       const emailMatch = [...messages].reverse()
         .find(m => m.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content));
       const detectedEmail = emailMatch?.content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0];
       if (detectedEmail) {
         const existing = pendingLeads.get(convId) || {};
+        // Fire Telegram alert the first time we see an email for this conversation
+        if (!existing.email) {
+          sendTelegramAlert(`👀 ARIA LEAD\n${detectedEmail} is talking to ARIA right now`);
+        }
         pendingLeads.set(convId, { ...existing, email: detectedEmail, lastSeen: Date.now(), followedUp: existing.followedUp || false });
       }
     }
@@ -1381,8 +1465,9 @@ CONVERSATION FLOW — follow this exact order:
    - How big is their team (just a rough sense — "a few people", "10-person team", etc.)
    - What tools or software they currently use (CRM, booking system, etc.)
    Weave these into the conversation naturally — don't fire them all at once.
-3. Collect in this order: Full Name → Email → Company name
+3. Collect in this order: Full Name → Email → Company name → Phone number
    EMAIL VALIDATION: A valid email has exactly one @ and a dot after it. If the format looks wrong, say: "Could you double-check that email? I want to make sure your invite reaches you." Do not proceed until you have a valid email.
+   PHONE: After getting a valid email, ask: "And what's the best phone number to reach you?" Accept any format. It's optional — if they say they'd rather not, move on.
 4. Once you have name, email, company, and a good understanding of their needs — present available slots
 5. When they confirm a slot — output the BOOK command
 
@@ -1424,7 +1509,7 @@ Accept any clear yes: yes, correct, go ahead, book it, sounds good, perfect, tha
 Never book on an ambiguous reply.
 
 ON CONFIRMATION — output immediately:
-BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company","notes":"what they want automated | pain points | team size | current tools"}
+BOOK:{"slotStart":"ISO_FROM_SLOT_LIST","slotLabel":"EXACT label","name":"Full Name","email":"email@example.com","company":"Company","phone":"phone number or empty string","notes":"what they want automated | pain points | team size | current tools"}
 Then say: "You're all set! A calendar invite will be sent to [email] shortly."
 
 Keep replies to 2-3 sentences. Be warm, conversational, and professional. Never mention pricing.
@@ -1521,7 +1606,15 @@ ${slotsText}`;
         // Build full conversation transcript for the AI sales brief
         const userMsgs = messages.slice(-30).map(m => `${m.role === 'user' ? 'CLIENT' : 'ARIA'}: ${m.content}`).join('\n').slice(0, 2000);
 
-        agreedSlots.set(convId, { slot: matchedSlot, storedAt: Date.now(), name: confirmedName, email: confirmedEmail, company: confirmedCompany, notes: userMsgs });
+        // Extract phone from conversation
+        let confirmedPhone = '';
+        for (const m of [...messages].reverse()) {
+          if (m.role === 'user') {
+            const ph = m.content.match(/(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+            if (ph) { confirmedPhone = ph[0]; break; }
+          }
+        }
+        agreedSlots.set(convId, { slot: matchedSlot, storedAt: Date.now(), name: confirmedName, email: confirmedEmail, phone: confirmedPhone, company: confirmedCompany, notes: userMsgs });
         console.log(`📌 Agreed slot stored: ${matchedSlot.label} | name="${confirmedName}" email="${confirmedEmail}" company="${confirmedCompany}"`);
       }
     }
@@ -1603,7 +1696,7 @@ ${slotsText}`;
         // Fire booking in background — don't block the response
         bookAppointment({
           name: bookData.name, email: bookData.email, company: bookData.company,
-          notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
+          phone: bookData.phone || '', notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
         }).catch(err => console.error('Background booking error:', err.message));
         conversationSlots.delete(convId);
         agreedSlots.delete(convId);
