@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AreaChart,
@@ -142,8 +142,38 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
   const [freq, setFreq] = useState(roi.inputs.frequencyPerWeek);
   const [rate, setRate] = useState(roi.inputs.hourlyRate);
   const [showMethod, setShowMethod] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [emailError, setEmailError] = useState('');
 
   const live = calculateROI({ ...roi.inputs, estimatedMinutes: mins, frequencyPerWeek: freq, hourlyRate: rate });
+
+  const handleEmailSubmit = useCallback(async () => {
+    const trimmed = emailInput.trim();
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+    setEmailStatus('sending');
+    setEmailError('');
+    try {
+      const res = await fetch('/api/send-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmed, roi: live }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setEmailError(data.error ?? 'Failed to send. Please try again.');
+        setEmailStatus('error');
+      } else {
+        setEmailStatus('sent');
+      }
+    } catch {
+      setEmailError('Something went wrong. Please try again.');
+      setEmailStatus('error');
+    }
+  }, [emailInput, live]);
 
   const chartData = [
     { year: 'Year 1', savings: Math.round(live.projection[0]) },
@@ -336,6 +366,35 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
           Share on X
         </a>
       </div>
+
+      {/* Email report capture */}
+      <div className="border-t border-white/5 pt-6 space-y-3">
+        {emailStatus === 'sent' ? (
+          <p className="text-sm text-emerald-400 font-mono text-center">Report sent! Check your inbox.</p>
+        ) : (
+          <>
+            <p className="text-xs text-white/40 uppercase tracking-wider">Email me this report</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                value={emailInput}
+                onChange={(e) => { setEmailInput(e.target.value); setEmailError(''); setEmailStatus('idle'); }}
+                placeholder="Enter your email"
+                className="flex-1 bg-white/[0.03] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-cyan-400/40 transition-colors"
+                onKeyDown={(e) => { if (e.key === 'Enter') handleEmailSubmit(); }}
+              />
+              <button
+                onClick={handleEmailSubmit}
+                disabled={emailStatus === 'sending'}
+                className="flex items-center justify-center gap-2 bg-cyan-400/10 hover:bg-cyan-400/20 border border-cyan-400/30 hover:border-cyan-400/50 text-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold py-2.5 px-5 rounded-xl transition-colors whitespace-nowrap"
+              >
+                {emailStatus === 'sending' ? 'Sending…' : 'Email me this report'}
+              </button>
+            </div>
+            {emailError && <p className="text-xs text-red-400">{emailError}</p>}
+          </>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -346,6 +405,22 @@ export default function ROICalculatorPage() {
   const [input, setInput] = useState('');
   const [roi, setRoi] = useState<ROIResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // On mount: check for ?r= shareable URL param
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const r = params.get('r');
+      if (r) {
+        const result = JSON.parse(decodeURIComponent(atob(r))) as ROIResult;
+        localStorage.setItem('neuralflow_roi', JSON.stringify(result));
+        setRoi(result);
+        setState('results');
+      }
+    } catch {
+      // bad param — stay on idle state
+    }
+  }, []);
 
   const handleAnalyze = useCallback(async () => {
     if (!input.trim()) return;
@@ -380,6 +455,12 @@ export default function ROICalculatorPage() {
       localStorage.setItem('neuralflow_roi', JSON.stringify(result));
       setRoi(result);
       setState('results');
+      try {
+        const encoded = btoa(encodeURIComponent(JSON.stringify(result)));
+        window.history.replaceState(null, '', `?r=${encoded}`);
+      } catch {
+        // URL update failed — non-critical
+      }
     } catch {
       setErrorMsg('Something went wrong. Please try again.');
       setState('error');
@@ -458,7 +539,7 @@ export default function ROICalculatorPage() {
           {/* ── Results ── */}
           {state === 'results' && roi && (
             <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ResultsPanel roi={roi} onReset={() => { setState('idle'); setInput(''); setRoi(null); }} />
+              <ResultsPanel roi={roi} onReset={() => { setState('idle'); setInput(''); setRoi(null); window.history.replaceState(null, '', window.location.pathname); }} />
             </motion.div>
           )}
 
