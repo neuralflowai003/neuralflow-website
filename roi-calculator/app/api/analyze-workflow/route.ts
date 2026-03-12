@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SYSTEM_PROMPT = `You are a Senior Operations Consultant at an AI automation firm. A potential client has described a manual workflow. Your job is to extract structured data from their description.
+const SYSTEM_PROMPT = `You are a Senior Operations Consultant at an AI automation firm. A potential client has described their business pain points or workflow. Your job is to extract structured ROI data.
 
-Respond ONLY with valid JSON — no markdown, no prose. If the input is too vague, non-business-related, or unclear, return:
-{"error": "Please describe a specific business process — for example: 'We manually copy order data from email into our CRM every morning, takes about 20 minutes, happens 5 times a week.'"}
+CRITICAL: Respond ONLY with a single valid JSON object. No markdown fences, no prose, no explanation — just the raw JSON object and nothing else.
 
-Otherwise return:
+If the input has zero business context (e.g. random words, gibberish), return exactly:
+{"error": "Please describe a business workflow or pain point — for example: 'My team spends 2 hours a day manually entering orders into our system.'"}
+
+For ANY real business description — even if it mentions multiple pain points or asks ROI questions — pick the single highest-impact workflow to model and return:
 {
   "task_name": "short descriptive name (3-6 words)",
-  "estimated_minutes": <number: realistic time in minutes per run>,
-  "frequency_per_week": <number: how many times per week>,
-  "complexity": <integer 1-10: 1=simple copy-paste, 10=complex multi-system decision logic>,
-  "automation_potential": <float 0.0-1.0: how automatable is this with current AI/RPA>,
+  "estimated_minutes": <number: realistic time in minutes per occurrence>,
+  "frequency_per_week": <number: realistic occurrences per week>,
+  "complexity": <integer 1-10>,
+  "automation_potential": <float 0.0-1.0>,
   "suggested_phases": ["Phase 1: ...", "Phase 2: ...", "Phase 3: ..."]
 }
 
-Be realistic. A 3-minute task done once a week isn't worth automating — note that in complexity. A 2-hour daily task with 15% error rate is a goldmine. Think like a consultant billing $350/hr.`;
+Examples of valid inputs you MUST handle: nail salon missing bookings, no-show rates, phone interruptions, manual scheduling, data entry, invoice processing, inventory ordering, customer follow-ups. These are all automatable workflows — never reject them.`;
 
 interface AnalysisResult {
   task_name: string;
@@ -102,9 +104,10 @@ export async function POST(req: NextRequest) {
       rawText = data.choices?.[0]?.message?.content ?? '';
     }
 
-    // Strip any accidental markdown fences
-    const cleaned = rawText.replace(/```json|```/g, '').trim();
-    const parsed: AnalysisResult = JSON.parse(cleaned);
+    // Extract JSON object — handles accidental markdown fences or trailing prose
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON object found in response');
+    const parsed: AnalysisResult = JSON.parse(jsonMatch[0]);
 
     if (parsed.error) {
       return NextResponse.json({ error: parsed.error }, { status: 422 });
