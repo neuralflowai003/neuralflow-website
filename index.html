@@ -4829,16 +4829,16 @@
       await sendMessage();
     });
 
-    // ------------------- ARIA notification nudge (10s, desktop only, once per session) -------------------
+    // ------------------- ARIA auto-open (5s, desktop only, once per session) -------------------
     (function () {
       if (window.innerWidth < 768) return;
-      if (sessionStorage.getItem('aria_nudge_fired')) return;
+      if (sessionStorage.getItem('aria_auto_fired')) return;
 
       setTimeout(function () {
         if (isChatOpen) return;
-        sessionStorage.setItem('aria_nudge_fired', '1');
+        sessionStorage.setItem('aria_auto_fired', '1');
 
-        // Soft notification chime via Web Audio API
+        // Notification chime
         try {
           var ctx = new (window.AudioContext || window.webkitAudioContext)();
           var playTone = function(freq, startTime, duration, vol) {
@@ -4855,45 +4855,25 @@
             osc.stop(startTime + duration);
           };
           var t = ctx.currentTime;
-          playTone(880, t,        0.18, 0.08);
+          playTone(880,  t,        0.18, 0.08);
           playTone(1108, t + 0.13, 0.22, 0.06);
         } catch(e) {}
 
-        // Show bubble above the chat button
-        var nudge = document.createElement('div');
-        nudge.id = 'aria-nudge';
-        nudge.textContent = '👋 Ask me anything about automation';
-        nudge.style.cssText = 'position:fixed;bottom:90px;right:24px;background:#1a1a2e;border:1px solid rgba(255,107,43,0.5);color:#fff;font-size:13px;font-weight:500;padding:10px 14px;border-radius:12px;box-shadow:0 4px 20px rgba(255,107,43,0.2);z-index:9999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:220px;line-height:1.4;animation:nudgePop 0.3s ease;pointer-events:none;';
+        // Open ARIA with a custom greeting
+        toggleChat();
 
-        // Arrow pointing down toward chat button
-        var arrow = document.createElement('div');
-        arrow.style.cssText = 'position:absolute;bottom:-6px;right:20px;width:12px;height:12px;background:#1a1a2e;border-right:1px solid rgba(255,107,43,0.5);border-bottom:1px solid rgba(255,107,43,0.5);transform:rotate(45deg);';
-        nudge.appendChild(arrow);
-
-        // Inject keyframe if not already present
-        if (!document.getElementById('nudge-style')) {
-          var s = document.createElement('style');
-          s.id = 'nudge-style';
-          s.textContent = '@keyframes nudgePop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}';
-          document.head.appendChild(s);
-        }
-
-        document.body.appendChild(nudge);
-
-        // Pulse the badge
-        chatBadge.style.display = 'flex';
-        chatBadge.textContent = '1';
-
-        // Auto-dismiss after 5s
+        // Swap greeting message once rendered
         setTimeout(function () {
-          nudge.style.transition = 'opacity 0.4s';
-          nudge.style.opacity = '0';
-          setTimeout(function () { nudge.remove(); }, 400);
-        }, 5000);
-
-        // Dismiss immediately on chat open
-        chatBtn.addEventListener('click', function () { nudge.remove(); }, { once: true });
-      }, 10000);
+          var msgs = document.getElementById('chatMessages');
+          var last = msgs ? msgs.querySelector('.aria-msg:last-child') : null;
+          if (last) last.remove();
+          var idx = conversationHistory.findIndex(function(m){ return m.role === 'assistant'; });
+          if (idx !== -1) conversationHistory.splice(idx, 1);
+          var msg = "Hey! 👋 I'm ARIA. Before you go — want to see exactly how much your business could save by automating repetitive work? I can run a quick estimate right now.";
+          appendMessage('aria', msg);
+          conversationHistory.unshift({ role: 'assistant', content: msg });
+        }, 400);
+      }, 5000);
     })();
 
     // ------------------- Service Modals -------------------
