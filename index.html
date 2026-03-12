@@ -2100,41 +2100,122 @@
   </header>
 
   <!-- ROI CALCULATOR TEASER -->
-  <!-- ROI CALCULATOR EXPLAINER -->
-  <section id="roi" style="padding: 100px 24px; background: linear-gradient(180deg, var(--bg) 0%, #0d0a14 100%); text-align: center; border-top: 1px solid rgba(255,255,255,0.04);">
-    <div style="max-width: 860px; margin: 0 auto;">
+  <style>
+    @keyframes roiGlowPulse {
+      0%, 100% { opacity: 0.7; transform: scale(1); }
+      50%       { opacity: 1;   transform: scale(1.08); }
+    }
+    @keyframes roiFloat1 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(-18px) translateX(8px);  } }
+    @keyframes roiFloat2 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(14px)  translateX(-10px); } }
+    @keyframes roiFloat3 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(-10px) translateX(-6px);  } }
+    @keyframes roiFloat4 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(20px)  translateX(12px);  } }
+    @keyframes roiFloat5 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(-14px) translateX(4px);   } }
 
-      <!-- Eyebrow + headline -->
+    .roi-particle {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,194,255,0.9), rgba(123,97,255,0.5));
+      pointer-events: none;
+    }
+    .roi-card-glow {
+      background: rgba(0,194,255,0.04);
+      border: 1px solid rgba(0,194,255,0.15);
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: left;
+      transition: all 0.3s ease;
+    }
+    .roi-card-glow:hover {
+      border-color: rgba(0,194,255,0.4);
+      box-shadow: 0 0 24px rgba(0,194,255,0.12);
+    }
+    .roi-icon-chip {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0,194,255,0.2), rgba(123,97,255,0.2));
+      border: 1px solid rgba(0,194,255,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 14px;
+    }
+    .roi-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #00C2FF 0%, #7B61FF 100%);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-decoration: none;
+      padding: 16px 36px;
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0,194,255,0.35);
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .roi-cta-btn:hover {
+      box-shadow: 0 0 50px rgba(0,194,255,0.5);
+      transform: scale(1.03);
+    }
+  </style>
+
+  <section id="roi" style="position:relative;overflow:hidden;padding:100px 24px;background:linear-gradient(180deg,var(--bg) 0%,#050c14 100%);text-align:center;border-top:1px solid rgba(255,255,255,0.04);">
+
+    <!-- Animated background glow -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(0,180,255,0.07) 0%,transparent 70%);animation:roiGlowPulse 4s ease-in-out infinite;pointer-events:none;"></div>
+
+    <!-- Floating particles -->
+    <div class="roi-particle" style="width:6px;height:6px;top:18%;left:12%;opacity:0.35;animation:roiFloat1 7s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:4px;height:4px;top:70%;left:8%;opacity:0.3;animation:roiFloat2 9s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:5px;height:5px;top:25%;right:10%;opacity:0.4;animation:roiFloat3 6s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:3px;height:3px;top:65%;right:14%;opacity:0.28;animation:roiFloat4 11s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:5px;height:5px;top:45%;left:5%;opacity:0.32;animation:roiFloat5 8s ease-in-out infinite;"></div>
+
+    <div style="max-width:860px;margin:0 auto;position:relative;z-index:1;">
+
+      <!-- Eyebrow badge -->
       <div class="reveal">
-        <div style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#FF6B2B;border:1px solid rgba(255,107,43,0.3);padding:4px 14px;border-radius:999px;margin-bottom:24px;">Free ROI Calculator</div>
-        <h2 style="font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:#fff;margin:0 0 18px;letter-spacing:-1.5px;line-height:1.1;font-family:'Space Grotesk';">Find out exactly what<br>your manual work is costing you.</h2>
+        <div style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#00C2FF;border:1px solid rgba(0,194,255,0.35);padding:4px 14px;border-radius:999px;margin-bottom:24px;box-shadow:0 0 12px rgba(0,194,255,0.3);">Free ROI Calculator</div>
+
+        <!-- Headline -->
+        <h2 style="font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:#fff;margin:0 0 18px;letter-spacing:-1.5px;line-height:1.1;font-family:'Space Grotesk';">Find out exactly what<br>your manual work is <span style="background:linear-gradient(90deg,#00C2FF,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">costing you.</span></h2>
+
         <p style="font-size:1.05rem;color:rgba(255,255,255,0.5);margin:0 auto 56px;max-width:520px;line-height:1.7;">Describe any repetitive task your team handles. Our AI analyzes it in seconds and returns a real dollar figure — labor savings, error reduction, 3-year projection, and a custom implementation roadmap.</p>
       </div>
 
-      <!-- 3 feature tiles -->
+      <!-- 3 feature cards -->
       <div class="reveal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:56px;">
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:28px 24px;text-align:left;">
-          <div style="font-size:28px;margin-bottom:12px;">⏱</div>
-          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">60-Second Analysis</div>
+        <div class="roi-card-glow">
+          <div class="roi-icon-chip">⏱</div>
+          <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">60-Second Analysis</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Describe your workflow in plain English — no forms, no spreadsheets. AI does the rest.</div>
         </div>
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:28px 24px;text-align:left;">
-          <div style="font-size:28px;margin-bottom:12px;">💰</div>
-          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">Real Dollar Numbers</div>
+        <div class="roi-card-glow">
+          <div class="roi-icon-chip">💰</div>
+          <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">Real Dollar Numbers</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Get your exact annual savings, breakeven month, and a 3-year ROI projection — not generic estimates.</div>
         </div>
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:28px 24px;text-align:left;">
-          <div style="font-size:28px;margin-bottom:12px;">🗺</div>
-          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">Custom Roadmap</div>
+        <div class="roi-card-glow">
+          <div class="roi-icon-chip">🗺</div>
+          <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">Custom Roadmap</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">AI generates a 3-phase implementation plan specific to your industry and tools — not boilerplate.</div>
         </div>
       </div>
 
+      <!-- Animated counter stat -->
+      <div class="reveal" style="margin-bottom:36px;">
+        <p style="font-size:1.1rem;font-weight:700;color:#fff;margin:0;">
+          Businesses save an average of <span id="roiCounter" style="color:#00C2FF;">$0</span> per year with NeuralFlow automation.
+        </p>
+      </div>
+
       <!-- CTA -->
       <div class="reveal">
-        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener"
-          style="display:inline-flex;align-items:center;gap:10px;background:#FF6B2B;color:#fff;font-size:15px;font-weight:700;letter-spacing:0.03em;text-decoration:none;padding:16px 36px;border-radius:12px;transition:opacity 0.2s;font-family:'Space Grotesk';"
-          onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener" class="roi-cta-btn">
           Calculate My ROI — It's Free →
         </a>
         <p style="margin:16px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">No account needed &nbsp;·&nbsp; Takes 60 seconds &nbsp;·&nbsp; Results emailed to you</p>
@@ -2142,6 +2223,38 @@
 
     </div>
   </section>
+
+  <script>
+    (function () {
+      var counterEl = document.getElementById('roiCounter');
+      if (!counterEl) return;
+      var target = 47200;
+      var duration = 2000;
+      var started = false;
+
+      function runCounter() {
+        if (started) return;
+        started = true;
+        var startTime = null;
+        function step(ts) {
+          if (!startTime) startTime = ts;
+          var progress = Math.min((ts - startTime) / duration, 1);
+          var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+          var value = Math.round(eased * target);
+          counterEl.textContent = '$' + value.toLocaleString('en-US');
+          if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { runCounter(); observer.disconnect(); }
+        });
+      }, { threshold: 0.3 });
+      observer.observe(document.getElementById('roi'));
+    })();
+  </script>
 
   <!-- SERVICES (3D Tilt) -->
   <section class="section" id="services">
