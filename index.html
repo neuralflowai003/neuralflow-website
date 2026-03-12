@@ -4811,6 +4811,27 @@
         if (isChatOpen) return;
         sessionStorage.setItem('aria_nudge_fired', '1');
 
+        // Soft notification chime via Web Audio API
+        try {
+          var ctx = new (window.AudioContext || window.webkitAudioContext)();
+          var playTone = function(freq, startTime, duration, vol) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(vol, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+          };
+          var t = ctx.currentTime;
+          playTone(880, t,        0.18, 0.08);
+          playTone(1108, t + 0.13, 0.22, 0.06);
+        } catch(e) {}
+
         // Show bubble above the chat button
         var nudge = document.createElement('div');
         nudge.id = 'aria-nudge';
