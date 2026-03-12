@@ -23,6 +23,15 @@
   <meta property="og:url" content="https://neuralflowai.io">
   <meta name="twitter:card" content="summary_large_image">
 
+  <!-- Google Analytics — replace G-PGWCHZ95J9 with your GA4 Measurement ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGWCHZ95J9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PGWCHZ95J9');
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -1501,6 +1510,63 @@
       }
     }
 
+    .aria-nudge-bubble {
+      position: fixed;
+      bottom: 102px;
+      right: 22px;
+      max-width: 230px;
+      background: #1a1a1a;
+      border: 1.5px solid rgba(255,107,43,0.55);
+      border-radius: 16px 16px 4px 16px;
+      padding: 12px 30px 12px 14px;
+      font-size: 13.5px;
+      line-height: 1.45;
+      color: #f0f0f0;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,107,43,0.1);
+      z-index: 9998;
+      cursor: pointer;
+      animation: nudgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+      transform-origin: bottom right;
+    }
+    .aria-nudge-bubble:hover { border-color: rgba(255,107,43,0.85); }
+    @keyframes nudgeBounce {
+      0%,100% { transform: scale(1); }
+      15%      { transform: scale(1.07); }
+      35%      { transform: scale(0.97); }
+      55%      { transform: scale(1.03); }
+    }
+    .aria-nudge-bubble.no-audio {
+      animation: nudgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards,
+                 nudgeBounce 0.55s ease-in-out 0.45s 1;
+    }
+    @keyframes ariaMobileNudge {
+      0%   { box-shadow: 0 4px 20px rgba(255,107,43,0.4), 0 0 0 0   rgba(255,107,43,0.75); }
+      70%  { box-shadow: 0 4px 20px rgba(255,107,43,0.4), 0 0 0 18px rgba(255,107,43,0); }
+      100% { box-shadow: 0 4px 20px rgba(255,107,43,0.4), 0 0 0 0   rgba(255,107,43,0); }
+    }
+    .aria-mobile-nudge {
+      animation: ariaMobileNudge 0.9s ease-out 3 !important;
+      transform: scale(1.08) !important;
+      transition: transform 0.2s ease !important;
+    }
+    .nudge-close {
+      position: absolute;
+      top: 7px;
+      right: 9px;
+      font-size: 15px;
+      line-height: 1;
+      color: #666;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .nudge-close:hover { color: #aaa; }
+    @keyframes nudgePop {
+      from { opacity: 0; transform: scale(0.6); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
     .chat-badge {
       position: absolute;
       top: -5px;
@@ -2047,12 +2113,12 @@
       </h1>
 
       <div class="typewriter-wrap reveal" style="transition-delay: 0.4s;">
-        We build <span class="typewriter-text" id="tw-text"></span>
+        We build <span id="tw-text" class="typewriter-text"></span>
       </div>
 
       <div class="hero-ctas reveal" style="transition-delay: 0.6s;">
-        <a href="#contact" class="btn btn-solid magnetic" data-strength="50">Book Free Consultation</a>
-        <a href="#services" class="btn btn-ghost magnetic" data-strength="40">See Our Work</a>
+        <button onclick="if(typeof toggleChat==='function')toggleChat();" class="btn btn-solid magnetic" data-strength="50" style="cursor:pointer;border:none;">Book Free Consultation</button>
+        <a href="#roi" class="btn btn-ghost magnetic" data-strength="40">See Your Potential with AI</a>
       </div>
     </div>
 
@@ -2061,6 +2127,163 @@
       <div class="scroll-arrow"></div>
     </div>
   </header>
+
+  <!-- ROI CALCULATOR TEASER -->
+  <style>
+    @keyframes roiGlowPulse {
+      0%, 100% { opacity: 0.7; transform: scale(1); }
+      50%       { opacity: 1;   transform: scale(1.08); }
+    }
+    @keyframes roiFloat1 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(-18px) translateX(8px);  } }
+    @keyframes roiFloat2 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(14px)  translateX(-10px); } }
+    @keyframes roiFloat3 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(-10px) translateX(-6px);  } }
+    @keyframes roiFloat4 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(20px)  translateX(12px);  } }
+    @keyframes roiFloat5 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(-14px) translateX(4px);   } }
+
+    .roi-particle {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,194,255,0.9), rgba(123,97,255,0.5));
+      pointer-events: none;
+    }
+    .roi-card-glow {
+      background: rgba(0,194,255,0.04);
+      border: 1px solid rgba(0,194,255,0.15);
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: left;
+      transition: all 0.3s ease;
+    }
+    .roi-card-glow:hover {
+      border-color: rgba(0,194,255,0.4);
+      box-shadow: 0 0 24px rgba(0,194,255,0.12);
+    }
+    .roi-icon-chip {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0,194,255,0.2), rgba(123,97,255,0.2));
+      border: 1px solid rgba(0,194,255,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 14px;
+    }
+    .roi-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #00C2FF 0%, #7B61FF 100%);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-decoration: none;
+      padding: 16px 36px;
+      border-radius: 12px;
+      box-shadow: 0 0 30px rgba(0,194,255,0.35);
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .roi-cta-btn:hover {
+      box-shadow: 0 0 50px rgba(0,194,255,0.5);
+      transform: scale(1.03);
+    }
+  </style>
+
+  <section id="roi" style="position:relative;overflow:hidden;padding:100px 24px;background:linear-gradient(180deg,var(--bg) 0%,#050c14 100%);text-align:center;border-top:1px solid rgba(255,255,255,0.04);">
+
+    <!-- Animated background glow -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(0,180,255,0.07) 0%,transparent 70%);animation:roiGlowPulse 4s ease-in-out infinite;pointer-events:none;"></div>
+
+    <!-- Floating particles -->
+    <div class="roi-particle" style="width:6px;height:6px;top:18%;left:12%;opacity:0.35;animation:roiFloat1 7s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:4px;height:4px;top:70%;left:8%;opacity:0.3;animation:roiFloat2 9s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:5px;height:5px;top:25%;right:10%;opacity:0.4;animation:roiFloat3 6s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:3px;height:3px;top:65%;right:14%;opacity:0.28;animation:roiFloat4 11s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:5px;height:5px;top:45%;left:5%;opacity:0.32;animation:roiFloat5 8s ease-in-out infinite;"></div>
+
+    <div style="max-width:860px;margin:0 auto;position:relative;z-index:1;">
+
+      <!-- Eyebrow badge -->
+      <div class="reveal">
+        <div style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#00C2FF;border:1px solid rgba(0,194,255,0.35);padding:4px 14px;border-radius:999px;margin-bottom:24px;box-shadow:0 0 12px rgba(0,194,255,0.3);">Free ROI Calculator</div>
+
+        <!-- Headline -->
+        <h2 style="font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:#fff;margin:0 0 18px;letter-spacing:-1.5px;line-height:1.1;font-family:'Space Grotesk';">Find out exactly what<br>your manual work is <span style="background:linear-gradient(90deg,#00C2FF,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">costing you.</span></h2>
+
+        <p style="font-size:1.05rem;color:rgba(255,255,255,0.5);margin:0 auto 56px;max-width:520px;line-height:1.7;">Describe any repetitive task your team handles. Our AI analyzes it in seconds and returns a real dollar figure — labor savings, error reduction, 3-year projection, and a custom implementation roadmap.</p>
+      </div>
+
+      <!-- 3 feature cards -->
+      <div class="reveal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:56px;">
+        <div class="roi-card-glow">
+          <div class="roi-icon-chip">⏱</div>
+          <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">60-Second Analysis</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Describe your workflow in plain English — no forms, no spreadsheets. AI does the rest.</div>
+        </div>
+        <div class="roi-card-glow">
+          <div class="roi-icon-chip">💰</div>
+          <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">Real Dollar Numbers</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Get your exact annual savings, breakeven month, and a 3-year ROI projection — not generic estimates.</div>
+        </div>
+        <div class="roi-card-glow">
+          <div class="roi-icon-chip">🗺</div>
+          <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">Custom Roadmap</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">AI generates a 3-phase implementation plan specific to your industry and tools — not boilerplate.</div>
+        </div>
+      </div>
+
+      <!-- Animated counter stat -->
+      <div class="reveal" style="margin-bottom:36px;">
+        <p style="font-size:1.1rem;font-weight:700;color:#fff;margin:0;">
+          Businesses save an average of <span id="roiCounter" style="color:#00C2FF;">$0</span> per year with NeuralFlow automation.
+        </p>
+      </div>
+
+      <!-- CTA -->
+      <div class="reveal">
+        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener" class="roi-cta-btn">
+          Calculate My ROI — It's Free →
+        </a>
+        <p style="margin:16px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">No account needed &nbsp;·&nbsp; Takes 60 seconds &nbsp;·&nbsp; Results emailed to you</p>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    (function () {
+      var counterEl = document.getElementById('roiCounter');
+      if (!counterEl) return;
+      var target = 47200;
+      var duration = 2000;
+      var started = false;
+
+      function runCounter() {
+        if (started) return;
+        started = true;
+        var startTime = null;
+        function step(ts) {
+          if (!startTime) startTime = ts;
+          var progress = Math.min((ts - startTime) / duration, 1);
+          var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+          var value = Math.round(eased * target);
+          counterEl.textContent = '$' + value.toLocaleString('en-US');
+          if (progress < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { runCounter(); observer.disconnect(); }
+        });
+      }, { threshold: 0.3 });
+      observer.observe(document.getElementById('roi'));
+    })();
+  </script>
 
   <!-- SERVICES (3D Tilt) -->
   <section class="section" id="services">
@@ -4784,6 +5007,95 @@
       };
       await sendMessage();
     });
+
+    // ------------------- ARIA nudge (5s, once per session) -------------------
+    (function () {
+      if (sessionStorage.getItem('aria_auto_fired')) return;
+      var isMobile = window.innerWidth < 768;
+
+      // Pre-unlock AudioContext on first user interaction (desktop only)
+      var audioCtx = null;
+      function unlockAudio() {
+        if (audioCtx) return;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+        } catch(e) {}
+        document.removeEventListener('scroll', unlockAudio, true);
+        document.removeEventListener('click',  unlockAudio, true);
+        document.removeEventListener('keydown',unlockAudio, true);
+      }
+      if (!isMobile) {
+        document.addEventListener('scroll', unlockAudio, true);
+        document.addEventListener('click',  unlockAudio, true);
+        document.addEventListener('keydown',unlockAudio, true);
+      }
+
+      // Returns true if chime played, false if audio was blocked
+      function playChime() {
+        try {
+          var ctx = audioCtx;
+          if (!ctx || ctx.state === 'suspended') return false;
+          var playTone = function (freq, t0, dur, vol) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t0);
+            gain.gain.setValueAtTime(0, t0);
+            gain.gain.linearRampToValueAtTime(vol, t0 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+            osc.start(t0); osc.stop(t0 + dur);
+          };
+          var t = ctx.currentTime;
+          playTone(880,  t,        0.18, 0.08);
+          playTone(1108, t + 0.13, 0.22, 0.06);
+          return true;
+        } catch(e) { return false; }
+      }
+
+      setTimeout(function () {
+        if (isChatOpen) return;
+        sessionStorage.setItem('aria_auto_fired', '1');
+
+        // --- MOBILE: pulse the chat button 3 times, no bubble ---
+        if (isMobile) {
+          var btn = document.getElementById('chatWidgetBtn');
+          if (btn) {
+            btn.classList.add('aria-mobile-nudge');
+            setTimeout(function () { btn.classList.remove('aria-mobile-nudge'); }, 3000);
+          }
+          return;
+        }
+
+        // --- DESKTOP: speech bubble ---
+        var chimePlayed = playChime();
+
+        var bubble = document.createElement('div');
+        bubble.className = 'aria-nudge-bubble' + (chimePlayed ? '' : ' no-audio');
+        bubble.innerHTML = '👋 Hey! Ask me anything — I can book a call or run a quick ROI estimate in seconds.<button class="nudge-close" aria-label="Dismiss">&times;</button>';
+        document.body.appendChild(bubble);
+
+        var dismissTimer = setTimeout(function () {
+          if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+        }, 12000);
+
+        function dismiss() {
+          clearTimeout(dismissTimer);
+          if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+        }
+
+        bubble.addEventListener('click', function () {
+          dismiss();
+          if (!isChatOpen) toggleChat();
+        });
+
+        bubble.querySelector('.nudge-close').addEventListener('click', function (e) {
+          e.stopPropagation();
+          dismiss();
+        });
+      }, 5000);
+    })();
 
     // ------------------- Service Modals -------------------
     const modalData = {
