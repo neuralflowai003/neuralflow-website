@@ -1501,6 +1501,43 @@
       }
     }
 
+    .aria-nudge-bubble {
+      position: fixed;
+      bottom: 102px;
+      right: 22px;
+      max-width: 230px;
+      background: #fff;
+      border: 1.5px solid rgba(255,107,43,0.35);
+      border-radius: 16px 16px 4px 16px;
+      padding: 12px 30px 12px 14px;
+      font-size: 13.5px;
+      line-height: 1.45;
+      color: #111827;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+      z-index: 9998;
+      cursor: pointer;
+      animation: nudgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+      transform-origin: bottom right;
+    }
+    .aria-nudge-bubble:hover { border-color: rgba(255,107,43,0.7); }
+    .nudge-close {
+      position: absolute;
+      top: 7px;
+      right: 9px;
+      font-size: 15px;
+      line-height: 1;
+      color: #bbb;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .nudge-close:hover { color: #666; }
+    @keyframes nudgePop {
+      from { opacity: 0; transform: scale(0.6); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
     .chat-badge {
       position: absolute;
       top: -5px;
@@ -4829,7 +4866,7 @@
       await sendMessage();
     });
 
-    // ------------------- ARIA auto-open (5s, desktop only, once per session) -------------------
+    // ------------------- ARIA nudge bubble (5s, desktop only, once per session) -------------------
     (function () {
       if (window.innerWidth < 768) return;
       if (sessionStorage.getItem('aria_auto_fired')) return;
@@ -4838,41 +4875,50 @@
         if (isChatOpen) return;
         sessionStorage.setItem('aria_auto_fired', '1');
 
-        // Notification chime
-        try {
-          var ctx = new (window.AudioContext || window.webkitAudioContext)();
-          var playTone = function(freq, startTime, duration, vol) {
-            var osc = ctx.createOscillator();
-            var gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, startTime);
-            gain.gain.setValueAtTime(0, startTime);
-            gain.gain.linearRampToValueAtTime(vol, startTime + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-            osc.start(startTime);
-            osc.stop(startTime + duration);
-          };
-          var t = ctx.currentTime;
-          playTone(880,  t,        0.18, 0.08);
-          playTone(1108, t + 0.13, 0.22, 0.06);
-        } catch(e) {}
+        // Build speech bubble above chat button
+        var bubble = document.createElement('div');
+        bubble.className = 'aria-nudge-bubble';
+        bubble.innerHTML = '👋 Hey! Ask me anything — I can book a call or run a quick ROI estimate in seconds.<button class="nudge-close" aria-label="Dismiss">&times;</button>';
+        document.body.appendChild(bubble);
 
-        // Open ARIA with a custom greeting
-        toggleChat();
+        // Auto-dismiss after 12s
+        var dismissTimer = setTimeout(function () {
+          if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+        }, 12000);
 
-        // Swap greeting message once rendered
-        setTimeout(function () {
-          var msgs = document.getElementById('chatMessages');
-          var last = msgs ? msgs.querySelector('.aria-msg:last-child') : null;
-          if (last) last.remove();
-          var idx = conversationHistory.findIndex(function(m){ return m.role === 'assistant'; });
-          if (idx !== -1) conversationHistory.splice(idx, 1);
-          var msg = "Hey! 👋 I'm ARIA. Before you go — want to see exactly how much your business could save by automating repetitive work? I can run a quick estimate right now.";
-          appendMessage('aria', msg);
-          conversationHistory.unshift({ role: 'assistant', content: msg });
-        }, 400);
+        function dismiss() {
+          clearTimeout(dismissTimer);
+          if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+        }
+
+        // Clicking bubble opens chat + plays chime (user gesture = audio allowed)
+        bubble.addEventListener('click', function () {
+          dismiss();
+          try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            var playTone = function (freq, t0, dur, vol) {
+              var osc = ctx.createOscillator();
+              var gain = ctx.createGain();
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(freq, t0);
+              gain.gain.setValueAtTime(0, t0);
+              gain.gain.linearRampToValueAtTime(vol, t0 + 0.02);
+              gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+              osc.start(t0); osc.stop(t0 + dur);
+            };
+            var t = ctx.currentTime;
+            playTone(880,  t,        0.18, 0.08);
+            playTone(1108, t + 0.13, 0.22, 0.06);
+          } catch(e) {}
+          if (!isChatOpen) toggleChat();
+        });
+
+        // X button dismisses without opening
+        bubble.querySelector('.nudge-close').addEventListener('click', function (e) {
+          e.stopPropagation();
+          dismiss();
+        });
       }, 5000);
     })();
 
