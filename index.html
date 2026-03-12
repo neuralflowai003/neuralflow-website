@@ -1506,33 +1506,33 @@
       bottom: 102px;
       right: 22px;
       max-width: 230px;
-      background: #fff;
-      border: 1.5px solid rgba(255,107,43,0.35);
+      background: #1a1a1a;
+      border: 1.5px solid rgba(255,107,43,0.55);
       border-radius: 16px 16px 4px 16px;
       padding: 12px 30px 12px 14px;
       font-size: 13.5px;
       line-height: 1.45;
-      color: #111827;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+      color: #f0f0f0;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,107,43,0.1);
       z-index: 9998;
       cursor: pointer;
       animation: nudgePop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
       transform-origin: bottom right;
     }
-    .aria-nudge-bubble:hover { border-color: rgba(255,107,43,0.7); }
+    .aria-nudge-bubble:hover { border-color: rgba(255,107,43,0.85); }
     .nudge-close {
       position: absolute;
       top: 7px;
       right: 9px;
       font-size: 15px;
       line-height: 1;
-      color: #bbb;
+      color: #666;
       cursor: pointer;
       background: none;
       border: none;
       padding: 0;
     }
-    .nudge-close:hover { color: #666; }
+    .nudge-close:hover { color: #aaa; }
     @keyframes nudgePop {
       from { opacity: 0; transform: scale(0.6); }
       to   { opacity: 1; transform: scale(1); }
@@ -4871,9 +4871,48 @@
       if (window.innerWidth < 768) return;
       if (sessionStorage.getItem('aria_auto_fired')) return;
 
+      // Pre-unlock AudioContext on first user interaction so chime can play at bubble time
+      var audioCtx = null;
+      function unlockAudio() {
+        if (audioCtx) return;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+        } catch(e) {}
+        document.removeEventListener('scroll', unlockAudio, true);
+        document.removeEventListener('click',  unlockAudio, true);
+        document.removeEventListener('keydown',unlockAudio, true);
+      }
+      document.addEventListener('scroll', unlockAudio, true);
+      document.addEventListener('click',  unlockAudio, true);
+      document.addEventListener('keydown',unlockAudio, true);
+
+      function playChime() {
+        try {
+          var ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+          var playTone = function (freq, t0, dur, vol) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t0);
+            gain.gain.setValueAtTime(0, t0);
+            gain.gain.linearRampToValueAtTime(vol, t0 + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+            osc.start(t0); osc.stop(t0 + dur);
+          };
+          var t = ctx.currentTime;
+          playTone(880,  t,        0.18, 0.08);
+          playTone(1108, t + 0.13, 0.22, 0.06);
+        } catch(e) {}
+      }
+
       setTimeout(function () {
         if (isChatOpen) return;
         sessionStorage.setItem('aria_auto_fired', '1');
+
+        // Play chime when bubble appears
+        playChime();
 
         // Build speech bubble above chat button
         var bubble = document.createElement('div');
@@ -4891,26 +4930,9 @@
           if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
         }
 
-        // Clicking bubble opens chat + plays chime (user gesture = audio allowed)
+        // Clicking bubble opens chat
         bubble.addEventListener('click', function () {
           dismiss();
-          try {
-            var ctx = new (window.AudioContext || window.webkitAudioContext)();
-            var playTone = function (freq, t0, dur, vol) {
-              var osc = ctx.createOscillator();
-              var gain = ctx.createGain();
-              osc.connect(gain); gain.connect(ctx.destination);
-              osc.type = 'sine';
-              osc.frequency.setValueAtTime(freq, t0);
-              gain.gain.setValueAtTime(0, t0);
-              gain.gain.linearRampToValueAtTime(vol, t0 + 0.02);
-              gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
-              osc.start(t0); osc.stop(t0 + dur);
-            };
-            var t = ctx.currentTime;
-            playTone(880,  t,        0.18, 0.08);
-            playTone(1108, t + 0.13, 0.22, 0.06);
-          } catch(e) {}
           if (!isChatOpen) toggleChat();
         });
 
