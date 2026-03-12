@@ -558,7 +558,7 @@
       white-space: nowrap;
       text-align: center;
       font-weight: 700;
-      line-height: 1.05;
+      line-height: 0.95;
       letter-spacing: -4px;
       margin-bottom: 20px;
       text-transform: none;
@@ -587,9 +587,9 @@
       background-clip: text;
       -webkit-text-fill-color: transparent;
       display: block;
-      overflow: visible;
+      overflow: hidden;
       padding-right: 10px;
-      padding-bottom: 0.12em;
+      /* prevent clip */
     }
 
     .char {
@@ -2022,7 +2022,6 @@
         <a href="#work" class="nav-link magnetic" data-strength="20">Work</a>
         <a href="#process" class="nav-link magnetic" data-strength="20">Process</a>
         <a href="#about" class="nav-link magnetic" data-strength="20">About</a>
-        <a href="#roi" class="nav-link magnetic" data-strength="20">ROI Calculator</a>
       </div>
       <a href="#contact" class="btn btn-ghost magnetic" data-strength="40"
         style="padding: 10px 24px; font-size: 0.8rem;">Let's Talk</a>
@@ -2047,13 +2046,16 @@
         <span class="line-2" id="kin-2">Scale the Extraordinary.</span>
       </h1>
 
-      <div class="typewriter-wrap reveal" style="transition-delay: 0.4s;">
-        We build <span class="typewriter-text" id="tw-text"></span>
+      <div class="typewriter-wrap reveal" style="transition-delay: 0.4s; height: auto; font-size: clamp(1rem, 1.6vw, 1.3rem);">
+        We automate the repetitive work draining your time and money — so you can focus on growing your business.
       </div>
 
       <div class="hero-ctas reveal" style="transition-delay: 0.6s;">
         <a href="#contact" class="btn btn-solid magnetic" data-strength="50">Book Free Consultation</a>
         <a href="#services" class="btn btn-ghost magnetic" data-strength="40">See Our Work</a>
+      </div>
+      <div class="reveal" style="transition-delay: 0.8s; margin-top: 20px; font-size: 14px; color: rgba(255,255,255,0.4);">
+        Not sure if automation is worth it? &nbsp;<a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener" style="color: #FF6B2B; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s;" onmouseover="this.style.borderBottomColor='#FF6B2B'" onmouseout="this.style.borderBottomColor='transparent'">→ Find out in 60 seconds</a>
       </div>
     </div>
 
@@ -2062,6 +2064,23 @@
       <div class="scroll-arrow"></div>
     </div>
   </header>
+
+  <!-- ROI CALCULATOR TEASER -->
+  <section style="padding: 64px 24px; background: var(--bg); text-align: center;">
+    <div style="max-width: 680px; margin: 0 auto;">
+      <div class="reveal">
+        <div style="display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #FF6B2B; border: 1px solid rgba(255,107,43,0.3); padding: 4px 14px; border-radius: 999px; margin-bottom: 20px;">Free Tool</div>
+        <h2 style="font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; color: #fff; margin: 0 0 14px; letter-spacing: -1px; font-family: 'Space Grotesk';">What's manual work actually costing you?</h2>
+        <p style="font-size: 1rem; color: rgba(255,255,255,0.5); margin: 0 auto 32px; max-width: 480px; line-height: 1.6;">Describe a workflow. Our AI calculates your exact dollar savings and 3-year ROI projection in under 60 seconds.</p>
+        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener"
+          style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,107,43,0.12); border: 1px solid rgba(255,107,43,0.4); color: #FF6B2B; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; text-decoration: none; padding: 13px 28px; border-radius: 10px; transition: background 0.2s, border-color 0.2s; font-family: 'Space Grotesk';"
+          onmouseover="this.style.background='rgba(255,107,43,0.2)';this.style.borderColor='rgba(255,107,43,0.7)'"
+          onmouseout="this.style.background='rgba(255,107,43,0.12)';this.style.borderColor='rgba(255,107,43,0.4)'">
+          Calculate My ROI →
+        </a>
+      </div>
+    </div>
+  </section>
 
   <!-- SERVICES (3D Tilt) -->
   <section class="section" id="services">
@@ -4194,42 +4213,6 @@
     </div>
   </section>
 
-  <!-- ROI CALCULATOR CTA -->
-  <section class="section" id="roi" style="padding:100px 0;background:linear-gradient(180deg,#0a0a0a 0%,#0d0d1a 100%);">
-    <div class="container" style="max-width:900px;margin:0 auto;text-align:center;">
-      <div class="reveal">
-        <div style="display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(0,229,255,0.2);background:rgba(0,229,255,0.05);border-radius:999px;padding:6px 16px;font-size:11px;font-family:monospace;letter-spacing:.1em;text-transform:uppercase;color:#00e5ff;margin-bottom:24px;">
-          ✦ Free · No account needed
-        </div>
-        <h2 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:800;line-height:1.1;margin-bottom:20px;">
-          What's your manual work<br><span style="color:#00e5ff;">actually costing you?</span>
-        </h2>
-        <p style="font-size:1.1rem;color:rgba(255,255,255,0.5);max-width:540px;margin:0 auto 40px;">
-          Describe a repetitive task and our AI calculates the exact dollar value of automating it — labor savings, error reduction, 3-year ROI projection.
-        </p>
-        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:32px;margin-bottom:48px;">
-          <div style="text-align:center;">
-            <div style="font-size:2rem;font-weight:800;color:#00e5ff;">60 sec</div>
-            <div style="font-size:13px;color:rgba(255,255,255,0.4);">to get your ROI report</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:2rem;font-weight:800;color:#00e5ff;">AI-powered</div>
-            <div style="font-size:13px;color:rgba(255,255,255,0.4);">analysis by ARIA</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:2rem;font-weight:800;color:#00e5ff;">$0</div>
-            <div style="font-size:13px;color:rgba(255,255,255,0.4);">completely free</div>
-          </div>
-        </div>
-        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener noreferrer"
-          class="btn btn-solid magnetic" data-strength="50"
-          style="font-size:1rem;padding:16px 40px;border-radius:12px;display:inline-flex;align-items:center;gap:8px;">
-          Calculate My Automation ROI →
-        </a>
-      </div>
-    </div>
-  </section>
-
   <!-- CONTACT -->
   <section class="contact-section" id="contact">
     <div class="container contact-layout">
@@ -4822,84 +4805,39 @@
       await sendMessage();
     });
 
-    // ------------------- ROI deep-link: auto-open ARIA with context -------------------
-    (function() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('open_chat') === '1') {
-        const task = params.get('roi_task') || '';
-        const savings = params.get('roi_savings') || '';
-        setTimeout(() => {
-          if (!isChatOpen) toggleChat();
-          if (task && savings) {
-            setTimeout(() => {
-              const roiMsg = `Hi ARIA! I just used the ROI calculator and it showed I could save ${savings}/year by automating "${task}". I'd love to learn more about how NeuralFlow can help me do that.`;
-              chatInput.value = roiMsg;
-              chatInput.dispatchEvent(new Event('input'));
-              chatInput.focus();
-            }, 800);
-          }
-        }, 600);
-        // clean URL
-        const clean = window.location.pathname;
-        window.history.replaceState({}, '', clean);
-      }
-    })();
-
-    // ------------------- Proactive ARIA message -------------------
-    (function() {
-      // Don't fire if: came from ROI calc (already opening), already interacted, mobile
-      if (new URLSearchParams(window.location.search).get('open_chat') === '1') return;
+    // ------------------- Proactive ARIA greeting -------------------
+    (function () {
       if (window.innerWidth < 768) return;
+      if (sessionStorage.getItem('aria_proactive_fired')) return;
 
-      let proactiveFired = false;
-      const DELAY = 45000; // 45 seconds
+      const proactiveMsg = "Hey 👋 Curious what AI automation could save your business? I can run a quick ROI estimate or answer any questions.";
 
-      const proactiveMessages = [
-        "👋 Quick question — most businesses I talk to are losing 8–15 hours a week to tasks that could be fully automated. Want me to give you a quick estimate of what that's costing you?",
-        "Hey! I noticed you've been exploring NeuralFlow. I'm ARIA — I can tell you exactly which parts of your business are worth automating and what the ROI looks like. Want to find out?",
-        "Still here? That's a good sign 😄 I help businesses figure out where AI can save them the most money. Takes about 2 minutes. Want a quick look?",
-      ];
+      setTimeout(function () {
+        if (isChatOpen || hasOpened) return;
+        sessionStorage.setItem('aria_proactive_fired', '1');
 
-      function fireProactive() {
-        if (proactiveFired || isChatOpen || hasOpened) return;
-        proactiveFired = true;
-
-        // Pulse the badge to draw attention
+        // Pulse badge
         chatBadge.style.display = 'flex';
         chatBadge.textContent = '1';
-        chatBadge.style.animation = 'none';
         chatBadge.style.transform = 'scale(1.4)';
-        setTimeout(() => { chatBadge.style.transform = ''; }, 300);
+        setTimeout(function () { chatBadge.style.transform = ''; }, 300);
 
-        // Store the proactive message so toggleChat picks it up
-        const msg = proactiveMessages[Math.floor(Math.random() * proactiveMessages.length)];
-
-        // Override openMessage for this session
-        const origHasOpened = hasOpened;
-        chatBtn.addEventListener('click', function onProactiveOpen() {
-          if (!origHasOpened) {
-            // Replace the standard greeting with the proactive one
-            setTimeout(() => {
-              const msgs = document.getElementById('chatMessages');
-              const last = msgs.querySelector('.aria-msg:last-child');
+        // On first open, swap greeting for proactive message
+        chatBtn.addEventListener('click', function onProactive() {
+          if (!hasOpened) {
+            setTimeout(function () {
+              var msgs = document.getElementById('chatMessages');
+              var last = msgs ? msgs.querySelector('.aria-msg:last-child') : null;
               if (last) last.remove();
-              const prev = conversationHistory.findIndex(m => m.role === 'assistant');
-              if (prev !== -1) conversationHistory.splice(prev, 1);
-              appendMessage('aria', msg);
-              conversationHistory.unshift({ role: 'assistant', content: msg });
+              var idx = conversationHistory.findIndex(function (m) { return m.role === 'assistant'; });
+              if (idx !== -1) conversationHistory.splice(idx, 1);
+              appendMessage('aria', proactiveMsg);
+              conversationHistory.unshift({ role: 'assistant', content: proactiveMsg });
             }, 450);
           }
-          chatBtn.removeEventListener('click', onProactiveOpen);
+          chatBtn.removeEventListener('click', onProactive);
         }, { once: true });
-      }
-
-      // Fire after delay if user hasn't interacted
-      const proactiveTimer = setTimeout(fireProactive, DELAY);
-
-      // Cancel if user opens chat on their own
-      chatBtn.addEventListener('click', () => {
-        clearTimeout(proactiveTimer);
-      }, { once: true });
+      }, 12000);
     })();
 
     // ------------------- Service Modals -------------------
