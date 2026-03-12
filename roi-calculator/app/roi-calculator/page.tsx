@@ -97,6 +97,7 @@ function SliderRow({
   step,
   format,
   onChange,
+  description,
 }: {
   label: string;
   value: number;
@@ -105,6 +106,7 @@ function SliderRow({
   step: number;
   format: (v: number) => string;
   onChange: (v: number) => void;
+  description?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -112,6 +114,7 @@ function SliderRow({
         <span>{label}</span>
         <span className="font-mono text-cyan-400">{format(value)}</span>
       </div>
+      {description && <p className="text-xs text-white/30 mt-1">{description}</p>}
       <input
         type="range"
         min={min}
@@ -290,10 +293,40 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
 
       {/* Sliders */}
       <div className="border border-white/10 rounded-xl p-5 bg-white/[0.02] space-y-5">
-        <p className="text-xs text-white/40 uppercase tracking-wider">Adjust Assumptions</p>
-        <SliderRow label="Minutes per run" value={mins} min={5} max={480} step={5} format={(v) => `${v} min`} onChange={setMins} />
-        <SliderRow label="Runs per week" value={freq} min={1} max={50} step={1} format={(v) => `${v}×`} onChange={setFreq} />
-        <SliderRow label="Hourly rate" value={rate} min={25} max={300} step={5} format={(v) => `$${v}/hr`} onChange={setRate} />
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-wider">Fine-tune your numbers</p>
+          <p className="text-xs text-white/30 mt-1">The AI estimated these from your description — drag to correct them and your savings recalculate instantly.</p>
+        </div>
+        <SliderRow
+          label="Minutes per run"
+          value={mins}
+          min={5}
+          max={480}
+          step={5}
+          format={(v) => `${v} min`}
+          onChange={setMins}
+          description="How long does this task take each time? (e.g. 30 min to process invoices, 90 min to compile a weekly report)"
+        />
+        <SliderRow
+          label="Runs per week"
+          value={freq}
+          min={1}
+          max={50}
+          step={1}
+          format={(v) => `${v}×`}
+          onChange={setFreq}
+          description="How often does this happen? Daily = 5×, twice daily = 10×, once a week = 1×"
+        />
+        <SliderRow
+          label="Hourly rate"
+          value={rate}
+          min={25}
+          max={300}
+          step={5}
+          format={(v) => `$${v}/hr`}
+          onChange={setRate}
+          description="What's the loaded hourly cost of the person doing this? Salary ÷ 2,080 = hourly rate. Use $50–$75 for most office roles."
+        />
       </div>
 
       {/* Phases */}
@@ -315,7 +348,7 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
           onClick={() => setShowMethod((v) => !v)}
           className="w-full flex items-center justify-between px-5 py-3 text-xs text-white/40 hover:text-white/60 transition-colors"
         >
-          <span className="uppercase tracking-wider">View Methodology</span>
+          <span className="uppercase tracking-wider">How we calculate this</span>
           <span>{showMethod ? '−' : '+'}</span>
         </button>
         <AnimatePresence>
@@ -327,12 +360,46 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="px-5 pb-5 space-y-2 border-t border-white/5">
-                <p className="text-xs text-white/30 mt-3 font-mono">Labor Savings = (minutes × runs/week × 52) ÷ 60 × hourly_rate × automation_potential</p>
-                <p className="text-xs text-white/30 font-mono">Error Reduction = error_rate × cost_per_error × runs/year × automation_potential</p>
-                <p className="text-xs text-white/30 font-mono">Opportunity Cost = hours_freed × hourly_rate × 0.5 (reallocation premium)</p>
-                <p className="text-xs text-white/30 font-mono">Year 2 = Year 1 × 1.10 · Year 3 = Year 2 × 1.10 (10% compounding)</p>
-                <p className="text-xs text-white/30 font-mono">Breakeven = ⌈implementation_cost ÷ (total_savings ÷ 12)⌉</p>
+              <div className="px-5 pb-5 border-t border-white/5 mt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+                  {[
+                    {
+                      label: 'Labor Savings',
+                      color: 'text-cyan-400',
+                      bg: 'bg-cyan-400/5 border-cyan-400/15',
+                      formula: '(minutes × runs/week × 52) ÷ 60 × hourly rate × automation potential',
+                    },
+                    {
+                      label: 'Error Reduction',
+                      color: 'text-sky-400',
+                      bg: 'bg-sky-400/5 border-sky-400/15',
+                      formula: 'error rate × cost per error × annual runs × automation potential',
+                    },
+                    {
+                      label: 'Opportunity Cost',
+                      color: 'text-indigo-400',
+                      bg: 'bg-indigo-400/5 border-indigo-400/15',
+                      formula: 'hours freed × hourly rate × 0.5 reallocation premium',
+                    },
+                    {
+                      label: '3-Year Growth',
+                      color: 'text-emerald-400',
+                      bg: 'bg-emerald-400/5 border-emerald-400/15',
+                      formula: 'Year 2 = Year 1 × 1.10 · Year 3 = Year 2 × 1.10 (10% compounding)',
+                    },
+                    {
+                      label: 'Breakeven',
+                      color: 'text-violet-400',
+                      bg: 'bg-violet-400/5 border-violet-400/15',
+                      formula: 'implementation cost ÷ (total annual savings ÷ 12), rounded up to nearest month',
+                    },
+                  ].map((card) => (
+                    <div key={card.label} className={`rounded-lg border p-3.5 ${card.bg}`}>
+                      <p className={`text-[10px] font-semibold uppercase tracking-wider mb-2 ${card.color}`}>{card.label}</p>
+                      <p className="text-xs text-white/50 leading-relaxed">{card.formula}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
           )}

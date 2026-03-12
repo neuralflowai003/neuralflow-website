@@ -14,7 +14,7 @@ For ANY real business description — even if it mentions multiple pain points o
   "frequency_per_week": <number: realistic occurrences per week>,
   "complexity": <integer 1-10>,
   "automation_potential": <float 0.0-1.0>,
-  "suggested_phases": ["Phase 1: ...", "Phase 2: ...", "Phase 3: ..."]
+  "suggested_phases": <array of 3 strings: implementation phases SPECIFIC to this exact business and workflow. Each phase must name the actual technology/approach NeuralFlow would use. Be specific — mention real tools/approaches. Sound like a consultant who has done this exact project before. Each phase is 1 concise sentence starting with an action verb. Examples by industry: nail salon booking → "Phase 1: Deploy AI receptionist to handle inbound calls and texts, auto-book appointments in your existing booking system"; law firm → "Phase 1: Build document intake automation — emails and uploads auto-tagged, sorted into client folders, and logged in your case management system"; car dealership → "Phase 1: Automate lead follow-up — every inquiry gets an instant personalized response within 60 seconds, 24/7"; restaurant → "Phase 1: Implement AI-powered inventory forecasting based on reservation data and historical usage patterns"; manufacturing → "Phase 1: Build automated quality control logging — scan results feed directly into your ERP, exceptions flagged instantly">
 }
 
 Examples of valid inputs you MUST handle: nail salon missing bookings, no-show rates, phone interruptions, manual scheduling, data entry, invoice processing, inventory ordering, customer follow-ups. These are all automatable workflows — never reject them.`;

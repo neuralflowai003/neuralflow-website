@@ -1,12 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateBlueprint } from '@/lib/generate-blueprint';
 import type { ROIResult } from '@/lib/roi-engine';
 
 const fmt = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
-function buildEmailHtml(blueprint: string, roi: ROIResult): string {
+function buildEmailHtml(roi: ROIResult): string {
   const bookUrl = 'https://neuralflowai.io/?open_chat=1';
+  const fontStack = `-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+
+  const phasesHtml = roi.suggestedPhases && roi.suggestedPhases.length > 0
+    ? `
+          <!-- Implementation Roadmap -->
+          <tr>
+            <td style="padding-bottom:32px;">
+              <p style="margin:0 0 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#6b7280;font-family:${fontStack};">Implementation Roadmap</p>
+              ${roi.suggestedPhases.map((phase, i) => `
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+                <tr>
+                  <td width="32" valign="top" style="padding-top:1px;">
+                    <div style="width:24px;height:24px;border-radius:50%;background-color:#16a34a;text-align:center;line-height:24px;font-size:12px;font-weight:700;color:#ffffff;font-family:${fontStack};">${i + 1}</div>
+                  </td>
+                  <td style="padding-left:8px;">
+                    <p style="margin:0;font-size:14px;color:#374151;line-height:1.5;font-family:${fontStack};">${phase.replace(/^Phase \d+:\s*/, '')}</p>
+                  </td>
+                </tr>
+              </table>`).join('')}
+            </td>
+          </tr>`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,78 +36,152 @@ function buildEmailHtml(blueprint: string, roi: ROIResult): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Your NeuralFlow ROI Report</title>
 </head>
-<body style="margin:0;padding:0;background-color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;padding:40px 16px;">
+<body style="margin:0;padding:0;background-color:#f4f7f9;font-family:${fontStack};">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f7f9;padding:40px 16px;">
     <tr>
       <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-          <!-- Header -->
-          <tr>
-            <td style="padding-bottom:32px;">
-              <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;">
-                Neural<span style="color:#22d3ee;">Flow</span>
-              </p>
-            </td>
-          </tr>
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-          <!-- Title -->
+          <!-- Green header banner -->
           <tr>
-            <td style="padding-bottom:8px;">
-              <p style="margin:0;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(34,211,238,0.7);font-family:monospace;">Analysis Complete</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding-bottom:32px;">
-              <h1 style="margin:0;font-size:28px;font-weight:700;color:#ffffff;line-height:1.3;">${roi.inputs.taskName}</h1>
-            </td>
-          </tr>
-
-          <!-- Key stats -->
-          <tr>
-            <td style="padding-bottom:32px;">
+            <td style="background-color:#f0fdf4;border-bottom:2px solid #bbf7d0;padding:28px 40px;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td width="33%" style="padding:16px;background-color:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;text-align:center;">
-                    <p style="margin:0 0 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);">Annual Savings</p>
-                    <p style="margin:0;font-size:22px;font-weight:700;color:#34d399;font-family:monospace;">${fmt(roi.totalAnnualSavings)}</p>
+                  <td>
+                    <p style="margin:0;font-size:24px;font-weight:800;letter-spacing:-0.5px;font-family:${fontStack};">
+                      <span style="color:#111827;">Neural</span><span style="color:#16a34a;">Flow</span>&nbsp;<span style="color:#16a34a;font-weight:900;">AI</span>
+                    </p>
                   </td>
-                  <td width="4%"></td>
-                  <td width="29%" style="padding:16px;background-color:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;text-align:center;">
-                    <p style="margin:0 0 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);">Automatable</p>
-                    <p style="margin:0;font-size:22px;font-weight:700;color:#22d3ee;font-family:monospace;">${Math.round(roi.automationPotential * 100)}%</p>
-                  </td>
-                  <td width="4%"></td>
-                  <td width="30%" style="padding:16px;background-color:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;text-align:center;">
-                    <p style="margin:0 0 4px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);">Breakeven</p>
-                    <p style="margin:0;font-size:22px;font-weight:700;color:#a78bfa;font-family:monospace;">${roi.breakevenMonth < 999 ? roi.breakevenMonth + ' mo' : 'N/A'}</p>
+                  <td align="right">
+                    <p style="margin:0;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#16a34a;font-family:${fontStack};">ROI Report</p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Full report -->
+          <!-- Main content -->
           <tr>
-            <td style="padding-bottom:32px;">
-              <p style="margin:0 0 12px;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);">Full Report</p>
-              <pre style="margin:0;padding:20px;background-color:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;font-family:'Courier New',Courier,monospace;font-size:12px;color:rgba(255,255,255,0.6);white-space:pre-wrap;word-break:break-word;line-height:1.6;">${blueprint.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+            <td style="padding:40px 40px 0;">
+
+              <!-- Headline -->
+              <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;color:#111827;line-height:1.25;letter-spacing:-0.5px;font-family:${fontStack};">Your AI Automation ROI Report</h1>
+              <p style="margin:0 0 24px;font-family:${fontStack};">
+                <span style="display:inline-block;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600;color:#15803d;">${roi.inputs.taskName}</span>
+              </p>
+
+              <!-- 3 stat cards -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+                <tr>
+                  <td width="32%" style="padding:20px 16px;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;text-align:center;">
+                    <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#15803d;font-family:${fontStack};">Annual Savings</p>
+                    <p style="margin:0;font-size:26px;font-weight:800;color:#16a34a;font-family:${fontStack};">${fmt(roi.totalAnnualSavings)}</p>
+                  </td>
+                  <td width="2%"></td>
+                  <td width="32%" style="padding:20px 16px;background-color:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;text-align:center;">
+                    <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#1d4ed8;font-family:${fontStack};">Automatable</p>
+                    <p style="margin:0;font-size:26px;font-weight:800;color:#2563eb;font-family:${fontStack};">${Math.round(roi.automationPotential * 100)}%</p>
+                  </td>
+                  <td width="2%"></td>
+                  <td width="32%" style="padding:20px 16px;background-color:#faf5ff;border:1px solid #e9d5ff;border-radius:12px;text-align:center;">
+                    <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6d28d9;font-family:${fontStack};">Breakeven</p>
+                    <p style="margin:0;font-size:26px;font-weight:800;color:#7c3aed;font-family:${fontStack};">${roi.breakevenMonth < 999 ? roi.breakevenMonth + ' mo' : 'N/A'}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Savings breakdown -->
+              <p style="margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6b7280;font-family:${fontStack};">Savings Breakdown</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb;">
+                <tr style="background-color:#f9fafb;">
+                  <td style="padding:14px 16px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td>
+                          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#22d3ee;margin-right:8px;vertical-align:middle;"></span>
+                          <span style="font-size:14px;color:#374151;font-family:${fontStack};">Labor Savings</span>
+                        </td>
+                        <td align="right" style="font-size:15px;font-weight:700;color:#0e7490;font-family:${fontStack};">${fmt(roi.laborSavingsAnnual)}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr style="background-color:#ffffff;">
+                  <td style="padding:14px 16px;border-top:1px solid #f3f4f6;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td>
+                          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#60a5fa;margin-right:8px;vertical-align:middle;"></span>
+                          <span style="font-size:14px;color:#374151;font-family:${fontStack};">Error Reduction</span>
+                        </td>
+                        <td align="right" style="font-size:15px;font-weight:700;color:#1d4ed8;font-family:${fontStack};">${fmt(roi.errorReductionAnnual)}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr style="background-color:#f9fafb;">
+                  <td style="padding:14px 16px;border-top:1px solid #f3f4f6;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td>
+                          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#818cf8;margin-right:8px;vertical-align:middle;"></span>
+                          <span style="font-size:14px;color:#374151;font-family:${fontStack};">Opportunity Cost Recovery</span>
+                        </td>
+                        <td align="right" style="font-size:15px;font-weight:700;color:#4f46e5;font-family:${fontStack};">${fmt(roi.opportunityCostAnnual)}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr style="background-color:#f0fdf4;">
+                  <td style="padding:16px;border-top:2px solid #bbf7d0;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size:15px;font-weight:700;color:#111827;font-family:${fontStack};">Total Annual Savings</td>
+                        <td align="right" style="font-size:20px;font-weight:800;color:#16a34a;font-family:${fontStack};">${fmt(roi.totalAnnualSavings)}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- 3-year projection -->
+              <p style="margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#6b7280;font-family:${fontStack};">3-Year Projection</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+                <tr>
+                  ${[0, 1, 2].map((i) => `
+                  <td width="32%" style="padding:18px 12px;background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;text-align:center;">
+                    <p style="margin:0 0 4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;font-family:${fontStack};">Year ${i + 1}</p>
+                    <p style="margin:0 0 2px;font-size:20px;font-weight:800;color:#16a34a;font-family:${fontStack};">${fmt(Math.round(roi.projection[i]))}</p>
+                    <p style="margin:0;font-size:13px;color:#16a34a;font-family:${fontStack};">&#8599;</p>
+                  </td>${i < 2 ? '<td width="2%"></td>' : ''}`).join('')}
+                </tr>
+              </table>
+
+              ${phasesHtml}
+
             </td>
           </tr>
 
-          <!-- CTA -->
+          <!-- CTA button -->
           <tr>
-            <td style="padding-bottom:40px;text-align:center;">
-              <a href="${bookUrl}" style="display:inline-block;background-color:#22d3ee;color:#0a0a0a;font-weight:700;font-size:15px;text-decoration:none;padding:14px 32px;border-radius:12px;">Book a Call with ARIA →</a>
+            <td style="padding:8px 40px 40px;text-align:center;">
+              <a href="${bookUrl}" style="display:inline-block;background-color:#16a34a;color:#ffffff;font-weight:700;font-size:16px;text-decoration:none;padding:16px 40px;border-radius:12px;letter-spacing:-0.1px;font-family:${fontStack};">Talk to ARIA About This &#8594;</a>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="border-top:1px solid rgba(255,255,255,0.06);padding-top:24px;text-align:center;">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.25);">NeuralFlow AI &nbsp;·&nbsp; neuralflowai.io</p>
-              <p style="margin:6px 0 0;font-size:11px;color:rgba(255,255,255,0.15);">This report was generated from inputs you provided in the ROI calculator.</p>
+            <td style="background-color:#f9fafb;border-top:1px solid #e5e7eb;padding:24px 40px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#374151;font-family:${fontStack};">
+                <span style="color:#111827;">Neural</span><span style="color:#16a34a;">Flow</span> AI
+              </p>
+              <p style="margin:0;font-size:12px;color:#9ca3af;font-family:${fontStack};">
+                <a href="https://neuralflowai.io" style="color:#6b7280;text-decoration:none;">neuralflowai.io</a>
+              </p>
+              <p style="margin:8px 0 0;font-size:11px;color:#d1d5db;font-family:${fontStack};">This report was generated from inputs you provided in the ROI calculator.</p>
             </td>
           </tr>
+
         </table>
       </td>
     </tr>
@@ -115,8 +211,7 @@ export async function POST(req: NextRequest) {
   }
 
   email = email.trim();
-  const blueprint = generateBlueprint(roi);
-  const html = buildEmailHtml(blueprint, roi);
+  const html = buildEmailHtml(roi);
 
   // Send email via Resend
   const resendRes = await fetch('https://api.resend.com/emails', {
