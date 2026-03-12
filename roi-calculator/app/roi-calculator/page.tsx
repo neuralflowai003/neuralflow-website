@@ -157,6 +157,9 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
 
   const linkedInUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(roiUrl)}&title=${encodeURIComponent('AI Automation ROI Calculator')}&summary=${encodeURIComponent(shareText)}`;
 
+  const xText = `Just found out I could save ${fmt(live.totalAnnualSavings)}/year by automating "${live.inputs.taskName}" — ${Math.round(live.automationPotential * 100)}% automatable, breakeven in ${live.breakevenMonth < 999 ? live.breakevenMonth + ' months' : 'under a year'}.\n\nCalculate yours 👇`;
+  const xUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(xText)}&url=${encodeURIComponent(roiUrl)}`;
+
   const ariaUrl = `https://neuralflowai.io/?roi_task=${encodeURIComponent(live.inputs.taskName)}&roi_savings=${encodeURIComponent(fmt(live.totalAnnualSavings))}&open_chat=1`;
 
   return (
@@ -323,6 +326,14 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
           className="flex items-center justify-center gap-2 border border-white/10 hover:border-white/20 text-white/60 hover:text-white text-sm py-3.5 px-6 rounded-xl transition-colors"
         >
           Share on LinkedIn
+        </a>
+        <a
+          href={xUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 border border-white/10 hover:border-white/20 text-white/60 hover:text-white text-sm py-3.5 px-6 rounded-xl transition-colors"
+        >
+          Share on X
         </a>
       </div>
     </motion.div>
