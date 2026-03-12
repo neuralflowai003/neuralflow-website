@@ -401,6 +401,7 @@ async function bookAppointment({ name, email, company, phone, slotStart, slotEnd
   // Always regenerate the label from the ISO timestamp — ARIA's slotLabel text can be wrong
   slotLabel = labelFromSlotStart(slotStart);
   logBooking({ name, email, phone: phone || '', company, slotLabel, slotStart, notes });
+  scheduleNoShowRecovery({ name, email, slotStart, slotLabel });
   let meetLink = null;
   let eventHtmlLink = null;
 
@@ -989,6 +990,81 @@ Industry: [their likely industry]
   } catch (e) {
     console.error('⚠️ 24h follow-up email error (non-fatal):', e.message);
   }
+}
+
+// ─── No-show Recovery ─────────────────────────────────────────────────────────
+function scheduleNoShowRecovery({ name, email, slotStart, slotLabel }) {
+  const slotTime = new Date(slotStart).getTime();
+  const fireAt = slotTime + 2 * 60 * 60 * 1000; // 2h after slot starts
+  const delay = fireAt - Date.now();
+  if (delay < 0) return; // slot already passed
+
+  setTimeout(async () => {
+    try {
+      // Fetch 3 fresh slots to offer as reschedule options
+      const freshSlots = await getAvailableSlots(7, null);
+      const picks = (freshSlots || []).slice(0, 3);
+      const slotLines = picks.length > 0
+        ? picks.map((s, i) => `<tr><td style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px;color:#fff;">${i + 1}. ${s.label}</td></tr>`).join('')
+        : `<tr><td style="padding:8px 0;font-size:14px;color:#a0a0b0;">Visit neuralflowai.io to see available times</td></tr>`;
+
+      const firstName = name.split(' ')[0];
+      const ff = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+      const accent = '#FF6B2B';
+
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Missed Connection</title></head>
+<body style="margin:0;padding:0;background:#06060b;font-family:${ff};">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#06060b;padding:32px 16px;">
+  <tr><td align="center">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);">
+    <tr><td style="background:#0a0a0f;padding:32px 40px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="font-size:26px;font-weight:800;"><span style="color:#fff;">Neural</span><span style="color:${accent};">Flow</span></div>
+    </td></tr>
+    <tr><td style="background:#0a0a0f;padding:40px 40px 28px;">
+      <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#fff;">Missed you, ${firstName} 👋</h1>
+      <p style="margin:0;font-size:15px;color:#a0a0b0;line-height:1.6;">It looks like we missed each other for our call today (${slotLabel}). No worries — these things happen. Here are a few open spots to reschedule:</p>
+    </td></tr>
+    <tr><td style="background:#13131a;padding:0 40px 28px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;">
+        <tr><td style="padding:20px 24px;">
+          <table width="100%" cellpadding="0" cellspacing="0">${slotLines}</table>
+        </td></tr>
+      </table>
+    </td></tr>
+    <tr><td style="background:#13131a;padding:0 40px 40px;">
+      <a href="https://neuralflowai.io/?open_chat=1" style="display:inline-block;background:${accent};color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 28px;border-radius:8px;">Reschedule with ARIA →</a>
+    </td></tr>
+    <tr><td style="background:#0a0a0f;padding:24px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">
+      <p style="margin:0;font-size:12px;color:#606070;">— ARIA, NeuralFlow AI Receptionist | <a href="https://neuralflowai.io" style="color:${accent};text-decoration:none;">neuralflowai.io</a></p>
+    </td></tr>
+  </table>
+  </td></tr>
+</table>
+</body></html>`;
+
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'ARIA <aria@neuralflowai.io>',
+          to: email,
+          subject: `Missed you today, ${firstName} — let's reschedule`,
+          html
+        })
+      });
+      if (r.ok) {
+        console.log(`📬 No-show recovery email sent to ${email}`);
+        sendTelegramAlert(`⚠️ NO-SHOW\n${name} (${email}) missed their ${slotLabel} call.\nRecovery email sent with 3 new slots.`);
+      } else {
+        const d = await r.json();
+        console.error('⚠️ No-show recovery email failed:', d.message || JSON.stringify(d));
+      }
+    } catch (e) {
+      console.error('⚠️ No-show recovery error (non-fatal):', e.message);
+    }
+  }, delay);
+
+  console.log(`⏰ No-show recovery scheduled for ${name} — fires ${new Date(fireAt).toISOString()}`);
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────

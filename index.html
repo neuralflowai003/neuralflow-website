@@ -4845,6 +4845,63 @@
       }
     })();
 
+    // ------------------- Proactive ARIA message -------------------
+    (function() {
+      // Don't fire if: came from ROI calc (already opening), already interacted, mobile
+      if (new URLSearchParams(window.location.search).get('open_chat') === '1') return;
+      if (window.innerWidth < 768) return;
+
+      let proactiveFired = false;
+      const DELAY = 45000; // 45 seconds
+
+      const proactiveMessages = [
+        "👋 Quick question — most businesses I talk to are losing 8–15 hours a week to tasks that could be fully automated. Want me to give you a quick estimate of what that's costing you?",
+        "Hey! I noticed you've been exploring NeuralFlow. I'm ARIA — I can tell you exactly which parts of your business are worth automating and what the ROI looks like. Want to find out?",
+        "Still here? That's a good sign 😄 I help businesses figure out where AI can save them the most money. Takes about 2 minutes. Want a quick look?",
+      ];
+
+      function fireProactive() {
+        if (proactiveFired || isChatOpen || hasOpened) return;
+        proactiveFired = true;
+
+        // Pulse the badge to draw attention
+        chatBadge.style.display = 'flex';
+        chatBadge.textContent = '1';
+        chatBadge.style.animation = 'none';
+        chatBadge.style.transform = 'scale(1.4)';
+        setTimeout(() => { chatBadge.style.transform = ''; }, 300);
+
+        // Store the proactive message so toggleChat picks it up
+        const msg = proactiveMessages[Math.floor(Math.random() * proactiveMessages.length)];
+
+        // Override openMessage for this session
+        const origHasOpened = hasOpened;
+        chatBtn.addEventListener('click', function onProactiveOpen() {
+          if (!origHasOpened) {
+            // Replace the standard greeting with the proactive one
+            setTimeout(() => {
+              const msgs = document.getElementById('chatMessages');
+              const last = msgs.querySelector('.aria-msg:last-child');
+              if (last) last.remove();
+              const prev = conversationHistory.findIndex(m => m.role === 'assistant');
+              if (prev !== -1) conversationHistory.splice(prev, 1);
+              appendMessage('aria', msg);
+              conversationHistory.unshift({ role: 'assistant', content: msg });
+            }, 450);
+          }
+          chatBtn.removeEventListener('click', onProactiveOpen);
+        }, { once: true });
+      }
+
+      // Fire after delay if user hasn't interacted
+      const proactiveTimer = setTimeout(fireProactive, DELAY);
+
+      // Cancel if user opens chat on their own
+      chatBtn.addEventListener('click', () => {
+        clearTimeout(proactiveTimer);
+      }, { once: true });
+    })();
+
     // ------------------- Service Modals -------------------
     const modalData = {
       'ai-consulting': {
