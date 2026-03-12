@@ -2063,19 +2063,46 @@
   </header>
 
   <!-- ROI CALCULATOR TEASER -->
-  <section id="roi" style="padding: 64px 24px; background: var(--bg); text-align: center;">
-    <div style="max-width: 680px; margin: 0 auto;">
+  <!-- ROI CALCULATOR EXPLAINER -->
+  <section id="roi" style="padding: 100px 24px; background: linear-gradient(180deg, var(--bg) 0%, #0d0a14 100%); text-align: center; border-top: 1px solid rgba(255,255,255,0.04);">
+    <div style="max-width: 860px; margin: 0 auto;">
+
+      <!-- Eyebrow + headline -->
       <div class="reveal">
-        <div style="display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #FF6B2B; border: 1px solid rgba(255,107,43,0.3); padding: 4px 14px; border-radius: 999px; margin-bottom: 20px;">Free Tool</div>
-        <h2 style="font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 800; color: #fff; margin: 0 0 14px; letter-spacing: -1px; font-family: 'Space Grotesk';">What's manual work actually costing you?</h2>
-        <p style="font-size: 1rem; color: rgba(255,255,255,0.5); margin: 0 auto 32px; max-width: 480px; line-height: 1.6;">Describe a workflow. Our AI calculates your exact dollar savings and 3-year ROI projection in under 60 seconds.</p>
-        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener"
-          style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,107,43,0.12); border: 1px solid rgba(255,107,43,0.4); color: #FF6B2B; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; text-decoration: none; padding: 13px 28px; border-radius: 10px; transition: background 0.2s, border-color 0.2s; font-family: 'Space Grotesk';"
-          onmouseover="this.style.background='rgba(255,107,43,0.2)';this.style.borderColor='rgba(255,107,43,0.7)'"
-          onmouseout="this.style.background='rgba(255,107,43,0.12)';this.style.borderColor='rgba(255,107,43,0.4)'">
-          Calculate My ROI →
-        </a>
+        <div style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#FF6B2B;border:1px solid rgba(255,107,43,0.3);padding:4px 14px;border-radius:999px;margin-bottom:24px;">Free ROI Calculator</div>
+        <h2 style="font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:#fff;margin:0 0 18px;letter-spacing:-1.5px;line-height:1.1;font-family:'Space Grotesk';">Find out exactly what<br>your manual work is costing you.</h2>
+        <p style="font-size:1.05rem;color:rgba(255,255,255,0.5);margin:0 auto 56px;max-width:520px;line-height:1.7;">Describe any repetitive task your team handles. Our AI analyzes it in seconds and returns a real dollar figure — labor savings, error reduction, 3-year projection, and a custom implementation roadmap.</p>
       </div>
+
+      <!-- 3 feature tiles -->
+      <div class="reveal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:56px;">
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:28px 24px;text-align:left;">
+          <div style="font-size:28px;margin-bottom:12px;">⏱</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">60-Second Analysis</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Describe your workflow in plain English — no forms, no spreadsheets. AI does the rest.</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:28px 24px;text-align:left;">
+          <div style="font-size:28px;margin-bottom:12px;">💰</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">Real Dollar Numbers</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Get your exact annual savings, breakeven month, and a 3-year ROI projection — not generic estimates.</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;padding:28px 24px;text-align:left;">
+          <div style="font-size:28px;margin-bottom:12px;">🗺</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;">Custom Roadmap</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">AI generates a 3-phase implementation plan specific to your industry and tools — not boilerplate.</div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="reveal">
+        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener"
+          style="display:inline-flex;align-items:center;gap:10px;background:#FF6B2B;color:#fff;font-size:15px;font-weight:700;letter-spacing:0.03em;text-decoration:none;padding:16px 36px;border-radius:12px;transition:opacity 0.2s;font-family:'Space Grotesk';"
+          onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+          Calculate My ROI — It's Free →
+        </a>
+        <p style="margin:16px 0 0;font-size:12px;color:rgba(255,255,255,0.25);">No account needed &nbsp;·&nbsp; Takes 60 seconds &nbsp;·&nbsp; Results emailed to you</p>
+      </div>
+
     </div>
   </section>
 
