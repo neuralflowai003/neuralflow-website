@@ -881,6 +881,114 @@ Industry: [their likely industry]
 
   sendWithResend(email, "Your NeuralFlow Consultation is Confirmed ✅", clientHtml, `Client email to ${email}`);
   sendWithResend(process.env.GMAIL_USER, `🔥 New Booking — ${name} (${company}) | ${dealValueStr} potential`, dannyHtml, `Danny notification email`);
+
+  // ── 24-Hour Follow-Up Email (scheduled) ──────────────────────────────────────
+  try {
+    const firstName = name.split(' ')[0];
+    const followUpHtml = `
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><style>@media(prefers-color-scheme:light){body,table,td{background-color:#0a0a0f!important;color:#ffffff!important}}@media only screen and (max-width:600px){.email-container{width:100%!important}}</style><title>See you tomorrow</title></head>
+<body style="margin:0;padding:0;background:#06060b;font-family:${ff};">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#06060b;padding:32px 16px;">
+  <tr><td align="center">
+  <table class="email-container" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);">
+
+    <!-- HEADER -->
+    <tr><td style="background:${bg};padding:36px 40px 28px;position:relative;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="background:radial-gradient(circle at 90% 20%,rgba(255,107,43,0.18) 0%,transparent 60%);position:absolute;top:0;right:0;width:100%;height:100%;pointer-events:none;"></div>
+      <div style="position:relative;">
+        <div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1;">
+          <span style="color:#fff;">Neural</span><span style="color:${accent};">Flow</span>
+        </div>
+        <div style="margin-top:6px;padding-left:10px;border-left:2px solid ${accent};font-size:10px;font-weight:700;letter-spacing:2px;color:${accent};text-transform:uppercase;">AI Consulting &amp; Automation</div>
+      </div>
+    </td></tr>
+
+    <!-- BODY -->
+    <tr><td style="background:${bg};padding:48px 40px 36px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:${accent};margin-bottom:14px;">✦ See You Tomorrow</div>
+      <h1 style="margin:0 0 20px;font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2;">Quick note ahead<br>of our call, ${firstName}.</h1>
+      <p style="margin:0 0 24px;font-size:15px;color:#a0a0b0;line-height:1.7;">Hey ${firstName}, just a quick note ahead of our call tomorrow. Danny is looking forward to it and wanted to share what he'll be covering.</p>
+
+      <!-- AGENDA CARD -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${accent};margin-bottom:28px;">
+        <tr><td style="background:${bgCard};padding:24px 28px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${accent};margin-bottom:14px;">Here's what Danny will cover:</div>
+          <table cellpadding="0" cellspacing="0" width="100%">
+            <tr><td style="padding:7px 0;font-size:14px;color:#ffffff;line-height:1.5;">
+              <span style="color:${accent};margin-right:10px;">→</span>Your specific automation opportunities
+            </td></tr>
+            <tr><td style="padding:7px 0;font-size:14px;color:#ffffff;line-height:1.5;">
+              <span style="color:${accent};margin-right:10px;">→</span>A custom implementation roadmap for your business
+            </td></tr>
+            <tr><td style="padding:7px 0;font-size:14px;color:#ffffff;line-height:1.5;">
+              <span style="color:${accent};margin-right:10px;">→</span>ROI projections and timeline
+            </td></tr>
+            <tr><td style="padding:7px 0;font-size:14px;color:#ffffff;line-height:1.5;">
+              <span style="color:${accent};margin-right:10px;">→</span>Any questions you have about NeuralFlow's process
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+
+      <!-- PREP NOTE -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);margin-bottom:32px;">
+        <tr><td style="background:${bgCard};padding:24px 28px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#a0a0b0;margin-bottom:12px;">A few things that would help Danny prepare</div>
+          <p style="margin:0 0 10px;font-size:14px;color:#a0a0b0;line-height:1.7;">Feel free to reply with any context on:</p>
+          <table cellpadding="0" cellspacing="0" width="100%">
+            <tr><td style="padding:5px 0;font-size:14px;color:#ffffff;line-height:1.5;">
+              <span style="color:#a0a0b0;margin-right:8px;">•</span>Your current tools / software stack
+            </td></tr>
+            <tr><td style="padding:5px 0;font-size:14px;color:#ffffff;line-height:1.5;">
+              <span style="color:#a0a0b0;margin-right:8px;">•</span>Your team size
+            </td></tr>
+            <tr><td style="padding:5px 0;font-size:14px;color:#ffffff;line-height:1.5;">
+              <span style="color:#a0a0b0;margin-right:8px;">•</span>Your biggest operational bottleneck
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+
+      <!-- CTA -->
+      <table cellpadding="0" cellspacing="0">
+        <tr><td>
+          <a href="https://neuralflowai.io" style="display:inline-block;background:${accent};color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:8px;letter-spacing:0.3px;">View Your Booking Confirmation →</a>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- FOOTER -->
+    <tr><td style="background:${bg};padding:28px 40px;border-top:1px solid rgba(255,255,255,0.06);">
+      <p style="margin:0 0 8px;font-size:14px;color:#a0a0b0;line-height:1.6;">See you tomorrow,<br><strong style="color:#fff;">— ARIA, NeuralFlow AI Receptionist</strong></p>
+      <a href="https://neuralflowai.io" style="font-size:12px;font-weight:700;color:${accent};text-decoration:none;">neuralflowai.io</a>
+      <p style="margin:8px 0 0;font-size:11px;color:rgba(160,160,176,0.4);">© 2026 NeuralFlow AI. All rights reserved.</p>
+    </td></tr>
+
+  </table>
+  </td></tr>
+</table>
+</body></html>`;
+
+    const followUpRes = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'ARIA <aria@neuralflowai.io>',
+        to: email,
+        subject: `Looking forward to our call tomorrow, ${firstName}!`,
+        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        html: followUpHtml
+      })
+    });
+    const followUpData = await followUpRes.json();
+    if (followUpRes.ok) {
+      console.log(`✅ 24h follow-up email scheduled (Resend id: ${followUpData.id})`);
+    } else {
+      console.error('⚠️ 24h follow-up email scheduling failed:', followUpData.message || JSON.stringify(followUpData));
+    }
+  } catch (e) {
+    console.error('⚠️ 24h follow-up email error (non-fatal):', e.message);
+  }
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
