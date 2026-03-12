@@ -2046,16 +2046,13 @@
         <span class="line-2" id="kin-2">Scale the Extraordinary.</span>
       </h1>
 
-      <div class="typewriter-wrap reveal" style="transition-delay: 0.4s; height: auto; font-size: clamp(1rem, 1.6vw, 1.3rem);">
-        We automate the repetitive work draining your time and money — so you can focus on growing your business.
+      <div class="typewriter-wrap reveal" style="transition-delay: 0.4s;">
+        We build <span id="tw-text" class="typewriter-text"></span>
       </div>
 
       <div class="hero-ctas reveal" style="transition-delay: 0.6s;">
-        <a href="#contact" class="btn btn-solid magnetic" data-strength="50">Book Free Consultation</a>
-        <a href="#services" class="btn btn-ghost magnetic" data-strength="40">See Our Work</a>
-      </div>
-      <div class="reveal" style="transition-delay: 0.8s; margin-top: 20px; font-size: 14px; color: rgba(255,255,255,0.4);">
-        Not sure if automation is worth it? &nbsp;<a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" target="_blank" rel="noopener" style="color: #FF6B2B; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s;" onmouseover="this.style.borderBottomColor='#FF6B2B'" onmouseout="this.style.borderBottomColor='transparent'">→ Find out in 60 seconds</a>
+        <button onclick="if(typeof toggleChat==='function')toggleChat();" class="btn btn-solid magnetic" data-strength="50" style="cursor:pointer;border:none;">Book Free Consultation</button>
+        <a href="https://neuralflow-roi-production.up.railway.app/roi-calculator" class="btn btn-ghost magnetic" data-strength="40">See Your Potential with AI</a>
       </div>
     </div>
 
@@ -4805,39 +4802,50 @@
       await sendMessage();
     });
 
-    // ------------------- Proactive ARIA greeting -------------------
+    // ------------------- ARIA notification nudge (10s, desktop only, once per session) -------------------
     (function () {
       if (window.innerWidth < 768) return;
-      if (sessionStorage.getItem('aria_proactive_fired')) return;
-
-      const proactiveMsg = "Hey 👋 Curious what AI automation could save your business? I can run a quick ROI estimate or answer any questions.";
+      if (sessionStorage.getItem('aria_nudge_fired')) return;
 
       setTimeout(function () {
-        if (isChatOpen || hasOpened) return;
-        sessionStorage.setItem('aria_proactive_fired', '1');
+        if (isChatOpen) return;
+        sessionStorage.setItem('aria_nudge_fired', '1');
 
-        // Pulse badge
+        // Show bubble above the chat button
+        var nudge = document.createElement('div');
+        nudge.id = 'aria-nudge';
+        nudge.textContent = '👋 Ask me anything about automation';
+        nudge.style.cssText = 'position:fixed;bottom:90px;right:24px;background:#1a1a2e;border:1px solid rgba(255,107,43,0.5);color:#fff;font-size:13px;font-weight:500;padding:10px 14px;border-radius:12px;box-shadow:0 4px 20px rgba(255,107,43,0.2);z-index:9999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:220px;line-height:1.4;animation:nudgePop 0.3s ease;pointer-events:none;';
+
+        // Arrow pointing down toward chat button
+        var arrow = document.createElement('div');
+        arrow.style.cssText = 'position:absolute;bottom:-6px;right:20px;width:12px;height:12px;background:#1a1a2e;border-right:1px solid rgba(255,107,43,0.5);border-bottom:1px solid rgba(255,107,43,0.5);transform:rotate(45deg);';
+        nudge.appendChild(arrow);
+
+        // Inject keyframe if not already present
+        if (!document.getElementById('nudge-style')) {
+          var s = document.createElement('style');
+          s.id = 'nudge-style';
+          s.textContent = '@keyframes nudgePop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}';
+          document.head.appendChild(s);
+        }
+
+        document.body.appendChild(nudge);
+
+        // Pulse the badge
         chatBadge.style.display = 'flex';
         chatBadge.textContent = '1';
-        chatBadge.style.transform = 'scale(1.4)';
-        setTimeout(function () { chatBadge.style.transform = ''; }, 300);
 
-        // On first open, swap greeting for proactive message
-        chatBtn.addEventListener('click', function onProactive() {
-          if (!hasOpened) {
-            setTimeout(function () {
-              var msgs = document.getElementById('chatMessages');
-              var last = msgs ? msgs.querySelector('.aria-msg:last-child') : null;
-              if (last) last.remove();
-              var idx = conversationHistory.findIndex(function (m) { return m.role === 'assistant'; });
-              if (idx !== -1) conversationHistory.splice(idx, 1);
-              appendMessage('aria', proactiveMsg);
-              conversationHistory.unshift({ role: 'assistant', content: proactiveMsg });
-            }, 450);
-          }
-          chatBtn.removeEventListener('click', onProactive);
-        }, { once: true });
-      }, 12000);
+        // Auto-dismiss after 5s
+        setTimeout(function () {
+          nudge.style.transition = 'opacity 0.4s';
+          nudge.style.opacity = '0';
+          setTimeout(function () { nudge.remove(); }, 400);
+        }, 5000);
+
+        // Dismiss immediately on chat open
+        chatBtn.addEventListener('click', function () { nudge.remove(); }, { once: true });
+      }, 10000);
     })();
 
     // ------------------- Service Modals -------------------
