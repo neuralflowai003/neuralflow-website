@@ -374,7 +374,7 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
               value={serviceDuration} min={15} max={240} step={15}
               format={(v) => `${v} min`}
               onChange={setServiceDuration}
-              description="How long does serving one client take? This determines how much revenue each hour of your time is worth."
+              description="How long does serving one client take? This determines your effective hourly earning rate."
             />
             <div className="flex items-center justify-between text-xs py-2 px-3 rounded-lg bg-cyan-400/5 border border-cyan-400/15">
               <span className="text-white/40">Effective hourly value</span>
@@ -393,14 +393,14 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
             value={monthlyFee} min={200} max={2000} step={50}
             format={(v) => `$${v}/mo`}
             onChange={setMonthlyFee}
-            description="Typical range: $400–$600/month. Adjust to match your actual quote."
+            description="Adjust to match the quote from your NeuralFlow consultation."
           />
           <SliderRow
             label="One-time setup fee"
             value={setupFee} min={1000} max={15000} step={500}
             format={(v) => fmt(v)}
             onChange={setSetupFee}
-            description="Typical NeuralFlow setup: $2,500–$5,000. Larger builds (full website, complex workflows) will be higher."
+            description="Adjust to match the quote from your NeuralFlow consultation. Every build is scoped individually."
           />
         </div>
       </div>
