@@ -181,7 +181,15 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
   const linkedInUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(roiUrl)}&title=${encodeURIComponent('AI Automation ROI Calculator')}&summary=${encodeURIComponent(shareText)}`;
   const xText = `Just found out I could NET ${fmt(live.netOngoing)}/year by automating "${live.inputs.taskName}" — ${Math.round(live.automationPotential * 100)}% automatable, breakeven in ${live.breakevenMonth < 999 ? live.breakevenMonth + ' months' : 'under a year'}.\n\nCalculate yours 👇`;
   const xUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(xText)}&url=${encodeURIComponent(roiUrl)}`;
-  const ariaUrl = `https://neuralflowai.io/?roi_task=${encodeURIComponent(live.inputs.taskName)}&roi_savings=${encodeURIComponent(fmt(live.netOngoing))}&open_chat=1`;
+  const ariaContext = btoa(encodeURIComponent(JSON.stringify({
+    taskName: live.inputs.taskName,
+    gross: Math.round(live.totalAnnualSavings),
+    netY1: Math.round(live.netYear1),
+    netOngoing: Math.round(live.netOngoing),
+    breakeven: live.breakevenMonth,
+    autoPercent: Math.round(live.automationPotential * 100),
+  })));
+  const ariaUrl = `https://neuralflowai.io/?aria_roi=${encodeURIComponent(ariaContext)}`;
 
   const netColor = live.netOngoing >= 0 ? 'text-emerald-400' : 'text-red-400';
   const net1Color = live.netYear1 >= 0 ? 'text-emerald-400' : 'text-orange-400';

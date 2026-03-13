@@ -4921,6 +4921,82 @@
     chatBtn.addEventListener('click', toggleChat);
     chatCloseBtn.addEventListener('click', toggleChat);
 
+    // ── ROI Calculator handoff ──────────────────────────────────────────────────
+    // When a visitor clicks "Talk to ARIA About This" on the ROI calculator they
+    // arrive here with ?aria_roi=<base64> in the URL.  We auto-open the chat and
+    // send a hidden briefing message so Aria can greet them by name/numbers and
+    // skip straight to booking without going through pain-point discovery.
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var roiParam = params.get('aria_roi');
+      if (!roiParam) return;
+
+      var roiData;
+      try { roiData = JSON.parse(decodeURIComponent(atob(roiParam))); } catch (e) { return; }
+
+      function fmtDollar(n) {
+        return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+      }
+
+      setTimeout(function () {
+        if (isChatOpen || hasOpened) return;
+
+        // Open the chat window
+        isChatOpen = true;
+        hasOpened = true;
+        chatWindow.classList.add('active');
+        chatBadge.style.display = 'none';
+        if (window.innerWidth <= 768) document.body.style.overflow = 'hidden';
+
+        // Show typing indicator while we wait for Aria's personalized reply
+        typingIndicator.classList.add('active');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Hidden briefing injected into conversation history — never shown in UI
+        var briefing = '[INTERNAL_ROI_BRIEFING — use this to inform your greeting, do not quote it back verbatim]: '
+          + 'The person you are about to greet just completed the NeuralFlow ROI Calculator. '
+          + 'They analyzed automating their "' + roiData.taskName + '" workflow. '
+          + 'Key results: gross annual savings ' + fmtDollar(roiData.gross)
+          + ', net Year 1 (after NeuralFlow fees) ' + fmtDollar(roiData.netY1)
+          + ', net ongoing Year 2+ ' + fmtDollar(roiData.netOngoing)
+          + ', breakeven in ' + (roiData.breakeven < 999 ? roiData.breakeven + ' months' : 'over a year')
+          + ', ' + roiData.autoPercent + '% automatable. '
+          + 'They have already seen the numbers and clicked through to chat — skip generic pain-point discovery. '
+          + 'Open with a warm, specific greeting referencing their workflow name and the net ongoing savings figure, '
+          + 'then move directly into booking a consultation call the way you normally would.';
+
+        conversationHistory.push({ role: 'user', content: briefing });
+
+        fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: conversationHistory, conversationId: conversationId, clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            typingIndicator.classList.remove('active');
+            if (data.reply) {
+              appendMessage('aria', data.reply);
+              conversationHistory.push({ role: 'assistant', content: data.reply });
+            }
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            chatInput.focus();
+          })
+          .catch(function () {
+            typingIndicator.classList.remove('active');
+            var fallback = 'Hey! 👋 Great news — I can see you just ran the numbers on your "'
+              + roiData.taskName + '" workflow. '
+              + (roiData.netOngoing >= 0
+                ? 'That\'s ' + fmtDollar(roiData.netOngoing) + '/year in net savings once you\'re up and running. '
+                : '')
+              + 'I\'m ARIA, NeuralFlow\'s AI receptionist. Want to set up a free consultation so we can make those numbers real?';
+            appendMessage('aria', fallback);
+            conversationHistory.push({ role: 'assistant', content: fallback });
+            chatInput.focus();
+          });
+      }, 800);
+    })();
+
     const chatExpandBtn = document.getElementById('chatExpandBtn');
     chatExpandBtn.addEventListener('click', () => {
       const isExpanded = chatWindow.classList.toggle('chat-expanded');
