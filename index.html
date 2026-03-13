@@ -5013,29 +5013,35 @@
       if (sessionStorage.getItem('aria_auto_fired')) return;
       var isMobile = window.innerWidth < 768;
 
-      // Pre-unlock AudioContext on first user interaction (desktop only)
+      // Audio unlock — create AudioContext immediately and retry resume on every interaction.
+      // Chrome only unlocks on click/keydown/touchstart (not scroll), so we keep retrying
+      // without removing listeners so the first valid gesture always wins.
       var audioCtx = null;
-      function unlockAudio() {
-        if (audioCtx) return;
-        try {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          if (audioCtx.state === 'suspended') audioCtx.resume();
-        } catch(e) {}
-        document.removeEventListener('scroll', unlockAudio, true);
-        document.removeEventListener('click',  unlockAudio, true);
-        document.removeEventListener('keydown',unlockAudio, true);
+      var audioUnlocked = false;
+      function tryResume() {
+        if (audioUnlocked || !audioCtx) return;
+        audioCtx.resume().then(function () { audioUnlocked = true; }).catch(function () {});
       }
-      if (!isMobile) {
-        document.addEventListener('scroll', unlockAudio, true);
-        document.addEventListener('click',  unlockAudio, true);
-        document.addEventListener('keydown',unlockAudio, true);
+      function initAudio() {
+        if (!audioCtx) {
+          try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          } catch(e) { return; }
+        }
+        tryResume();
       }
+      // Try immediately (works if page loaded via user navigation in some browsers)
+      initAudio();
+      // Retry on every interaction — never remove listeners, keep trying until unlocked
+      ['click', 'keydown', 'touchstart', 'pointerdown', 'scroll'].forEach(function (evt) {
+        document.addEventListener(evt, function () { if (!audioUnlocked) initAudio(); }, { passive: true, capture: true });
+      });
 
       // Returns true if chime played, false if audio was blocked
       function playChime() {
         try {
           var ctx = audioCtx;
-          if (!ctx || ctx.state === 'suspended') return false;
+          if (!ctx || !audioUnlocked) return false;
           var playTone = function (freq, t0, dur, vol) {
             var osc = ctx.createOscillator();
             var gain = ctx.createGain();
