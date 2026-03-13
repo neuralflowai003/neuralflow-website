@@ -5,7 +5,7 @@
   if (document.documentElement.hasAttribute('data-nf-widget')) return;
   document.documentElement.setAttribute('data-nf-widget', '1');
 
-  var ROI_URL = 'https://neuralflow-roi-production.up.railway.app/roi-calculator';
+  var ROI_URL = 'https://roi.neuralflowai.io/roi-calculator';
 
   // ── Styles ──────────────────────────────────────────────────────────────────
   var style = document.createElement('style');

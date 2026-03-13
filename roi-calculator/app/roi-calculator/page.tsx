@@ -184,7 +184,7 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
     { year: 'Year 3', savings: Math.round(live.projection[2]) },
   ];
 
-  const roiUrl = 'https://neuralflow-roi-production.up.railway.app/roi-calculator';
+  const roiUrl = 'https://roi.neuralflowai.io/roi-calculator';
 
   const shareText = `Just ran my workflow through NeuralFlow AI's ROI calculator:\n\n✅ ${live.inputs.taskName}\n💰 ${fmt(live.totalAnnualSavings)}/year in potential savings\n📈 ${Math.round(live.automationPotential * 100)}% automatable\n⏱ Breakeven in ${live.breakevenMonth < 999 ? live.breakevenMonth + ' months' : 'under a year'}\n\nFind out what YOUR team is leaving on the table 👇`;
 
