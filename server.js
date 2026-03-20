@@ -950,6 +950,9 @@ Industry: [their likely industry]
   sendWithResend(email, "Your NeuralFlow Consultation is Confirmed ✅", clientHtml, `Client email to ${email}`);
   sendWithResend(process.env.GMAIL_USER, `🔥 New Booking — ${name} (${company}) | ${dealValueStr} potential`, dannyHtml, `Danny notification email`);
 
+  // ── Booking success Telegram alert ───────────────────────────────────────────
+  sendTelegramAlert(`✅ NEW BOOKING CONFIRMED\n\n👤 ${name}\n🏢 ${company || 'N/A'}\n📧 ${email}\n📞 ${phone || 'N/A'}\n📅 ${slotLabel}\n💰 Deal value: ${dealValueStr}\n\n🤖 Booked via ARIA`);
+
   // ── 24-Hour Follow-Up Email (scheduled) ──────────────────────────────────────
   try {
     const firstName = name.split(' ')[0];
@@ -2103,6 +2106,143 @@ setInterval(async () => { try {
 } catch (e) { console.error('⚠️ Follow-up scheduler error:', e.message); }
 }, 15 * 60 * 1000);
 
+// ─── ROI Calculator Tracking ──────────────────────────────────────────────────
+app.post('/api/track', (req, res) => {
+  const { event, data } = req.body || {};
+  res.json({ ok: true }); // always respond fast
+
+  if (event === 'roi_calculated') {
+    const { taskName, netOngoing, breakeven, autoPercent } = data || {};
+    sendTelegramAlert(`📊 ROI CALCULATOR HIT\n\nWorkflow: "${taskName}"\nNet savings: $${Math.round(netOngoing || 0).toLocaleString()}/yr\nBreakeven: ${breakeven < 999 ? breakeven + ' months' : 'N/A'}\nAutomatable: ${autoPercent}%`);
+  } else if (event === 'aria_handoff') {
+    const { taskName, netOngoing } = data || {};
+    sendTelegramAlert(`🔥 TALK TO ARIA CLICKED\n\nFrom ROI calc — "${taskName}"\nNet savings: $${Math.round(netOngoing || 0).toLocaleString()}/yr\nARIA is opening now...`);
+  }
+});
+
+// ─── Full System Health Check ─────────────────────────────────────────────────
+async function runHealthCheck() {
+  const results = [];
+  const now = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour12: true });
+
+  // 1. Anthropic API
+  try {
+    const r = await anthropic.messages.create({ model: 'claude-haiku-4-5', max_tokens: 10, messages: [{ role: 'user', content: 'Say OK' }] });
+    results.push(r.content?.[0]?.text ? '✅ Anthropic API' : '❌ Anthropic API — no response');
+  } catch (e) { results.push(`❌ Anthropic API — ${e.message.slice(0, 60)}`); }
+
+  // 2. Google Calendar + slot fetch
+  try {
+    const slots = await getAvailableSlots(7, null);
+    results.push(slots && slots.length > 0
+      ? `✅ Google Calendar — ${slots.length} slots available\n   Next: ${slots[0]?.label}`
+      : '⚠️ Google Calendar — 0 slots (check your calendar)');
+  } catch (e) { results.push(`❌ Google Calendar — ${e.message.slice(0, 60)}`); }
+
+  // 3. Resend email
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to: process.env.GMAIL_USER, subject: '✅ ARIA Health Check — Email Working', html: '<p>ARIA health check passed. Email delivery is operational.</p>' })
+    });
+    results.push(r.ok ? '✅ Resend email' : `❌ Resend email — HTTP ${r.status}`);
+  } catch (e) { results.push(`❌ Resend email — ${e.message.slice(0, 60)}`); }
+
+  // 4. ARIA chat simulation
+  try {
+    const r = await anthropic.messages.create({
+      model: 'claude-haiku-4-5', max_tokens: 50,
+      system: 'You are ARIA, NeuralFlow AI receptionist.',
+      messages: [{ role: 'user', content: 'SYSTEM TEST — reply with exactly: ARIA operational' }]
+    });
+    const reply = r.content?.[0]?.text?.trim() || '';
+    results.push(reply ? `✅ ARIA chat — "${reply.slice(0, 50)}"` : '❌ ARIA chat — empty response');
+  } catch (e) { results.push(`❌ ARIA chat — ${e.message.slice(0, 60)}`); }
+
+  // 5. Bookings log
+  try {
+    const bookings = readBookings();
+    const upcoming = bookings.filter(b => new Date(b.slotStart) > new Date());
+    results.push(`✅ Bookings log — ${bookings.length} total, ${upcoming.length} upcoming`);
+  } catch (e) { results.push(`❌ Bookings log — ${e.message}`); }
+
+  // 6. Pending leads
+  try {
+    results.push(`✅ Pending leads — ${pendingLeads.size} active`);
+  } catch (e) { results.push(`❌ Pending leads — ${e.message}`); }
+
+  const allOk = results.every(r => r.startsWith('✅'));
+  return `${allOk ? '🟢 ALL SYSTEMS GO' : '🔴 ISSUES DETECTED'}\n\n${results.join('\n')}\n\n🕐 ${now} ET`;
+}
+
+// ─── Telegram Bot Webhook (text /test or /status to get a health check) ───────
+app.post('/telegram-webhook', async (req, res) => {
+  res.json({ ok: true }); // respond immediately — Telegram requires fast ACK
+
+  const message = req.body?.message;
+  if (!message) return;
+
+  const chatId = String(message.chat?.id);
+  const text = (message.text || '').trim().toLowerCase();
+
+  // Only respond to your own chat
+  if (chatId !== process.env.TELEGRAM_CHAT_ID) return;
+
+  async function reply(msg) {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) return;
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: msg })
+    }).catch(() => {});
+  }
+
+  if (text === '/test' || text === '/status' || text === '/check') {
+    await reply('🔍 Running full system check — hang on...');
+    const report = await runHealthCheck();
+    await reply(report);
+
+  } else if (text === '/bookings') {
+    try {
+      const bookings = readBookings();
+      const upcoming = bookings
+        .filter(b => new Date(b.slotStart) > new Date())
+        .sort((a, b) => new Date(a.slotStart) - new Date(b.slotStart))
+        .slice(0, 5);
+      const lines = upcoming.map(b => `• ${b.name} — ${b.slotLabel}`).join('\n') || 'None scheduled';
+      await reply(`📅 UPCOMING BOOKINGS (${upcoming.length})\n\n${lines}\n\nTotal all-time: ${bookings.length}`);
+    } catch (e) {
+      await reply(`❌ Could not read bookings: ${e.message}`);
+    }
+
+  } else if (text === '/leads') {
+    const leads = [...pendingLeads.values()].filter(l => !l.followedUp);
+    const lines = leads.slice(0, 5).map(l => `• ${l.name || 'Unknown'} — ${l.email}`).join('\n') || 'None';
+    await reply(`👀 ACTIVE LEADS (not yet booked)\n\n${lines}`);
+
+  } else if (text === '/help') {
+    await reply('ARIA Bot Commands:\n\n/test — full system health check\n/bookings — upcoming bookings\n/leads — active unconverted leads\n/help — this message');
+  }
+});
+
+// ─── Register Telegram Webhook on startup ─────────────────────────────────────
+async function registerTelegramWebhook() {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return;
+  try {
+    const url = 'https://neuralflowai.io/telegram-webhook';
+    const r = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, allowed_updates: ['message'] })
+    });
+    const data = await r.json();
+    console.log('📡 Telegram webhook:', data.ok ? `registered → ${url}` : `FAILED — ${data.description}`);
+  } catch (e) { console.error('⚠️ Telegram webhook registration failed:', e.message); }
+}
+
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err.message, err.stack);
   sendTelegramAlert('🚨 SERVER CRASH\nuncaughtException: ' + err.message);
@@ -2114,6 +2254,7 @@ process.on('unhandledRejection', (reason) => {
 
 app.listen(port, () => {
   console.log(`Server running on ${port}`);
+  registerTelegramWebhook();
   // Self-ping every 4 minutes to prevent Railway cold starts
   setInterval(() => {
     const pingReq = https.get('https://neuralflowai.io/api/availability', { timeout: 8000 }, (res) => {

@@ -131,6 +131,23 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [emailError, setEmailError] = useState('');
 
+  // Fire tracking ping when results are first shown
+  useEffect(() => {
+    fetch('https://neuralflowai.io/api/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'roi_calculated',
+        data: {
+          taskName: roi.inputs.taskName,
+          netOngoing: Math.round(roi.netOngoing),
+          breakeven: roi.breakevenMonth,
+          autoPercent: Math.round(roi.automationPotential * 100),
+        }
+      })
+    }).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const effectiveRate =
     workerType === 'revenue' ? revenuePerClient / (serviceDuration / 60) : rate;
 
@@ -469,6 +486,16 @@ function ResultsPanel({ roi, onReset }: { roi: ROIResult; onReset: () => void })
       {/* CTAs */}
       <div className="flex flex-col sm:flex-row gap-3">
         <a href={ariaUrl} target="_blank" rel="noopener noreferrer"
+          onClick={() => {
+            fetch('https://neuralflowai.io/api/track', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event: 'aria_handoff',
+                data: { taskName: live.inputs.taskName, netOngoing: Math.round(live.netOngoing) }
+              })
+            }).catch(() => {});
+          }}
           className="flex-1 flex items-center justify-center gap-2 bg-cyan-400 hover:bg-cyan-300 text-zinc-950 font-bold text-sm py-3.5 px-6 rounded-xl transition-colors">
           Talk to ARIA About This →
         </a>
