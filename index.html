@@ -4470,13 +4470,14 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, scope })
               });
-              if (res.ok) {
+              const data = await res.json();
+              if (res.ok && data.success !== false) {
                 document.getElementById('contactSuccess').style.display = 'block';
                 document.getElementById('contactError').style.display = 'none';
                 document.getElementById('contactForm').reset();
                 btn.textContent = '✅ Sent!';
               } else {
-                throw new Error('Failed');
+                throw new Error(data.error || 'Failed');
               }
             } catch (err) {
               document.getElementById('contactError').style.display = 'block';
