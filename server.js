@@ -391,9 +391,9 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
       currentDay.setDate(currentDay.getDate() + i);
       const dow = currentDay.getDay();
 
-      // Skip weekends
+      // Skip weekends (Saturday = 6, Sunday = 0)
       const dowCheck = new Date(currentDay.getFullYear(), currentDay.getMonth(), currentDay.getDate(), 12, 0, 0);
-      if (dowCheck.getDay() === 0) continue;
+      if (dowCheck.getDay() === 0 || dowCheck.getDay() === 6) continue;
 
       const { hours: offsetHours, abbr } = getNYOffset(currentDay);
       const dateStr = `${currentDay.getFullYear()}-${String(currentDay.getMonth() + 1).padStart(2, '0')}-${String(currentDay.getDate()).padStart(2, '0')}`;
@@ -1184,6 +1184,15 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
 
 app.post('/api/contact', async (req, res) => {
   const { name, email, scope } = req.body;
+
+  if (!name || !email || !scope) {
+    return res.json({ success: false, error: 'Please fill in all fields.' });
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!emailRegex.test(email)) {
+    return res.json({ success: false, error: 'Please enter a valid email address.' });
+  }
+
   let sent = false;
 
   if (resend) {
@@ -1208,7 +1217,7 @@ app.post('/api/contact', async (req, res) => {
 
   if (!sent) {
     sendTelegramAlert(`🚨 CONTACT FORM — Resend failed\nName: ${name}\nEmail: ${email}\nScope: ${scope}`);
-    return res.json({ success: false, error: 'Message could not be delivered. Please email danny@neuralflowai.io directly.' });
+    return res.json({ success: false, error: 'Something went wrong sending your message. Please try again or email danny@neuralflowai.io directly.' });
   }
 
   res.json({ success: true });
