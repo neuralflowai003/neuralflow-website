@@ -12,6 +12,14 @@ const https = require('https');
 const app = express();
 const port = process.env.PORT || 8080;
 
+// ─── Startup: Validate required env vars ──────────────────────────────────────
+const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'RESEND_API_KEY', 'GMAIL_USER', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', 'BOOKINGS_PASSWORD'];
+const missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missingEnv.length > 0) {
+  console.error(`❌ FATAL: Missing required environment variables: ${missingEnv.join(', ')}`);
+  console.error('Server will start but affected features will not work.');
+}
+
 // ─── Clients ──────────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -36,11 +44,17 @@ if (process.env.GOOGLE_REFRESH_TOKEN) {
 }
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-const allowedOrigins = ['https://neuralflowai.io', 'https://www.neuralflowai.io'];
+const allowedOrigins = [
+  'https://neuralflowai.io',
+  'https://www.neuralflowai.io',
+  'https://roi.neuralflowai.io',
+  'http://localhost:3000',
+  'http://localhost:8080',
+];
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (server-to-server, curl, Postman in dev)
-    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') return cb(null, true);
+    // Allow requests with no origin (server-to-server, curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error('Not allowed by CORS'));
   }
 }));
@@ -51,8 +65,8 @@ app.use(express.static(path.join(__dirname, '')));
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
 
 app.get('/bookings', (req, res) => {
-  const pass = process.env.BOOKINGS_PASSWORD || 'neuralflow2026';
-  if (req.query.p !== pass) {
+  const pass = process.env.BOOKINGS_PASSWORD;
+  if (!pass || req.query.p !== pass) {
     return res.send(`<!DOCTYPE html><html><head><title>NeuralFlow Bookings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#06060b;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}form{background:#13131a;padding:40px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);text-align:center}h2{color:#fff;margin:0 0 20px;font-size:20px}input{width:100%;padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#0a0a0f;color:#fff;font-size:14px;margin-bottom:12px}button{width:100%;padding:12px;background:#FF6B2B;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}</style></head><body><form method="GET"><h2>NeuralFlow Bookings</h2><input type="password" name="p" placeholder="Password" autofocus><button type="submit">View Bookings</button></form></body></html>`);
   }
   let bookings = [];
@@ -80,8 +94,8 @@ app.get('/bookings', (req, res) => {
 });
 
 app.get('/api/test', async (req, res) => {
-  const pass = process.env.BOOKINGS_PASSWORD || 'neuralflow2026';
-  if (req.query.p !== pass) return res.status(401).json({ error: 'Unauthorized' });
+  const pass = process.env.BOOKINGS_PASSWORD;
+  if (!pass || req.query.p !== pass) return res.status(401).json({ error: 'Unauthorized' });
 
   const results = {};
 
@@ -109,8 +123,9 @@ app.get('/api/test', async (req, res) => {
 
   // Test 3: Telegram
   try {
-    const tgToken = process.env.TELEGRAM_BOT_TOKEN || '8354160885:AAHsmTw_qDhYsEf2Htd2qotMd1kPRm-okmw';
-    const tgChat = process.env.TELEGRAM_CHAT_ID || '8709413106';
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+    const tgChat = process.env.TELEGRAM_CHAT_ID;
+    if (!tgToken || !tgChat) throw new Error('TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set');
     const r = await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: tgChat, text: '✅ ARIA E2E test — Telegram working' })
@@ -168,13 +183,48 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 // ─── Pending Leads (abandoned chat follow-up) ────────────────────────────────
-// Tracks conversations that collected an email but never booked
+// Persisted to disk so server restarts don't lose leads mid-funnel
+const PENDING_LEADS_FILE = path.join(__dirname, 'pending-leads.json');
 const pendingLeads = new Map(); // convId -> { email, name, lastSeen, followedUp }
+try {
+  if (fs.existsSync(PENDING_LEADS_FILE)) {
+    const saved = JSON.parse(fs.readFileSync(PENDING_LEADS_FILE, 'utf8'));
+    for (const [k, v] of Object.entries(saved)) pendingLeads.set(k, v);
+    console.log(`📋 Loaded ${pendingLeads.size} pending lead(s) from disk`);
+  }
+} catch (e) { console.error('⚠️ Could not load pending-leads.json:', e.message); }
+
+function savePendingLeads() {
+  try {
+    const obj = {};
+    for (const [k, v] of pendingLeads.entries()) obj[k] = v;
+    fs.writeFileSync(PENDING_LEADS_FILE, JSON.stringify(obj, null, 2));
+  } catch (e) { console.error('⚠️ Could not save pending-leads.json:', e.message); }
+}
+
+// ─── Bookings write lock (prevents concurrent write corruption) ───────────────
+let bookingWriteLock = false;
+const bookingWriteQueue = [];
+function writeBookingsSafe(entries) {
+  return new Promise((resolve) => {
+    bookingWriteQueue.push({ entries, resolve });
+    if (!bookingWriteLock) flushBookingQueue();
+  });
+}
+function flushBookingQueue() {
+  if (bookingWriteQueue.length === 0) { bookingWriteLock = false; return; }
+  bookingWriteLock = true;
+  const { entries, resolve } = bookingWriteQueue.shift();
+  try { fs.writeFileSync(BOOKINGS_LOG, JSON.stringify(entries, null, 2)); } catch (e) { console.error('⚠️ Booking write error:', e.message); }
+  resolve();
+  setImmediate(flushBookingQueue);
+}
 
 // ─── Telegram Alert Helper ────────────────────────────────────────────────────
 function sendTelegramAlert(msg) {
-  const tgToken = process.env.TELEGRAM_BOT_TOKEN || '8354160885:AAHsmTw_qDhYsEf2Htd2qotMd1kPRm-okmw';
-  const tgChat = process.env.TELEGRAM_CHAT_ID || '8709413106';
+  const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+  const tgChat = process.env.TELEGRAM_CHAT_ID;
+  if (!tgToken || !tgChat) { console.error('⚠️ Telegram not configured — alert dropped:', msg); return; }
   const payload = JSON.stringify({ chat_id: tgChat, text: msg });
   const req = https.request(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
@@ -223,14 +273,17 @@ function getNYOffset(date) {
 
 // ─── Booking Log ──────────────────────────────────────────────────────────────
 const BOOKINGS_LOG = path.join(__dirname, 'bookings.json');
-function logBooking(data) {
+function readBookings() {
   try {
-    let entries = [];
-    if (fs.existsSync(BOOKINGS_LOG)) {
-      try { entries = JSON.parse(fs.readFileSync(BOOKINGS_LOG, 'utf8')); } catch {}
-    }
+    if (fs.existsSync(BOOKINGS_LOG)) return JSON.parse(fs.readFileSync(BOOKINGS_LOG, 'utf8'));
+  } catch {}
+  return [];
+}
+async function logBooking(data) {
+  try {
+    const entries = readBookings();
     entries.push({ ...data, bookedAt: new Date().toISOString() });
-    fs.writeFileSync(BOOKINGS_LOG, JSON.stringify(entries, null, 2));
+    await writeBookingsSafe(entries);
     console.log(`📝 Booking logged: ${data.name} — ${data.slotLabel}`);
   } catch (e) {
     console.error('⚠️ Failed to write booking log:', e.message);
@@ -328,7 +381,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
     const busy = data.calendars.primary.busy || [];
     const slots = [];
     const slotsPerDay = {}; // FIX 2: max 2 slots per date
-    const now24h = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h buffer — system prompt enforces 24h rule
+    const now24h = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h buffer — no same-day or next-day slots
 
     const d = new Date(windowStart);
     d.setHours(0, 0, 0, 0);
@@ -347,8 +400,8 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
 
       if (!slotsPerDay[dateStr]) slotsPerDay[dateStr] = 0;
 
-      const targetHours = [9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21];
-      const hoursToCheck = allHours ? targetHours : [9, 13, 17];
+      const targetHours = [9, 10, 11, 13, 14, 15, 16, 17]; // 9am–5pm ET (slots end by 6pm)
+      const hoursToCheck = allHours ? targetHours : [9, 13, 16];
       const maxPerDay = allHours ? 12 : 3;
       const maxTotal = maxSlots || (allHours ? 24 : 9);
       for (const hr of hoursToCheck) {
@@ -400,7 +453,21 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
 async function bookAppointment({ name, email, company, phone, slotStart, slotEnd, slotLabel, notes }) {
   // Always regenerate the label from the ISO timestamp — ARIA's slotLabel text can be wrong
   slotLabel = labelFromSlotStart(slotStart);
-  logBooking({ name, email, phone: phone || '', company, slotLabel, slotStart, notes });
+
+  // ── Duplicate booking check ───────────────────────────────────────────────
+  const existingBookings = readBookings();
+  const future = new Date(slotStart).getTime();
+  const duplicate = existingBookings.find(b =>
+    b.email?.toLowerCase() === email?.toLowerCase() &&
+    b.slotStart && Math.abs(new Date(b.slotStart).getTime() - future) < 60 * 60 * 1000
+  );
+  if (duplicate) {
+    console.warn(`⚠️ Duplicate booking detected for ${email} at ${slotLabel} — skipping`);
+    sendTelegramAlert(`⚠️ DUPLICATE BOOKING BLOCKED\nClient: ${name} (${email})\nSlot: ${slotLabel}\nAlready booked at this time.`);
+    return;
+  }
+
+  await logBooking({ name, email, phone: phone || '', company, slotLabel, slotStart, notes });
   scheduleNoShowRecovery({ name, email, slotStart, slotLabel });
   let meetLink = null;
   let eventHtmlLink = null;
@@ -1141,6 +1208,7 @@ app.post('/api/contact', async (req, res) => {
 
   if (!sent) {
     sendTelegramAlert(`🚨 CONTACT FORM — Resend failed\nName: ${name}\nEmail: ${email}\nScope: ${scope}`);
+    return res.json({ success: false, error: 'Message could not be delivered. Please email danny@neuralflowai.io directly.' });
   }
 
   res.json({ success: true });
@@ -1155,33 +1223,7 @@ app.post('/api/accept-proposal', async (req, res) => {
 
   try {
     // 1. Telegram Notification
-    {
-      const tgToken = process.env.TELEGRAM_BOT_TOKEN || '8354160885:AAHsmTw_qDhYsEf2Htd2qotMd1kPRm-okmw';
-      const tgChat = process.env.TELEGRAM_CHAT_ID || '8709413106';
-      const message = `🎉 NEW CLIENT ACCEPTED\n\nBusiness: ${businessName}\nContact: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nDeposit: $${amount}\nMonthly: $${fee}/mo`;
-      const url = `https://api.telegram.org/bot${tgToken}/sendMessage`;
-      const payload = JSON.stringify({ chat_id: tgChat, text: message });
-
-      const reqTg = https.request(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-        },
-      }, (resTg) => {
-        let response = '';
-        resTg.on('data', (chunk) => { response += chunk; });
-        resTg.on('end', () => {
-          if (resTg.statusCode !== 200) {
-            console.error('Telegram notification failed:', response);
-          }
-        });
-      });
-
-      reqTg.on('error', (err) => console.error('Telegram request error:', err.message));
-      reqTg.write(payload);
-      reqTg.end();
-    }
+    sendTelegramAlert(`🎉 NEW CLIENT ACCEPTED\n\nBusiness: ${businessName}\nContact: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nDeposit: $${Number(amount) || 0}\nMonthly: $${Number(fee) || 0}/mo`);
 
     // Shared styles for Emails
     const emailStyles = `
@@ -1575,6 +1617,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
           sendTelegramAlert(`👀 ARIA LEAD\n${detectedEmail} is talking to ARIA right now`);
         }
         pendingLeads.set(convId, { ...existing, email: detectedEmail, lastSeen: Date.now(), followedUp: existing.followedUp || false });
+        savePendingLeads();
       }
     }
 
@@ -1682,6 +1725,7 @@ SCHEDULING RULES:
 - Never invent slots that aren't in the list
 - Never include the year when stating dates (say "Tuesday, April 15" not "Tuesday, April 15, 2026")
 - The slotStart in the BOOK command must always match the [start:ISO] from the exact slot you confirmed
+- All slots are in Eastern Time (ET). When a client says a time like "3pm" without specifying a timezone, ask: "Just to confirm — is that 3pm Eastern Time, or are you in a different timezone?" Then present the correct slot.
 
 AVAILABILITY: You MUST ONLY tell a client a time/date is unavailable if the server has explicitly told you it is BUSY in the slot data. If you have no data for a requested time, do NOT assume it is unavailable — say you will check and ask the client to confirm the date so the server can verify. Never make up availability.
 NEXT WEEK: When a client asks for "next week", show ALL available days that week grouped by date. List each day on its own line with all available times. Do not limit to 3 slots or a single day.
@@ -1865,8 +1909,8 @@ ${slotsText}`;
         const freshSlot = freshSlots ? freshSlots.find(s => normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
 
         // Only block if we have fresh data AND it's explicitly unavailable
-        // Skip for Agreed Slot Map — user confirmed it and we already did freebusy check
-        if (freshSlots && freshSlots.length > 0 && !freshSlot && matchMethod !== 'Direct BOOK Fallback' && matchMethod !== 'Agreed Slot Map') {
+        // Always verify — race condition: another user could have booked between confirmation and now
+        if (freshSlots && freshSlots.length > 0 && !freshSlot && matchMethod !== 'Direct BOOK Fallback') {
           conversationSlots.delete(convId);
           agreedSlots.delete(convId);
           const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
@@ -1884,7 +1928,7 @@ ${slotsText}`;
         }).catch(err => console.error('Background booking error:', err.message));
         conversationSlots.delete(convId);
         agreedSlots.delete(convId);
-        pendingLeads.delete(convId); // booked — no follow-up needed
+        pendingLeads.delete(convId); savePendingLeads(); // booked — no follow-up needed
       }
 
       aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
@@ -1993,7 +2037,7 @@ setInterval(async () => { try {
     }
   }
   if (updated) {
-    try { fs.writeFileSync(BOOKINGS_LOG, JSON.stringify(bookings, null, 2)); } catch (e) {
+    try { await writeBookingsSafe(bookings); } catch (e) {
       console.error('⚠️ Failed to update bookings log after reminder:', e.message);
     }
   }
@@ -2040,6 +2084,7 @@ setInterval(async () => { try {
         if (r.ok) {
           console.log(`📧 Abandoned chat follow-up sent to ${lead.email}`);
           lead.followedUp = true;
+          savePendingLeads();
         } else {
           console.error('❌ Follow-up email failed:', (await r.json()).message);
         }
