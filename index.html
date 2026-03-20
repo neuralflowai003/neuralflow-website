@@ -357,7 +357,17 @@
 
     .nav-links {
       display: flex;
-      gap: 40px;
+      gap: 28px;
+    }
+
+    .nav-link-accent {
+      color: rgba(0,194,255,0.65) !important;
+    }
+    .nav-link-accent:hover {
+      color: rgba(0,194,255,1) !important;
+    }
+    .nav-link-accent::before {
+      background: var(--accent) !important;
     }
 
     .nav-link {
@@ -2075,6 +2085,9 @@
 
 <body data-cursor="default">
 
+  <!-- Custom cursor glow -->
+  <div id="cursor-glow"></div>
+
   <div class="scroll-progress" id="scrollProgress"></div>
   <div id="cursor-dot"></div>
   <div id="cursor-ring"><span id="cursor-text">VIEW</span></div>
@@ -2082,12 +2095,14 @@
   <!-- NAV -->
   <nav id="nav">
     <div class="container nav-inner">
-      <a href="#hero" class="logo magnetic" data-strength="10">Neural<span>Flow</span></a>
+      <a href="#home" class="logo magnetic" data-strength="10">Neural<span>Flow</span></a>
       <div class="nav-links">
         <a href="#services" class="nav-link magnetic" data-strength="20">Services</a>
         <a href="#work" class="nav-link magnetic" data-strength="20">Work</a>
         <a href="#process" class="nav-link magnetic" data-strength="20">Process</a>
         <a href="#about" class="nav-link magnetic" data-strength="20">About</a>
+        <a href="https://roi.neuralflowai.io/roi-calculator" target="_blank" rel="noopener" class="nav-link magnetic" data-strength="20">ROI Calc</a>
+        <a href="#" onclick="if(typeof toggleChat==='function')toggleChat();return false;" class="nav-link nav-link-accent magnetic" data-strength="20">Talk to ARIA</a>
       </div>
       <a href="#contact" class="btn btn-ghost magnetic" data-strength="40"
         style="padding: 10px 24px; font-size: 0.8rem;">Let's Talk</a>
@@ -2126,7 +2141,263 @@
       <span>Scroll</span>
       <div class="scroll-arrow"></div>
     </div>
+
+    <!-- Bottom fade — dissolves canvas into the next section -->
+    <div style="position:absolute;bottom:0;left:0;right:0;height:220px;background:linear-gradient(to bottom,transparent 0%,rgba(5,5,8,0.6) 50%,var(--bg) 100%);pointer-events:none;z-index:3;"></div>
   </header>
+
+  <!-- CURSOR GLOW + ARIA DEMO STYLES -->
+  <style>
+    /* ── Cursor glow ── */
+    #cursor-glow {
+      position: fixed;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,194,255,0.055) 0%, transparent 65%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.4s ease;
+      z-index: 9998;
+      mix-blend-mode: screen;
+      opacity: 0;
+    }
+
+    /* ── ARIA demo section ── */
+    .aria-demo-section {
+      padding: 100px 24px;
+      background: linear-gradient(180deg, #050c14 0%, #060810 100%);
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .aria-demo-grid {
+      max-width: 1060px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    @media (max-width: 860px) {
+      .aria-demo-grid { grid-template-columns: 1fr; gap: 48px; }
+    }
+    .aria-demo-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #00C2FF;
+      border: 1px solid rgba(0,194,255,0.3);
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+    }
+    .aria-demo-eyebrow::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00C2FF;
+      animation: pulse 2s infinite;
+    }
+    .aria-demo-headline {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin: 0 0 20px;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .aria-demo-sub {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.45);
+      line-height: 1.75;
+      margin: 0 0 36px;
+    }
+    .aria-demo-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg,#00C2FF,#7B61FF);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      text-decoration: none;
+      box-shadow: 0 0 28px rgba(0,194,255,0.3);
+      transition: box-shadow 0.3s, transform 0.3s;
+      font-family: 'Space Grotesk', sans-serif;
+      cursor: pointer;
+      border: none;
+    }
+    .aria-demo-cta:hover {
+      box-shadow: 0 0 44px rgba(0,194,255,0.45);
+      transform: scale(1.03);
+    }
+
+    /* Chat window */
+    .aria-chat-window {
+      background: rgba(8,14,24,0.9);
+      border: 1px solid rgba(0,194,255,0.15);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,194,255,0.06);
+    }
+    .aria-chat-topbar {
+      background: rgba(0,194,255,0.06);
+      border-bottom: 1px solid rgba(0,194,255,0.1);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .aria-chat-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg,#00C2FF,#7B61FF);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      flex-shrink: 0;
+    }
+    .aria-chat-topbar-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .aria-chat-topbar-status {
+      font-size: 11px;
+      color: #00C2FF;
+    }
+    .aria-online-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #00e096;
+      margin-left: auto;
+      box-shadow: 0 0 6px rgba(0,224,150,0.7);
+      animation: pulse 2s infinite;
+    }
+    .aria-chat-body {
+      padding: 20px 16px;
+      height: 320px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+    .aria-chat-body::-webkit-scrollbar { width: 4px; }
+    .aria-chat-body::-webkit-scrollbar-track { background: transparent; }
+    .aria-chat-body::-webkit-scrollbar-thumb { background: rgba(0,194,255,0.2); border-radius: 4px; }
+    .aria-msg {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .aria-msg.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .aria-msg.user {
+      flex-direction: row-reverse;
+    }
+    .aria-bubble {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.55;
+      font-family: 'Inter', sans-serif;
+    }
+    .aria-msg.aria .aria-bubble {
+      background: rgba(0,194,255,0.1);
+      border: 1px solid rgba(0,194,255,0.2);
+      color: rgba(255,255,255,0.85);
+      border-bottom-left-radius: 4px;
+    }
+    .aria-msg.user .aria-bubble {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.75);
+      border-bottom-right-radius: 4px;
+    }
+    .aria-msg-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .aria-msg.aria .aria-msg-avatar {
+      background: linear-gradient(135deg,#00C2FF,#7B61FF);
+      color: #fff;
+    }
+    .aria-msg.user .aria-msg-avatar {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.5);
+    }
+    /* Typing indicator */
+    .aria-typing {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 14px;
+      background: rgba(0,194,255,0.08);
+      border: 1px solid rgba(0,194,255,0.15);
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+      width: fit-content;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .aria-typing.visible { opacity: 1; }
+    .aria-typing span {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: rgba(0,194,255,0.6);
+      animation: typingBounce 1.2s ease-in-out infinite;
+    }
+    .aria-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .aria-typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce {
+      0%,60%,100% { transform: translateY(0); opacity: 0.5; }
+      30%          { transform: translateY(-5px); opacity: 1; }
+    }
+    .aria-chat-restart {
+      text-align: center;
+      padding: 10px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .aria-chat-restart button {
+      font-size: 11px;
+      color: rgba(255,255,255,0.2);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .aria-chat-restart button:hover { color: rgba(255,255,255,0.45); }
+  </style>
 
   <!-- ROI CALCULATOR TEASER -->
   <style>
@@ -2134,6 +2405,31 @@
       0%, 100% { opacity: 0.7; transform: scale(1); }
       50%       { opacity: 1;   transform: scale(1.08); }
     }
+    /* Shooting stars */
+    @keyframes roiShoot1 {
+      0%   { transform: translateX(0) translateY(0) rotate(-35deg); opacity: 0; }
+      3%   { opacity: 0.55; }
+      100% { transform: translateX(420px) translateY(260px) rotate(-35deg); opacity: 0; }
+    }
+    @keyframes roiShoot2 {
+      0%   { transform: translateX(0) translateY(0) rotate(-28deg); opacity: 0; }
+      3%   { opacity: 0.4; }
+      100% { transform: translateX(380px) translateY(240px) rotate(-28deg); opacity: 0; }
+    }
+    @keyframes roiShoot3 {
+      0%   { transform: translateX(0) translateY(0) rotate(-42deg); opacity: 0; }
+      3%   { opacity: 0.35; }
+      100% { transform: translateX(300px) translateY(300px) rotate(-42deg); opacity: 0; }
+    }
+    .roi-star {
+      position: absolute;
+      height: 1px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(200,230,255,0.7) 50%, rgba(255,255,255,0) 100%);
+      pointer-events: none;
+      opacity: 0;
+    }
+
     @keyframes roiFloat1 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(-18px) translateX(8px);  } }
     @keyframes roiFloat2 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(14px)  translateX(-10px); } }
     @keyframes roiFloat3 { 0%,100% { transform: translateY(0px)   translateX(0px);   } 50% { transform: translateY(-10px) translateX(-6px);  } }
@@ -2155,9 +2451,70 @@
       transition: all 0.3s ease;
     }
     .roi-card-glow:hover {
-      border-color: rgba(0,194,255,0.4);
-      box-shadow: 0 0 24px rgba(0,194,255,0.12);
+      border-color: rgba(0,194,255,0.5);
+      box-shadow: 0 8px 36px rgba(0,194,255,0.18), 0 0 0 1px rgba(0,194,255,0.12);
+      transform: translateY(-5px);
     }
+
+    /* Shimmer sweep on CTA button */
+    @keyframes roiShimmer {
+      0%   { left: -80%; }
+      100% { left: 160%; }
+    }
+    .roi-cta-btn::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 45%;
+      background: linear-gradient(105deg, transparent, rgba(255,255,255,0.16), transparent);
+      animation: roiShimmer 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* Orbit ring */
+    @keyframes roiOrbit {
+      from { transform: translate(-50%,-50%) rotate(0deg); }
+      to   { transform: translate(-50%,-50%) rotate(360deg); }
+    }
+
+    /* Stats strip */
+    .roi-stat-strip {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 44px;
+    }
+    .roi-stat-pill {
+      background: rgba(0,194,255,0.05);
+      border: 1px solid rgba(0,194,255,0.18);
+      border-radius: 12px;
+      padding: 14px 22px;
+      text-align: center;
+      min-width: 140px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .roi-stat-pill:hover {
+      border-color: rgba(0,194,255,0.4);
+      box-shadow: 0 0 20px rgba(0,194,255,0.12);
+    }
+    .roi-stat-num {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #00C2FF;
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: -0.5px;
+      display: block;
+    }
+    .roi-stat-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.38);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 3px;
+      display: block;
+    }
+
     .roi-icon-chip {
       width: 44px;
       height: 44px;
@@ -2174,6 +2531,8 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
+      position: relative;
+      overflow: hidden;
       background: linear-gradient(135deg, #00C2FF 0%, #7B61FF 100%);
       color: #fff;
       font-size: 15px;
@@ -2192,12 +2551,25 @@
     }
   </style>
 
-  <section id="roi" style="position:relative;overflow:hidden;padding:100px 24px;background:linear-gradient(180deg,var(--bg) 0%,#050c14 100%);text-align:center;border-top:1px solid rgba(255,255,255,0.04);">
+  <section id="roi" style="position:relative;overflow:hidden;padding:80px 24px 100px;background:linear-gradient(180deg,var(--bg) 0%,#050c14 100%);text-align:center;">
 
     <!-- Animated background glow -->
     <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(0,180,255,0.07) 0%,transparent 70%);animation:roiGlowPulse 4s ease-in-out infinite;pointer-events:none;"></div>
+    <!-- Orbit ring -->
+    <div style="position:absolute;top:50%;left:50%;width:520px;height:520px;border-radius:50%;border:1px dashed rgba(0,194,255,0.1);animation:roiOrbit 22s linear infinite;pointer-events:none;"></div>
+    <div style="position:absolute;top:50%;left:50%;width:380px;height:380px;border-radius:50%;border:1px dashed rgba(123,97,255,0.09);animation:roiOrbit 16s linear infinite reverse;pointer-events:none;"></div>
 
-    <!-- Floating particles -->
+    <!-- Shooting stars -->
+    <div class="roi-star" style="width:90px;top:12%;left:8%;animation:roiShoot1 6s ease-in infinite 0s;"></div>
+    <div class="roi-star" style="width:60px;top:6%;left:55%;animation:roiShoot2 6s ease-in infinite 2.2s;"></div>
+    <div class="roi-star" style="width:75px;top:22%;left:72%;animation:roiShoot3 6s ease-in infinite 4.1s;"></div>
+    <div class="roi-star" style="width:50px;top:38%;left:3%;animation:roiShoot1 6s ease-in infinite 1.4s;"></div>
+    <div class="roi-star" style="width:80px;top:55%;left:80%;animation:roiShoot2 6s ease-in infinite 3.7s;"></div>
+
+    <!-- Floating particles — top cluster bridges seam with hero -->
+    <div class="roi-particle" style="width:5px;height:5px;top:2%;left:18%;opacity:0.3;animation:roiFloat3 8s ease-in-out infinite;"></div>
+    <div class="roi-particle" style="width:3px;height:3px;top:4%;right:22%;opacity:0.25;animation:roiFloat1 10s ease-in-out infinite 1s;"></div>
+    <div class="roi-particle" style="width:4px;height:4px;top:7%;left:42%;opacity:0.2;animation:roiFloat5 9s ease-in-out infinite 0.5s;"></div>
     <div class="roi-particle" style="width:6px;height:6px;top:18%;left:12%;opacity:0.35;animation:roiFloat1 7s ease-in-out infinite;"></div>
     <div class="roi-particle" style="width:4px;height:4px;top:70%;left:8%;opacity:0.3;animation:roiFloat2 9s ease-in-out infinite;"></div>
     <div class="roi-particle" style="width:5px;height:5px;top:25%;right:10%;opacity:0.4;animation:roiFloat3 6s ease-in-out infinite;"></div>
@@ -2216,30 +2588,39 @@
         <p style="font-size:1.05rem;color:rgba(255,255,255,0.5);margin:0 auto 56px;max-width:520px;line-height:1.7;">Describe any repetitive task your team handles. Our AI analyzes it in seconds and returns a real dollar figure — labor savings, error reduction, 3-year projection, and a custom implementation roadmap.</p>
       </div>
 
-      <!-- 3 feature cards -->
-      <div class="reveal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:56px;">
-        <div class="roi-card-glow">
+      <!-- 3 feature cards — staggered reveal -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:56px;">
+        <div class="roi-card-glow reveal" style="transition-delay:0s;">
           <div class="roi-icon-chip">⏱</div>
           <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">60-Second Analysis</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Describe your workflow in plain English — no forms, no spreadsheets. AI does the rest.</div>
         </div>
-        <div class="roi-card-glow">
+        <div class="roi-card-glow reveal" style="transition-delay:0.15s;">
           <div class="roi-icon-chip">💰</div>
           <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">Real Dollar Numbers</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">Get your exact annual savings, breakeven month, and a 3-year ROI projection — not generic estimates.</div>
         </div>
-        <div class="roi-card-glow">
+        <div class="roi-card-glow reveal" style="transition-delay:0.3s;">
           <div class="roi-icon-chip">🗺</div>
           <div style="font-size:14px;font-weight:700;color:#00C2FF;margin-bottom:6px;">Custom Roadmap</div>
           <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;">AI generates a 3-phase implementation plan specific to your industry and tools — not boilerplate.</div>
         </div>
       </div>
 
-      <!-- Animated counter stat -->
-      <div class="reveal" style="margin-bottom:36px;">
-        <p style="font-size:1.1rem;font-weight:700;color:#fff;margin:0;">
-          Businesses save an average of <span id="roiCounter" style="color:#00C2FF;">$0</span> per year with NeuralFlow automation.
-        </p>
+      <!-- Animated stats strip -->
+      <div class="roi-stat-strip reveal" style="margin-bottom:36px;">
+        <div class="roi-stat-pill">
+          <span class="roi-stat-num" id="roiCounter">$0</span>
+          <span class="roi-stat-label">Avg annual savings</span>
+        </div>
+        <div class="roi-stat-pill">
+          <span class="roi-stat-num" id="roiHoursCounter">0</span>
+          <span class="roi-stat-label">Hours freed per week</span>
+        </div>
+        <div class="roi-stat-pill">
+          <span class="roi-stat-num" id="roiPaybackCounter">0</span>
+          <span class="roi-stat-label">Avg months to break even</span>
+        </div>
       </div>
 
       <!-- CTA -->
@@ -2255,34 +2636,170 @@
 
   <script>
     (function () {
-      var counterEl = document.getElementById('roiCounter');
-      if (!counterEl) return;
-      var target = 47200;
-      var duration = 2000;
+      var stats = [
+        { id: 'roiCounter',      target: 47200, duration: 2000, prefix: '$', suffix: '', format: true },
+        { id: 'roiHoursCounter', target: 12,    duration: 1600, prefix: '',  suffix: ' hrs', format: false },
+        { id: 'roiPaybackCounter', target: 4.2, duration: 1400, prefix: '',  suffix: ' mo', format: false, decimal: 1 },
+      ];
       var started = false;
 
-      function runCounter() {
-        if (started) return;
-        started = true;
+      function animateStat(s) {
+        var el = document.getElementById(s.id);
+        if (!el) return;
         var startTime = null;
         function step(ts) {
           if (!startTime) startTime = ts;
-          var progress = Math.min((ts - startTime) / duration, 1);
-          var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-          var value = Math.round(eased * target);
-          counterEl.textContent = '$' + value.toLocaleString('en-US');
+          var progress = Math.min((ts - startTime) / s.duration, 1);
+          var eased = 1 - Math.pow(1 - progress, 3);
+          var value = eased * s.target;
+          var display = s.decimal ? value.toFixed(s.decimal) : Math.round(value);
+          var formatted = s.format ? Number(display).toLocaleString('en-US') : display;
+          el.textContent = s.prefix + formatted + s.suffix;
           if (progress < 1) requestAnimationFrame(step);
         }
         requestAnimationFrame(step);
       }
 
+      function runCounters() {
+        if (started) return;
+        started = true;
+        stats.forEach(function(s, i) {
+          setTimeout(function() { animateStat(s); }, i * 120);
+        });
+      }
+
       var observer = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
-          if (e.isIntersecting) { runCounter(); observer.disconnect(); }
+          if (e.isIntersecting) { runCounters(); observer.disconnect(); }
         });
       }, { threshold: 0.3 });
       observer.observe(document.getElementById('roi'));
     })();
+  </script>
+
+  <!-- ARIA LIVE DEMO -->
+  <section class="aria-demo-section">
+    <div class="aria-demo-grid">
+
+      <!-- Left: copy -->
+      <div class="reveal">
+        <div class="aria-demo-eyebrow">Live Demo</div>
+        <h2 class="aria-demo-headline">Books appointments.<br>Qualifies leads.<br>Never sleeps.</h2>
+        <p class="aria-demo-sub">ARIA handles your inbound calls, texts, and web chats around the clock — booking real appointments straight into your calendar without you lifting a finger. Watch a real conversation.</p>
+        <button class="aria-demo-cta" onclick="if(typeof toggleChat==='function')toggleChat();">Talk to the Real ARIA →</button>
+      </div>
+
+      <!-- Right: chat mockup -->
+      <div class="reveal" style="transition-delay:0.15s;">
+        <div class="aria-chat-window">
+          <div class="aria-chat-topbar">
+            <div class="aria-chat-avatar">A</div>
+            <div>
+              <div class="aria-chat-topbar-name">ARIA</div>
+              <div class="aria-chat-topbar-status">NeuralFlow AI Assistant</div>
+            </div>
+            <div class="aria-online-dot"></div>
+          </div>
+          <div class="aria-chat-body" id="aria-demo-body">
+            <!-- injected by JS -->
+          </div>
+          <div class="aria-chat-restart">
+            <button onclick="startAriaDemo(true)">↺ Replay demo</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+  (function() {
+    var messages = [
+      { role: 'user',  text: "Hi! I want to automate my nail salon — we miss too many calls every day." },
+      { role: 'aria',  text: "Hey! I'm ARIA 👋 Missing calls = missed bookings. NeuralFlow builds AI receptionists that answer every call, book appointments, and send reminders automatically. Want to see what that could look like for your salon?" },
+      { role: 'user',  text: "Yes — how fast can you get something set up?" },
+      { role: 'aria',  text: "Most salons are live in 48 hours. Based on your call volume, you'd likely recover 8–15 missed appointments per week. Want to jump on a free 20-min call with Danny to go over the numbers?" },
+      { role: 'user',  text: "Sure, what times are open?" },
+      { role: 'aria',  text: "I have Thursday at 2pm or Friday at 3pm ET. Which works for you?" },
+      { role: 'user',  text: "Thursday 2pm 👍" },
+      { role: 'aria',  text: "You're booked ✅  Thursday at 2pm ET with Danny. Check your email for the confirmation. See you then!" },
+    ];
+
+    var delays = [600, 2200, 4400, 5800, 8000, 9200, 11000, 12200];
+    var timers = [];
+    var started = false;
+
+    function buildMsg(msg) {
+      var wrap = document.createElement('div');
+      wrap.className = 'aria-msg ' + msg.role;
+      var av = document.createElement('div');
+      av.className = 'aria-msg-avatar';
+      av.textContent = msg.role === 'aria' ? 'A' : 'Y';
+      var bubble = document.createElement('div');
+      bubble.className = 'aria-bubble';
+      bubble.textContent = msg.text;
+      wrap.appendChild(av);
+      wrap.appendChild(bubble);
+      return wrap;
+    }
+
+    var typingEl = null;
+    function showTyping(body) {
+      typingEl = document.createElement('div');
+      typingEl.className = 'aria-msg aria';
+      var av = document.createElement('div');
+      av.className = 'aria-msg-avatar';
+      av.textContent = 'A';
+      var t = document.createElement('div');
+      t.className = 'aria-typing';
+      t.innerHTML = '<span></span><span></span><span></span>';
+      typingEl.appendChild(av);
+      typingEl.appendChild(t);
+      body.appendChild(typingEl);
+      requestAnimationFrame(function(){ t.classList.add('visible'); });
+      body.scrollTop = body.scrollHeight;
+    }
+    function hideTyping() {
+      if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+      typingEl = null;
+    }
+
+    window.startAriaDemo = function(force) {
+      var body = document.getElementById('aria-demo-body');
+      if (!body) return;
+      if (started && !force) return;
+      started = true;
+      timers.forEach(clearTimeout);
+      timers = [];
+      body.innerHTML = '';
+      typingEl = null;
+
+      messages.forEach(function(msg, i) {
+        // show typing indicator before each ARIA message
+        if (msg.role === 'aria') {
+          timers.push(setTimeout(function() { showTyping(body); }, delays[i] - 900));
+        }
+        timers.push(setTimeout(function() {
+          hideTyping();
+          var el = buildMsg(msg);
+          body.appendChild(el);
+          requestAnimationFrame(function(){ el.classList.add('visible'); });
+          body.scrollTop = body.scrollHeight;
+        }, delays[i]));
+      });
+    };
+
+    // Trigger when section scrolls into view
+    var section = document.querySelector('.aria-demo-section');
+    if (section) {
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) { startAriaDemo(false); obs.disconnect(); }
+        });
+      }, { threshold: 0.3 });
+      obs.observe(section);
+    }
+  })();
   </script>
 
   <!-- SERVICES (3D Tilt) -->
@@ -4858,6 +5375,23 @@
 
     // Set Year
     document.getElementById('year').innerText = new Date().getFullYear();
+
+    // ── Custom cursor glow ──────────────────────────────────────────────────────
+    (function() {
+      var glow = document.getElementById('cursor-glow');
+      if (!glow || window.matchMedia('(pointer: coarse)').matches) return; // skip on touch devices
+      var mx = 0, my = 0, cx = 0, cy = 0, raf;
+      document.addEventListener('mousemove', function(e) { mx = e.clientX; my = e.clientY; glow.style.opacity = '1'; });
+      document.addEventListener('mouseleave', function() { glow.style.opacity = '0'; });
+      function tick() {
+        cx += (mx - cx) * 0.1;
+        cy += (my - cy) * 0.1;
+        glow.style.left = cx + 'px';
+        glow.style.top  = cy + 'px';
+        raf = requestAnimationFrame(tick);
+      }
+      tick();
+    })();
 
     // ------------------- AI Chat Widget -------------------
     const chatBtn = document.getElementById('chatWidgetBtn');
