@@ -9,9 +9,17 @@ const { google } = require('googleapis');
 const fs = require('fs');
 
 const https = require('https');
+const crypto = require('crypto');
 
 const app = express();
 const port = process.env.PORT || 8080;
+
+function safeEqual(a, b) {
+  if (!a || !b) return false;
+  const ba = Buffer.from(a); const bb = Buffer.from(b);
+  if (ba.length !== bb.length) return crypto.timingSafeEqual(Buffer.alloc(ba.length), Buffer.alloc(ba.length)) && false;
+  return crypto.timingSafeEqual(ba, bb);
+}
 
 // ─── Startup: Validate required env vars ──────────────────────────────────────
 const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'RESEND_API_KEY', 'GMAIL_USER', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', 'BOOKINGS_PASSWORD'];
@@ -116,7 +124,7 @@ app.get('/sitemap.xml', (req, res) => {
 
 app.get('/bookings', (req, res) => {
   const pass = process.env.BOOKINGS_PASSWORD;
-  if (!pass || req.query.p !== pass) {
+  if (!safeEqual(pass, req.query.p)) {
     return res.send(`<!DOCTYPE html><html><head><title>NeuralFlow Bookings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#06060b;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}form{background:#13131a;padding:40px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);text-align:center}h2{color:#fff;margin:0 0 20px;font-size:20px}input{width:100%;padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#0a0a0f;color:#fff;font-size:14px;margin-bottom:12px}button{width:100%;padding:12px;background:#FF6B2B;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}</style></head><body><form method="GET"><h2>NeuralFlow Bookings</h2><input type="password" name="p" placeholder="Password" autofocus><button type="submit">View Bookings</button></form></body></html>`);
   }
   let bookings = [];
@@ -144,8 +152,7 @@ app.get('/bookings', (req, res) => {
 });
 
 app.get('/api/test', async (req, res) => {
-  const pass = process.env.BOOKINGS_PASSWORD;
-  if (!pass || req.query.p !== pass) return res.status(401).json({ error: 'Unauthorized' });
+  if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
 
   const results = {};
 
@@ -1218,8 +1225,7 @@ function scheduleNoShowRecovery({ name, email, slotStart, slotLabel }) {
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.get('/oauth/start', (req, res) => {
-  const pass = process.env.BOOKINGS_PASSWORD;
-  if (!pass || req.query.p !== pass) return res.status(401).send('Unauthorized');
+  if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).send('Unauthorized');
   res.redirect(oauth2Client.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar'] }));
 });
 
@@ -1238,8 +1244,7 @@ app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html'
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/api/test-email', chatRateLimit, async (req, res) => {
-  const pass = process.env.BOOKINGS_PASSWORD;
-  if (!pass || req.query.p !== pass) return res.status(401).json({ error: 'Unauthorized' });
+  if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
   const results = { RESEND_API_KEY: process.env.RESEND_API_KEY ? 'SET' : 'MISSING' };
   try {
     const r = await fetch('https://api.resend.com/emails', {
@@ -1254,7 +1259,7 @@ app.get('/api/test-email', chatRateLimit, async (req, res) => {
   res.json(results);
 });
 
-app.get('/api/availability', async (req, res) => {
+app.get('/api/availability', chatRateLimit, async (req, res) => {
   res.json({ slots: await getAvailableSlots(90, req.query.date || null) });
 });
 
@@ -1316,7 +1321,7 @@ app.post('/api/accept-proposal', async (req, res) => {
   const { name, businessName, email, phone, amount, fee, token } = req.body;
 
   const proposalSecret = process.env.PROPOSAL_SECRET;
-  if (proposalSecret && token !== proposalSecret) {
+  if (!safeEqual(proposalSecret, token)) {
     return res.status(403).json({ ok: false, error: 'Invalid proposal link. Please use the link sent to you by Danny.' });
   }
 

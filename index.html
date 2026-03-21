@@ -5753,6 +5753,10 @@
 
     const openMessage = "Hi! 👋 I'm ARIA, NeuralFlow's AI receptionist. I'm here to answer your questions and help you explore how we can automate and scale your business. What brings you here today?";
 
+    function escapeHtmlMsg(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+
     function appendMessage(role, text) {
       const msgDiv = document.createElement('div');
       msgDiv.className = `message ${role}`;
@@ -5761,7 +5765,7 @@
       if (role === 'aria') {
         html += `<div class="message-avatar">A</div>`;
       }
-      html += `<div class="message-content">${text.replace(/\n/g, '<br>')}</div>`;
+      html += `<div class="message-content">${escapeHtmlMsg(text).replace(/\n/g, '<br>')}</div>`;
 
       msgDiv.innerHTML = html;
       chatMessages.insertBefore(msgDiv, typingIndicator);
