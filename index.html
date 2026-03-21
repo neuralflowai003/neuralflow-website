@@ -2577,8 +2577,8 @@
       gap: 8px;
       align-items: flex-end;
       opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 0.35s cubic-bezier(0.16,1,0.3,1), transform 0.35s cubic-bezier(0.16,1,0.3,1);
+      transform: translateY(6px);
+      transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1), transform 0.55s cubic-bezier(0.16,1,0.3,1);
       will-change: transform, opacity;
     }
     .aria-msg.visible {
@@ -2968,6 +2968,7 @@
     }
 
     var typingEl = null;
+
     function showTyping(body) {
       typingEl = document.createElement('div');
       typingEl.className = 'aria-msg aria';
@@ -2980,12 +2981,33 @@
       typingEl.appendChild(av);
       typingEl.appendChild(t);
       body.appendChild(typingEl);
-      requestAnimationFrame(function(){ t.classList.add('visible'); });
-      body.scrollTop = body.scrollHeight;
+      // Double rAF so the opacity transition fires after paint
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){ t.classList.add('visible'); });
+      });
+      body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
     }
-    function hideTyping() {
-      if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+
+    // Fade out typing, then call callback when done
+    function hideTypingThen(callback) {
+      if (!typingEl || !typingEl.parentNode) {
+        typingEl = null;
+        callback();
+        return;
+      }
+      var el = typingEl;
       typingEl = null;
+      var inner = el.querySelector('.aria-typing');
+      if (inner) {
+        inner.style.transition = 'opacity 0.18s ease';
+        inner.style.opacity = '0';
+      }
+      el.style.transition = 'opacity 0.18s ease';
+      el.style.opacity = '0';
+      setTimeout(function() {
+        if (el.parentNode) el.parentNode.removeChild(el);
+        callback();
+      }, 190);
     }
 
     var loopTimer = null;
@@ -2993,7 +3015,6 @@
     window.startAriaDemo = function() {
       var body = document.getElementById('aria-demo-body');
       if (!body) return;
-      // Cancel any pending timers
       timers.forEach(clearTimeout);
       timers = [];
       if (loopTimer) { clearTimeout(loopTimer); loopTimer = null; }
@@ -3005,29 +3026,33 @@
 
       messages.forEach(function(msg, i) {
         if (msg.role === 'aria') {
-          timers.push(setTimeout(function() { showTyping(body); }, delays[i] - 900));
+          // Show typing 1100ms before message lands
+          timers.push(setTimeout(function() { showTyping(body); }, delays[i] - 1100));
         }
         timers.push(setTimeout(function() {
-          hideTyping();
-          var el = buildMsg(msg);
-          body.appendChild(el);
-          requestAnimationFrame(function(){
-            requestAnimationFrame(function(){ el.classList.add('visible'); });
+          hideTypingThen(function() {
+            var el = buildMsg(msg);
+            body.appendChild(el);
+            requestAnimationFrame(function(){
+              requestAnimationFrame(function(){ el.classList.add('visible'); });
+            });
+            setTimeout(function(){
+              body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' });
+            }, 80);
           });
-          setTimeout(function(){ body.scrollTop = body.scrollHeight; }, 50);
         }, delays[i]));
       });
 
-      // After last message + 3s pause, fade out and loop
+      // After last message + 3.5s, fade out body and loop
       loopTimer = setTimeout(function() {
-        body.style.transition = 'opacity 0.7s ease';
+        body.style.transition = 'opacity 0.8s ease';
         body.style.opacity = '0';
         setTimeout(function() {
+          body.style.opacity = '';
           body.style.transition = '';
-          body.style.opacity = '1';
           window.startAriaDemo();
-        }, 800);
-      }, lastDelay + 3000);
+        }, 900);
+      }, lastDelay + 3500);
     };
 
     // Start looping immediately on page load
