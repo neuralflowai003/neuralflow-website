@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const { Resend } = require('resend');
 const { google } = require('googleapis');
@@ -51,6 +52,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:8080',
 ];
+app.use(helmet({ contentSecurityPolicy: false })); // CSP off — we serve inline scripts in index.html
 app.use(cors({
   origin: (origin, cb) => {
     // Allow requests with no origin (server-to-server, curl, Postman)
@@ -1172,6 +1174,8 @@ function scheduleNoShowRecovery({ name, email, slotStart, slotLabel }) {
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.get('/oauth/start', (req, res) => {
+  const pass = process.env.BOOKINGS_PASSWORD;
+  if (!pass || req.query.p !== pass) return res.status(401).send('Unauthorized');
   res.redirect(oauth2Client.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar'] }));
 });
 
@@ -1189,7 +1193,9 @@ app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html'
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-app.get('/api/test-email', async (req, res) => {
+app.get('/api/test-email', chatRateLimit, async (req, res) => {
+  const pass = process.env.BOOKINGS_PASSWORD;
+  if (!pass || req.query.p !== pass) return res.status(401).json({ error: 'Unauthorized' });
   const results = { RESEND_API_KEY: process.env.RESEND_API_KEY ? 'SET' : 'MISSING' };
   try {
     const r = await fetch('https://api.resend.com/emails', {
