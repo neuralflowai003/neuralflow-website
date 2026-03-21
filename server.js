@@ -1040,7 +1040,9 @@ Industry: [their likely industry]
   sendTelegramAlert(`✅ NEW BOOKING CONFIRMED\n\n👤 ${name}\n🏢 ${company || 'N/A'}\n📧 ${email}\n📞 ${phone || 'N/A'}\n📅 ${slotLabel}\n💰 Deal value: ${dealValueStr}\n\n🤖 Booked via ARIA`);
 
   // ── 24-Hour Follow-Up Email (scheduled) ──────────────────────────────────────
-  try {
+  const followUpScheduledAt = new Date(new Date(slotStart).getTime() - 24 * 60 * 60 * 1000);
+  const followUpMinutesOut = (followUpScheduledAt.getTime() - Date.now()) / 60000;
+  if (followUpMinutesOut >= 10) try {
     const firstName = name.split(' ')[0];
     const followUpHtml = `
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><style>@media(prefers-color-scheme:light){body,table,td{background-color:#0a0a0f!important;color:#ffffff!important}}@media only screen and (max-width:600px){.email-container{width:100%!important}}</style><title>See you tomorrow</title></head>
@@ -1133,7 +1135,7 @@ Industry: [their likely industry]
         from: 'ARIA <aria@neuralflowai.io>',
         to: email,
         subject: `Looking forward to our call tomorrow, ${firstName}!`,
-        scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        scheduledAt: followUpScheduledAt.toISOString(),
         html: followUpHtml
       })
     });
