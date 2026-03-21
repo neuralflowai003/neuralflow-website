@@ -444,7 +444,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
     // Window starts from tomorrow if no specific date given (Today + 1 day)
     const windowStart = startFromDate ? new Date(startFromDate + 'T00:00:00') : (() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); return d; })();
     const windowEnd = new Date(windowStart);
-    windowEnd.setDate(windowEnd.getDate() + daysWindow);
+    windowEnd.setDate(windowEnd.getDate() + Math.max(daysWindow, 1)); // min 1 day to avoid empty range error
 
     let data;
     try {
