@@ -238,13 +238,16 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 // ── Results panel ──────────────────────────────────────────────────────────────
 function ResultsPanel({
-  roi, onReset, industry, initialMissedCalls, initialJobValue,
+  roi, onReset, industry, initialMissedCalls, initialJobValue, leadName, leadEmail, leadPhone,
 }: {
   roi: ROIResult;
   onReset: () => void;
   industry?: Industry;
   initialMissedCalls?: number;
   initialJobValue?: number;
+  leadName?: string;
+  leadEmail?: string;
+  leadPhone?: string;
 }) {
   const [mins, setMins] = useState(roi.inputs.estimatedMinutes);
   const [freq, setFreq] = useState(roi.inputs.frequencyPerWeek);
@@ -280,6 +283,9 @@ function ResultsPanel({
           breakeven: roi.breakevenMonth,
           autoPercent: Math.round(roi.automationPotential * 100),
           industry: industry ?? 'general',
+          leadName: leadName ?? '',
+          leadEmail: leadEmail ?? '',
+          leadPhone: leadPhone ?? '',
         }
       })
     }).catch(() => {});
@@ -1139,6 +1145,9 @@ export default function ROICalculatorPage() {
                 industry={selectedIndustry ?? undefined}
                 initialMissedCalls={gateInitialMissedCalls}
                 initialJobValue={gateInitialJobValue}
+                leadName={leadName}
+                leadEmail={leadEmail}
+                leadPhone={leadPhone}
               />
             </motion.div>
           )}

@@ -2106,14 +2106,44 @@ setInterval(async () => { try {
 } catch (e) { console.error('⚠️ Follow-up scheduler error:', e.message); }
 }, 15 * 60 * 1000);
 
+// ─── ROI Calculator Lead Capture ──────────────────────────────────────────────
+app.post('/api/roi-lead', (req, res) => {
+  const { name, email, phone, roi, industry } = req.body || {};
+
+  if (!name || !email || !phone) {
+    return res.status(400).json({ error: 'Name, email, and phone are required.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+
+  res.json({ ok: true });
+
+  const industryLabel = industry && industry !== 'general' ? industry.replace(/_/g, ' ') : 'General';
+
+  // Full alert fires after analysis via /api/track roi_calculated
+});
+
 // ─── ROI Calculator Tracking ──────────────────────────────────────────────────
 app.post('/api/track', (req, res) => {
   const { event, data } = req.body || {};
   res.json({ ok: true }); // always respond fast
 
   if (event === 'roi_calculated') {
-    const { taskName, netOngoing, breakeven, autoPercent } = data || {};
-    sendTelegramAlert(`📊 ROI CALCULATOR HIT\n\nWorkflow: "${taskName}"\nNet savings: $${Math.round(netOngoing || 0).toLocaleString()}/yr\nBreakeven: ${breakeven < 999 ? breakeven + ' months' : 'N/A'}\nAutomatable: ${autoPercent}%`);
+    const { taskName, netOngoing, breakeven, autoPercent, industry, leadName, leadEmail, leadPhone } = data || {};
+    const industryLabel = industry && industry !== 'general' ? industry.replace(/_/g, ' ') : 'General';
+    sendTelegramAlert(
+      `🧮 NEW ROI LEAD\n\n` +
+      `👤 ${leadName || 'Unknown'}\n` +
+      `📧 ${leadEmail || 'N/A'}\n` +
+      `📞 ${leadPhone || 'N/A'}\n` +
+      `🏭 Industry: ${industryLabel}\n\n` +
+      `📊 Workflow: "${taskName}"\n` +
+      `💰 Net savings: $${Math.round(netOngoing || 0).toLocaleString()}/yr\n` +
+      `⏱ Breakeven: ${breakeven < 999 ? breakeven + ' months' : 'N/A'}\n` +
+      `🤖 Automatable: ${autoPercent}%\n\n` +
+      `💡 Reply to schedule a consultation`
+    );
   } else if (event === 'aria_handoff') {
     const { taskName, netOngoing } = data || {};
     sendTelegramAlert(`🔥 TALK TO ARIA CLICKED\n\nFrom ROI calc — "${taskName}"\nNet savings: $${Math.round(netOngoing || 0).toLocaleString()}/yr\nARIA is opening now...`);
@@ -2254,7 +2284,6 @@ process.on('unhandledRejection', (reason) => {
 
 app.listen(port, () => {
   console.log(`Server running on ${port}`);
-  registerTelegramWebhook();
   // Self-ping every 4 minutes to prevent Railway cold starts
   setInterval(() => {
     const pingReq = https.get('https://neuralflowai.io/api/availability', { timeout: 8000 }, (res) => {
