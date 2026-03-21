@@ -653,11 +653,21 @@ Industry: [their likely industry]
   const dealValue = implNum + monthlyNum * 12;
   const dealValueStr = dealValue > 0 ? `$${dealValue.toLocaleString()}` : 'TBD';
 
+  // Deal urgency score — based on keywords in AI-generated intel
+  const allText = (summary + ' ' + painSummary + ' ' + (notes || '')).toLowerCase();
+  const hotWords = ['asap','urgent','this week','losing','immediately','right away','need this','critical','deadline','behind','overwhelmed','burning'];
+  const coldWords = ['just exploring','just looking','sometime','eventually','not sure yet','maybe later','no rush'];
+  const urgency = hotWords.some(k => allText.includes(k)) ? 'HOT' : coldWords.some(k => allText.includes(k)) ? 'COLD' : 'WARM';
+  const urgencyEmoji = urgency === 'HOT' ? '🔥' : urgency === 'WARM' ? '🟡' : '❄️';
+  const urgencyColor = urgency === 'HOT' ? '#FF6B2B' : urgency === 'WARM' ? '#F59E0B' : '#60A5FA';
+  const urgencyLabel = urgency === 'HOT' ? 'Hot Lead' : urgency === 'WARM' ? 'Warm Lead' : 'Cold Lead';
+
   // Google Calendar URL helper (gcalUrl built after meetLink is set below)
   const toGCalDate = (iso) => iso ? iso.replace(/[-:]/g, '').replace(/\.\d{3}/, '') : '';
 
   const leadNotes = summary || (notes ? notes.split('|')[0]?.trim() : '') || 'See conversation';
   const leadPain  = painSummary || (notes ? notes.split('|')[1]?.trim() : '') || 'See conversation';
+  const firstName = name ? name.split(' ')[0] : 'there';
 
   // ── Google Calendar Event Insert ──────────────────────────────────────────────
   if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
@@ -684,11 +694,18 @@ Industry: [their likely industry]
     } else {
 
     const structuredDesc = [
-      `🧑 LEAD`,
+      `📋 PREP CHECKLIST`,
+      `☐ Review their company website before the call`,
+      `☐ Prepare 2-3 automation examples relevant to their industry`,
+      `☐ Have pricing deck ready — suggested close at bottom of this brief`,
+      `☐ Open with: "Tell me about the biggest bottleneck in your workflow right now"`,
+      ``,
+      `${urgencyEmoji} LEAD — ${urgencyLabel.toUpperCase()}`,
       `Name: ${name}`,
       `Email: ${email}`,
       `Phone: ${phone || 'Not provided'}`,
       `Company: ${company || 'Unknown'}`,
+      `Deal Value: ${dealValueStr}`,
       ``,
       `🎯 WHAT THEY WANT`,
       leadNotes || 'Not captured',
@@ -701,7 +718,7 @@ Industry: [their likely industry]
       pricingDetails,
       ``,
       salesAngles ? `🎯 SALES ANGLES\n${salesAngles}\n` : '',
-      nextSteps ? `📋 PREP & NEXT STEPS\n${nextSteps}\n` : '',
+      nextSteps ? `📋 NEXT STEPS\n${nextSteps}\n` : '',
       objections ? `⚡ LIKELY OBJECTIONS\n${objections}\n` : '',
       competitorIntel ? `🕵️ COMPETITIVE CONTEXT\n${competitorIntel}\n` : '',
       `🤖 Booked via ARIA | neuralflowai.io`
@@ -724,14 +741,14 @@ Industry: [their likely industry]
         const res = await Promise.race([
           calendar.events.insert({
             calendarId: 'primary',
-            sendUpdates: 'none',
+            sendUpdates: 'externalOnly',
             conferenceDataVersion: 1,
             requestBody: {
               summary: `Consultation: ${name} (${company}) x NeuralFlowAI`,
               description: structuredDesc,
               start: { dateTime: slotStart, timeZone: 'America/New_York' },
               end: { dateTime: slotEnd, timeZone: 'America/New_York' },
-              attendees: [{ email: process.env.GMAIL_USER }],
+              attendees: [{ email: process.env.GMAIL_USER }, { email, displayName: name }],
               conferenceData: {
                 createRequest: {
                   requestId: `nf-${Date.now()}`,
@@ -814,54 +831,74 @@ Industry: [their likely industry]
   const ff = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 
   // ── Client Confirmation Email ────────────────────────────────────────────────
+  const clientGreeting = company ? `Hi ${escapeHtml(firstName)} from ${escapeHtml(company)},` : `Hi ${escapeHtml(firstName)},`;
   const clientHtml = `
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><style>@media(prefers-color-scheme:light){body,table,td{background-color:#0a0a0f!important;color:#ffffff!important}}@media only screen and (max-width:600px){.email-container{width:100%!important}}</style><title>Consultation Confirmed</title></head>
-<body style="margin:0;padding:0;background:#06060b;font-family:${ff};">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#06060b;padding:32px 16px;">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><style>@media only screen and (max-width:600px){.email-wrap{padding:16px 8px!important}.email-body{padding:28px 24px!important}.btn-row td{display:block!important;padding:0 0 10px 0!important}}</style><title>Consultation Confirmed — NeuralFlow AI</title></head>
+<body style="margin:0;padding:0;background:#06060b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" class="email-wrap" style="background:#06060b;padding:32px 16px;">
   <tr><td align="center">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+
+    <!-- GRADIENT STRIP -->
+    <tr><td style="background:linear-gradient(135deg,#FF6B2B 0%,#7B61FF 100%);height:5px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <!-- HEADER -->
-    <tr><td style="background:${bg};padding:36px 40px 28px;position:relative;border-bottom:1px solid rgba(255,255,255,0.06);">
-      <div style="background:radial-gradient(circle at 90% 20%,rgba(255,107,43,0.18) 0%,transparent 60%);position:absolute;top:0;right:0;width:100%;height:100%;pointer-events:none;"></div>
-      <div style="position:relative;">
-        <div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1;">
-          <span style="color:#fff;">Neural</span><span style="color:${accent};">Flow</span>
-        </div>
-        <div style="margin-top:6px;padding-left:10px;border-left:2px solid ${accent};font-size:10px;font-weight:700;letter-spacing:2px;color:${accent};text-transform:uppercase;">AI Consulting &amp; Automation</div>
-      </div>
+    <tr><td style="background:#0a0a0f;padding:32px 40px 24px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td>
+            <div style="font-size:26px;font-weight:800;letter-spacing:-0.5px;line-height:1;">
+              <span style="color:#fff;">Neural</span><span style="color:#FF6B2B;">Flow</span><span style="color:#fff;"> AI</span>
+            </div>
+            <div style="margin-top:5px;padding-left:10px;border-left:2px solid #FF6B2B;font-size:9px;font-weight:700;letter-spacing:2.5px;color:#FF6B2B;text-transform:uppercase;">AI Consulting &amp; Automation</div>
+          </td>
+          <td align="right">
+            <span style="background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:7px 16px;border-radius:100px;">✓ Confirmed</span>
+          </td>
+        </tr>
+      </table>
     </td></tr>
 
     <!-- HERO -->
-    <tr><td style="background:${bg};padding:48px 40px 36px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:${accent};margin-bottom:14px;">✦ Booking Confirmed</div>
-      <h1 style="margin:0 0 14px;font-size:30px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2;">Your Consultation<br>is Confirmed</h1>
-      <p style="margin:0;font-size:16px;color:${textMuted};line-height:1.6;">Hi <strong style="color:#fff;">${name}</strong>, your 1-hour strategy session with Danny Boehmer is all set. Check the details below and add it to your calendar.</p>
+    <tr><td style="background:#0a0a0f;padding:44px 40px 36px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(123,97,255,0.12) 0%,transparent 70%);pointer-events:none;"></div>
+      <div style="position:absolute;bottom:-40px;left:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(255,107,43,0.08) 0%,transparent 70%);pointer-events:none;"></div>
+      <div style="position:relative;">
+        <h1 style="margin:0 0 16px;font-size:32px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.15;">Your Consultation<br>is Confirmed.</h1>
+        <p style="margin:0;font-size:16px;color:#a0a0b0;line-height:1.7;">${clientGreeting} your 1-hour strategy session with <strong style="color:#fff;">Danny Boehmer</strong> is locked in. Everything you need is below.</p>
+      </div>
     </td></tr>
 
     <!-- DETAILS CARD -->
-    <tr><td style="background:${bgCard};padding:0 40px 36px;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${accent};">
+    <tr><td style="background:#13131a;padding:0 40px 8px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);border-left:3px solid #FF6B2B;">
         <tr><td style="padding:24px 28px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:18px;">Session Details</div>
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                <span style="font-size:13px;color:${textMuted};">📅 When</span><br>
-                <span style="font-size:15px;font-weight:600;color:#fff;">${slotLabel}</span>
+                <div style="font-size:12px;color:#a0a0b0;margin-bottom:4px;">📅 Date &amp; Time</div>
+                <div style="font-size:15px;font-weight:700;color:#fff;">${slotLabel}</div>
               </td>
             </tr>
             <tr>
               <td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                <span style="font-size:13px;color:${textMuted};">⏱ Duration</span><br>
-                <span style="font-size:15px;font-weight:600;color:#fff;">1 hour</span>
+                <div style="font-size:12px;color:#a0a0b0;margin-bottom:4px;">⏱ Duration</div>
+                <div style="font-size:15px;font-weight:700;color:#fff;">1 hour</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="font-size:12px;color:#a0a0b0;margin-bottom:4px;">📍 Format</div>
+                <div style="font-size:15px;font-weight:700;color:#fff;">Google Meet (video call)</div>
               </td>
             </tr>
             <tr>
               <td style="padding:10px 0;">
-                <span style="font-size:13px;color:${textMuted};">📹 Google Meet</span><br>
+                <div style="font-size:12px;color:#a0a0b0;margin-bottom:4px;">🔗 Meeting Link</div>
                 ${meetLink
-      ? `<a href="${meetLink}" style="font-size:15px;font-weight:600;color:${accent};text-decoration:none;">${meetLink}</a>`
-      : `<span style="font-size:15px;color:${textMuted};">Google Meet link will be sent separately</span>`}
+      ? `<a href="${meetLink}" style="font-size:14px;font-weight:600;color:#FF6B2B;text-decoration:none;word-break:break-all;">${meetLink}</a>`
+      : `<div style="font-size:14px;color:#a0a0b0;">You'll receive a Google Calendar invite with the link shortly.</div>`}
               </td>
             </tr>
           </table>
@@ -870,26 +907,67 @@ Industry: [their likely industry]
     </td></tr>
 
     <!-- BUTTONS -->
-    <tr><td style="background:${bgCard};padding:0 40px 48px;">
-      <table cellpadding="0" cellspacing="0">
+    <tr><td style="background:#13131a;padding:24px 40px 36px;">
+      <table cellpadding="0" cellspacing="0" class="btn-row">
         <tr>
           <td style="padding-right:12px;">
             ${meetLink
-      ? `<a href="${meetLink}" style="display:inline-block;background:${accent};color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 24px;border-radius:8px;letter-spacing:0.3px;">Join Google Meet →</a>`
-      : `<span style="display:inline-block;background:#333;color:#888;font-size:14px;font-weight:700;padding:13px 24px;border-radius:8px;">Meet link coming shortly</span>`}
+      ? `<a href="${meetLink}" style="display:inline-block;background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 26px;border-radius:8px;letter-spacing:0.3px;">Join Google Meet →</a>`
+      : `<span style="display:inline-block;background:#1e1e2a;color:#a0a0b0;font-size:14px;font-weight:700;padding:13px 26px;border-radius:8px;">Meet link coming shortly</span>`}
           </td>
           <td>
-            <a href="${gcalUrl}" style="display:inline-block;background:transparent;color:${accent};font-size:14px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;border:1.5px solid ${accent};letter-spacing:0.3px;">Add to Calendar</a>
+            <a href="${gcalUrl}" style="display:inline-block;background:transparent;color:#FF6B2B;font-size:14px;font-weight:700;text-decoration:none;padding:12px 26px;border-radius:8px;border:1.5px solid #FF6B2B;letter-spacing:0.3px;">+ Add to Calendar</a>
           </td>
         </tr>
       </table>
     </td></tr>
 
+    <!-- WHAT TO EXPECT -->
+    <tr><td style="background:#0f0f16;padding:32px 40px;border-top:1px solid rgba(255,255,255,0.05);">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#7B61FF;margin-bottom:18px;">What to Expect on the Call</div>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td style="padding:8px 0;">
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="width:28px;vertical-align:top;padding-top:2px;"><span style="display:inline-block;width:20px;height:20px;background:rgba(255,107,43,0.15);border-radius:50%;text-align:center;line-height:20px;font-size:11px;color:#FF6B2B;font-weight:700;">1</span></td>
+            <td style="font-size:14px;color:#a0a0b0;line-height:1.6;padding-left:10px;">We'll walk through your current workflows and identify where automation can have the biggest impact.</td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:8px 0;">
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="width:28px;vertical-align:top;padding-top:2px;"><span style="display:inline-block;width:20px;height:20px;background:rgba(123,97,255,0.15);border-radius:50%;text-align:center;line-height:20px;font-size:11px;color:#7B61FF;font-weight:700;">2</span></td>
+            <td style="font-size:14px;color:#a0a0b0;line-height:1.6;padding-left:10px;">You'll see real examples of AI systems we've built for businesses like yours — no fluff, just results.</td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:8px 0;">
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="width:28px;vertical-align:top;padding-top:2px;"><span style="display:inline-block;width:20px;height:20px;background:rgba(255,107,43,0.15);border-radius:50%;text-align:center;line-height:20px;font-size:11px;color:#FF6B2B;font-weight:700;">3</span></td>
+            <td style="font-size:14px;color:#a0a0b0;line-height:1.6;padding-left:10px;">You'll leave with a clear automation roadmap and a custom implementation plan — whether we work together or not.</td>
+          </tr></table>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <!-- DANNY SIGN-OFF -->
+    <tr><td style="background:#0a0a0f;padding:28px 40px 32px;border-top:1px solid rgba(255,255,255,0.06);">
+      <table cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="vertical-align:top;padding-right:16px;">
+            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#FF6B2B,#7B61FF);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;text-align:center;line-height:48px;">D</div>
+          </td>
+          <td style="vertical-align:top;">
+            <div style="font-size:14px;font-weight:700;color:#fff;">Danny Boehmer</div>
+            <div style="font-size:12px;color:#a0a0b0;margin-top:2px;">Founder, NeuralFlow AI</div>
+            <div style="font-size:12px;color:#a0a0b0;margin-top:2px;"><a href="mailto:danny@neuralflowai.io" style="color:#FF6B2B;text-decoration:none;">danny@neuralflowai.io</a> &nbsp;·&nbsp; <a href="tel:+19083475095" style="color:#FF6B2B;text-decoration:none;">(908) 347-5095</a></div>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:16px 0 0;font-size:13px;color:#a0a0b0;line-height:1.6;">Looking forward to connecting. If anything comes up, just reply to this email.</p>
+    </td></tr>
+
     <!-- FOOTER -->
-    <tr><td style="background:${bg};padding:28px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">
-      <a href="https://neuralflowai.io" style="font-size:14px;font-weight:700;color:${accent};text-decoration:none;">neuralflowai.io</a>
-      <p style="margin:8px 0 4px;font-size:12px;color:${textMuted};">© 2026 NeuralFlow AI. All rights reserved.</p>
-      <p style="margin:0;font-size:12px;color:rgba(160,160,176,0.5);">Questions? Reply to this email.</p>
+    <tr><td style="background:#06060b;padding:24px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
+      <a href="https://neuralflowai.io" style="font-size:13px;font-weight:700;color:#FF6B2B;text-decoration:none;">neuralflowai.io</a>
+      <p style="margin:8px 0 0;font-size:11px;color:rgba(160,160,176,0.4);">© 2026 NeuralFlow AI LLC · Bayonne, NJ · All rights reserved.</p>
     </td></tr>
 
   </table>
@@ -903,109 +981,142 @@ Industry: [their likely industry]
   const monthly = pricingLines.find(l => l.startsWith('Monthly:')) || 'Monthly: TBD';
   const roi = pricingLines.find(l => l.startsWith('ROI:')) || 'ROI: TBD';
 
-  const sectionCard = (emoji, heading, content) => `
-    <tr><td style="background:${bgCard2};padding:0 40px 20px;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;">
-        <tr><td style="padding:20px 24px;">
-          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${accent};margin-bottom:10px;">${emoji} ${heading}</div>
-          <div style="font-size:14px;color:${textMuted};line-height:1.7;white-space:pre-line;">${content}</div>
-        </td></tr>
-      </table>
-    </td></tr>`;
-
   const dannyHtml = `
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New Booking</title></head>
-<body style="margin:0;padding:0;background:#06060b;font-family:${ff};">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New Booking — ${escapeHtml(name)}</title></head>
+<body style="margin:0;padding:0;background:#06060b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#06060b;padding:32px 16px;">
   <tr><td align="center">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+
+    <!-- GRADIENT STRIP -->
+    <tr><td style="background:linear-gradient(135deg,#FF6B2B 0%,#7B61FF 100%);height:5px;font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <!-- HEADER -->
-    <tr><td style="background:${bg};padding:32px 40px 24px;border-bottom:1px solid rgba(255,255,255,0.06);">
-      <div style="background:radial-gradient(circle at 90% 20%,rgba(255,107,43,0.18) 0%,transparent 60%);position:absolute;top:0;right:0;width:100%;height:100%;pointer-events:none;"></div>
+    <tr><td style="background:#0a0a0f;padding:28px 40px 24px;border-bottom:1px solid rgba(255,255,255,0.06);">
       <table width="100%" cellpadding="0" cellspacing="0">
         <tr>
           <td>
-            <div style="font-size:26px;font-weight:800;"><span style="color:#fff;">Neural</span><span style="color:${accent};">Flow</span></div>
-            <div style="margin-top:4px;padding-left:10px;border-left:2px solid ${accent};font-size:10px;font-weight:700;letter-spacing:2px;color:${accent};text-transform:uppercase;">AI Consulting &amp; Automation</div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px;">
+              <span style="color:#fff;">Neural</span><span style="color:#FF6B2B;">Flow</span><span style="color:#fff;"> AI</span>
+            </div>
+            <div style="margin-top:3px;font-size:10px;color:#a0a0b0;letter-spacing:1px;">🤖 Booked via ARIA</div>
           </td>
-          <td align="right">
-            <span style="background:${accent};color:#fff;font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:6px 14px;border-radius:100px;">🔥 New Booking</span>
+          <td align="right" style="vertical-align:top;">
+            <span style="display:inline-block;background:${urgencyColor};color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:6px 14px;border-radius:100px;margin-left:8px;">${urgencyEmoji} ${urgencyLabel}</span>
           </td>
         </tr>
       </table>
     </td></tr>
 
+    <!-- DEAL HERO -->
+    <tr><td style="background:#0a0a0f;padding:32px 40px 28px;border-bottom:1px solid rgba(255,255,255,0.06);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-40px;right:-40px;width:220px;height:220px;background:radial-gradient(circle,rgba(255,107,43,0.1) 0%,transparent 70%);pointer-events:none;"></div>
+      <div style="position:relative;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#a0a0b0;margin-bottom:8px;">Deal Value (12 months)</div>
+        <div style="font-size:48px;font-weight:900;letter-spacing:-2px;background:linear-gradient(135deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;">${dealValueStr}</div>
+        <div style="margin-top:10px;font-size:14px;color:#a0a0b0;">${escapeHtml(name)}${company ? ` · ${escapeHtml(company)}` : ''} · ${slotLabel}</div>
+      </div>
+    </td></tr>
+
     <!-- LEAD CARD -->
-    <tr><td style="background:${bgCard2};padding:28px 40px 20px;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${accent};overflow:hidden;">
+    <tr><td style="background:#0f0f16;padding:24px 40px 16px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);border-left:3px solid #FF6B2B;overflow:hidden;">
         <tr><td style="padding:20px 24px;">
-          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${accent};margin-bottom:14px;">🧑 Lead Details</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">Lead Details</div>
           <table cellpadding="0" cellspacing="0" width="100%">
-            <tr><td style="padding:6px 0;font-size:13px;color:${textMuted};width:90px;">Name</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#fff;">${name}</td></tr>
-            <tr><td style="padding:6px 0;font-size:13px;color:${textMuted};">Email</td><td style="padding:6px 0;font-size:14px;color:${accent};"><a href="mailto:${email}" style="color:${accent};text-decoration:none;">${email}</a></td></tr>
-            <tr><td style="padding:6px 0;font-size:13px;color:${textMuted};">Company</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#fff;">${company}</td></tr>
-            ${phone ? `<tr><td style="padding:6px 0;font-size:13px;color:${textMuted};">Phone</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#fff;">${phone}</td></tr>` : ''}
+            <tr>
+              <td style="padding:5px 0;font-size:12px;color:#a0a0b0;width:80px;vertical-align:top;">Name</td>
+              <td style="padding:5px 0;font-size:14px;font-weight:700;color:#fff;">${escapeHtml(name)}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;font-size:12px;color:#a0a0b0;vertical-align:top;">Email</td>
+              <td style="padding:5px 0;font-size:14px;"><a href="mailto:${escapeHtml(email)}" style="color:#FF6B2B;text-decoration:none;font-weight:600;">${escapeHtml(email)}</a></td>
+            </tr>
+            ${company ? `<tr><td style="padding:5px 0;font-size:12px;color:#a0a0b0;vertical-align:top;">Company</td><td style="padding:5px 0;font-size:14px;font-weight:600;color:#fff;">${escapeHtml(company)}</td></tr>` : ''}
+            ${phone ? `<tr><td style="padding:5px 0;font-size:12px;color:#a0a0b0;vertical-align:top;">Phone</td><td style="padding:5px 0;font-size:14px;"><a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" style="color:#fff;text-decoration:none;font-weight:600;">${escapeHtml(phone)}</a></td></tr>` : ''}
           </table>
         </td></tr>
       </table>
     </td></tr>
 
-    <!-- SESSION DETAILS -->
-    <tr><td style="background:${bgCard2};padding:0 40px 20px;">
+    <!-- SESSION -->
+    <tr><td style="background:#0f0f16;padding:0 40px 16px;">
       <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;">
         <tr><td style="padding:20px 24px;">
-          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${accent};margin-bottom:14px;">📅 Session Details</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">Session</div>
           <table cellpadding="0" cellspacing="0" width="100%">
-            <tr><td style="padding:5px 0;font-size:13px;color:${textMuted};width:90px;">When</td><td style="padding:5px 0;font-size:14px;font-weight:600;color:#fff;">${slotLabel}</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:${textMuted};">Duration</td><td style="padding:5px 0;font-size:14px;color:#fff;">1 hour</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:${textMuted};">Meet Link</td><td style="padding:5px 0;font-size:14px;"><a href="${meetLink || '#'}" style="color:${accent};text-decoration:none;">${meetLink || 'TBD'}</a></td></tr>
+            <tr><td style="padding:4px 0;font-size:12px;color:#a0a0b0;width:80px;">When</td><td style="padding:4px 0;font-size:14px;font-weight:700;color:#fff;">${slotLabel}</td></tr>
+            <tr><td style="padding:4px 0;font-size:12px;color:#a0a0b0;">Duration</td><td style="padding:4px 0;font-size:14px;color:#fff;">1 hour</td></tr>
+            <tr><td style="padding:4px 0;font-size:12px;color:#a0a0b0;">Meet</td><td style="padding:4px 0;font-size:14px;">${meetLink ? `<a href="${meetLink}" style="color:#FF6B2B;text-decoration:none;">${meetLink}</a>` : '<span style="color:#a0a0b0;">TBD</span>'}</td></tr>
           </table>
         </td></tr>
       </table>
     </td></tr>
 
-    ${sectionCard('🎯', 'What They Want', leadNotes || 'Not captured')}
-    ${sectionCard('⚠️', 'Pain Points', leadPain || 'Not captured')}
-    ${teamTools ? sectionCard('👥', 'Team & Current Tools', teamTools) : ''}
-    ${objections ? sectionCard('⚡', 'Likely Objections & Rebuttals', objections) : ''}
-    ${salesAngles ? sectionCard('🎯', 'Sales Angles', salesAngles) : ''}
-    ${nextSteps ? sectionCard('📋', 'Recommended Next Steps', nextSteps) : ''}
-    ${competitorIntel ? sectionCard('🕵️', 'Competitive Context', competitorIntel) : ''}
-
-    <!-- PRICING SUMMARY -->
-    <tr><td style="background:${bgCard2};padding:0 40px 20px;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1.5px solid ${accent};overflow:hidden;">
+    <!-- AI INTEL SECTIONS -->
+    <tr><td style="background:#0f0f16;padding:0 40px 16px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;">
         <tr><td style="padding:20px 24px;">
-          <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${accent};margin-bottom:14px;">💰 Pricing Summary</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">🎯 What They Want</div>
+          <div style="font-size:14px;color:#a0a0b0;line-height:1.7;white-space:pre-line;">${escapeHtml(leadNotes)}</div>
+        </td></tr>
+      </table>
+    </td></tr>
+    <tr><td style="background:#0f0f16;padding:0 40px 16px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;">
+        <tr><td style="padding:20px 24px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">⚠️ Pain Points</div>
+          <div style="font-size:14px;color:#a0a0b0;line-height:1.7;white-space:pre-line;">${escapeHtml(leadPain)}</div>
+        </td></tr>
+      </table>
+    </td></tr>
+    ${teamTools ? `<tr><td style="background:#0f0f16;padding:0 40px 16px;"><table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;"><tr><td style="padding:20px 24px;"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">👥 Team &amp; Tools</div><div style="font-size:14px;color:#a0a0b0;line-height:1.7;white-space:pre-line;">${escapeHtml(teamTools)}</div></td></tr></table></td></tr>` : ''}
+    ${objections ? `<tr><td style="background:#0f0f16;padding:0 40px 16px;"><table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;"><tr><td style="padding:20px 24px;"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">⚡ Likely Objections</div><div style="font-size:14px;color:#a0a0b0;line-height:1.7;white-space:pre-line;">${escapeHtml(objections)}</div></td></tr></table></td></tr>` : ''}
+    ${salesAngles ? `<tr><td style="background:#0f0f16;padding:0 40px 16px;"><table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;"><tr><td style="padding:20px 24px;"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">🎯 Sales Angles</div><div style="font-size:14px;color:#a0a0b0;line-height:1.7;white-space:pre-line;">${escapeHtml(salesAngles)}</div></td></tr></table></td></tr>` : ''}
+    ${nextSteps ? `<tr><td style="background:#0f0f16;padding:0 40px 16px;"><table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;"><tr><td style="padding:20px 24px;"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">📋 Next Steps</div><div style="font-size:14px;color:#a0a0b0;line-height:1.7;white-space:pre-line;">${escapeHtml(nextSteps)}</div></td></tr></table></td></tr>` : ''}
+    ${competitorIntel ? `<tr><td style="background:#0f0f16;padding:0 40px 16px;"><table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;"><tr><td style="padding:20px 24px;"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">🕵️ Competitive Context</div><div style="font-size:14px;color:#a0a0b0;line-height:1.7;white-space:pre-line;">${escapeHtml(competitorIntel)}</div></td></tr></table></td></tr>` : ''}
+
+    <!-- PRICING CARD -->
+    <tr><td style="background:#0f0f16;padding:0 40px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;border:1.5px solid #FF6B2B;overflow:hidden;">
+        <tr><td style="padding:20px 24px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">💰 Pricing Estimate</div>
           <table cellpadding="0" cellspacing="0" width="100%">
-            <tr><td style="padding:5px 0;font-size:13px;color:${textMuted};width:160px;">${impl.split(':')[0]}</td><td style="padding:5px 0;font-size:14px;font-weight:600;color:#fff;">${impl.split(':')[1] || ''}</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:${textMuted};">${monthly.split(':')[0]}</td><td style="padding:5px 0;font-size:14px;font-weight:600;color:#fff;">${monthly.split(':').slice(1).join(':') || ''}</td></tr>
-            <tr><td style="padding:5px 0;font-size:13px;color:${textMuted};">Estimated ROI</td><td style="padding:5px 0;font-size:14px;color:${textMuted};">${roi.replace('ROI:', '').trim()}</td></tr>
-            <tr><td style="padding:10px 0 0;font-size:13px;color:${textMuted};border-top:1px solid rgba(255,255,255,0.06);">Deal Value (12mo)</td><td style="padding:10px 0 0;font-size:16px;font-weight:800;color:${accent};border-top:1px solid rgba(255,255,255,0.06);">${dealValueStr}</td></tr>
+            <tr><td style="padding:5px 0;font-size:12px;color:#a0a0b0;width:160px;">${impl.split(':')[0]}</td><td style="padding:5px 0;font-size:14px;font-weight:700;color:#fff;">${escapeHtml((impl.split(':')[1] || '').trim())}</td></tr>
+            <tr><td style="padding:5px 0;font-size:12px;color:#a0a0b0;">${monthly.split(':')[0]}</td><td style="padding:5px 0;font-size:14px;font-weight:700;color:#fff;">${escapeHtml((monthly.split(':').slice(1).join(':') || '').trim())}</td></tr>
+            <tr><td style="padding:5px 0;font-size:12px;color:#a0a0b0;">Estimated ROI</td><td style="padding:5px 0;font-size:13px;color:#a0a0b0;">${escapeHtml(roi.replace('ROI:','').trim())}</td></tr>
+            <tr>
+              <td colspan="2" style="padding:14px 0 0;border-top:1px solid rgba(255,255,255,0.08);">
+                <table cellpadding="0" cellspacing="0" width="100%"><tr>
+                  <td style="font-size:12px;color:#a0a0b0;">Deal Value (12 months)</td>
+                  <td align="right" style="font-size:22px;font-weight:900;color:#FF6B2B;">${dealValueStr}</td>
+                </tr></table>
+              </td>
+            </tr>
           </table>
         </td></tr>
       </table>
     </td></tr>
 
     <!-- BUTTONS -->
-    <tr><td style="background:${bgCard2};padding:0 40px 20px;">
+    <tr><td style="background:#0f0f16;padding:0 40px 28px;">
       <table cellpadding="0" cellspacing="0">
         <tr>
-          <td style="padding-right:12px;">
-            <a href="${calEventUrl}" style="display:inline-block;background:${accent};color:#fff;font-size:13px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:8px;">View Calendar Event</a>
+          <td style="padding-right:10px;">
+            <a href="${calEventUrl}" style="display:inline-block;background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;font-size:13px;font-weight:700;text-decoration:none;padding:12px 20px;border-radius:8px;">📅 View Event</a>
           </td>
-          <td>
-            <a href="mailto:${email}" style="display:inline-block;background:transparent;color:${accent};font-size:13px;font-weight:700;text-decoration:none;padding:11px 22px;border-radius:8px;border:1.5px solid ${accent};">Reply to Lead</a>
+          <td style="padding-right:10px;">
+            <a href="mailto:${escapeHtml(email)}" style="display:inline-block;background:transparent;color:#FF6B2B;font-size:13px;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:8px;border:1.5px solid #FF6B2B;">✉️ Email Lead</a>
           </td>
+          ${phone ? `<td><a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" style="display:inline-block;background:transparent;color:#a0a0b0;font-size:13px;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.1);">📞 Call Lead</a></td>` : ''}
         </tr>
       </table>
     </td></tr>
 
     <!-- FOOTER -->
-    <tr><td style="background:${bg};padding:24px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">
-      <a href="https://neuralflowai.io" style="font-size:13px;font-weight:700;color:${accent};text-decoration:none;">neuralflowai.io</a>
-      <p style="margin:6px 0 0;font-size:11px;color:rgba(160,160,176,0.5);">🤖 Booked via ARIA</p>
+    <tr><td style="background:#06060b;padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
+      <a href="https://neuralflowai.io" style="font-size:12px;font-weight:700;color:#FF6B2B;text-decoration:none;">neuralflowai.io</a>
+      <p style="margin:6px 0 0;font-size:11px;color:rgba(160,160,176,0.4);">© 2026 NeuralFlow AI LLC · 🤖 Booked via ARIA</p>
     </td></tr>
 
   </table>
@@ -1014,13 +1125,15 @@ Industry: [their likely industry]
 </body></html>`;
 
   // Send emails via Resend API (HTTP/443 — works on Railway, no SMTP needed)
-  async function sendWithResend(to, subject, html, label) {
+  async function sendWithResend(to, subject, html, label, replyTo) {
     for (let i = 0; i < 3; i++) {
       try {
+        const payload = { from: 'NeuralFlow AI <danny@neuralflowai.io>', to, subject, html };
+        if (replyTo) payload.reply_to = replyTo;
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to, subject, html })
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (res.ok) { console.log(`✅ ${label} sent (Resend id: ${data.id})`); return; }
@@ -1033,8 +1146,8 @@ Industry: [their likely industry]
     sendTelegramAlert(`🚨 ARIA EMAIL FAILED\n${label} failed after 3 attempts.\nBooking: ${name} (${email}) — ${slotLabel}`);
   }
 
-  sendWithResend(email, "Your NeuralFlow Consultation is Confirmed ✅", clientHtml, `Client email to ${email}`);
-  sendWithResend(process.env.GMAIL_USER, `🔥 New Booking — ${name} (${company}) | ${dealValueStr} potential`, dannyHtml, `Danny notification email`);
+  sendWithResend(email, `Your NeuralFlow AI Consultation is Confirmed ✅`, clientHtml, `Client email to ${email}`, 'danny@neuralflowai.io');
+  sendWithResend(process.env.GMAIL_USER, `${urgencyEmoji} ${dealValueStr} | ${name}${company ? ` @ ${company}` : ''} — ${slotLabel}`, dannyHtml, `Danny notification email`);
 
   // ── Booking success Telegram alert ───────────────────────────────────────────
   sendTelegramAlert(`✅ NEW BOOKING CONFIRMED\n\n👤 ${name}\n🏢 ${company || 'N/A'}\n📧 ${email}\n📞 ${phone || 'N/A'}\n📅 ${slotLabel}\n💰 Deal value: ${dealValueStr}\n\n🤖 Booked via ARIA`);
