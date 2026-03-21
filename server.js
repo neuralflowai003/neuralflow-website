@@ -1656,16 +1656,37 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
     } else if (lastUserMsg.match(/\bnext month\b/)) {
       const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30; isMonthRange = true;
+    } else if (lastUserMsg.match(/\bearly next month\b|\bbeginning of next month\b|\bstart of next month\b/)) {
+      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
+    } else if (lastUserMsg.match(/\b(first|1st)\s+week\b/)) {
+      // "first week" — look at conversation context to determine which month they mean
+      const priorSlots = conversationSlots.get(convId)?.slots;
+      const refDate = priorSlots?.[0] ? new Date(priorSlots[0].start) : new Date();
+      // If prior slots are in the future (different month), use that month; else next month
+      const refMonth = refDate > new Date() && refDate.getUTCMonth() !== new Date().getUTCMonth()
+        ? new Date(refDate.getUTCFullYear(), refDate.getUTCMonth(), 1)
+        : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1); return d; })();
+      searchFromDate = refMonth.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
+    } else if (lastUserMsg.match(/\b(second|2nd)\s+week\b/)) {
+      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(8);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
+    } else if (lastUserMsg.match(/\b(third|3rd)\s+week\b/)) {
+      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(15);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
+    } else if (lastUserMsg.match(/\b(last|final|fourth|4th)\s+week\b/)) {
+      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(22);
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\bin a few months?\b|\ba couple months?\b|\bin 2 months?\b/)) {
       const d = new Date(); d.setDate(d.getDate() + 60);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30;
     } else if (lastUserMsg.match(/\bin 3 months?\b/)) {
       const d = new Date(); d.setDate(d.getDate() + 90);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30;
     } else if (mMatch) {
       const d = new Date(); d.setDate(d.getDate() + parseInt(mMatch[1]) * 30);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14;
+      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30;
     } else {
       // Specific date: "March 15", "the 15th", "15th"
       const dateMatch = lastUserMsg.match(/(?:(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?)|(?:\bthe\s+(\d{1,2})(?:st|nd|rd|th))|(?:\b(\d{1,2})(?:st|nd|rd|th)\b)/);
@@ -2010,6 +2031,7 @@ SCHEDULING RULES:
 - All slots are in Eastern Time (ET). When a client says a time like "3pm" without specifying a timezone, ask: "Just to confirm — is that 3pm Eastern Time, or are you in a different timezone?" Then present the correct slot.
 
 AVAILABILITY: You MUST ONLY tell a client a time/date is unavailable if the server has explicitly told you it is BUSY in the slot data. If you have no data for a requested time, do NOT assume it is unavailable — say you will check and ask the client to confirm the date so the server can verify. Never make up availability.
+BOOKING WINDOW: You can book consultations up to 90 days out from today. Never tell a client that a future date is "too far out", "not loaded yet", or unavailable due to any system limitation — if no slots are found for a requested period, say: "I don't have any openings in that period — here are the closest available times:" and show the nearest alternatives.
 NEXT WEEK: When a client asks for "next week", show ALL available days that week grouped by date. List each day on its own line with all available times. Do not limit to 3 slots or a single day.
 
 CONFIRMATION FLOW:
