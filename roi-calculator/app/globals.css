@@ -6,3 +6,60 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+:root {
+  --accent: #FF6B2B;
+  --accent-glow: rgba(255,107,43,0.5);
+  --purple: #7B61FF;
+  --bg: #050508;
+  --bg-alt: #060a14;
+  --font-display: var(--font-space), 'Space Grotesk', sans-serif;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,107,43,0.2); border-radius: 4px; }
+
+/* ── Range slider — orange thumb ── */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.08);
+  outline: none;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FF6B2B;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(255,107,43,0.5);
+  transition: box-shadow 0.2s;
+}
+input[type='range']::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 14px rgba(255,107,43,0.7);
+}
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #FF6B2B;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 8px rgba(255,107,43,0.5);
+}
+
+/* ── Recharts tooltip override ── */
+.recharts-tooltip-wrapper { outline: none; }
+
+/* ── Selection ── */
+::selection {
+  background: var(--accent);
+  color: #000;
+}
