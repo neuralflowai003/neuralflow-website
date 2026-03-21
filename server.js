@@ -2121,7 +2121,14 @@ app.post('/api/roi-lead', (req, res) => {
 
   const industryLabel = industry && industry !== 'general' ? industry.replace(/_/g, ' ') : 'General';
 
-  // Full alert fires after analysis via /api/track roi_calculated
+  sendTelegramAlert(
+    `🧮 ROI CALCULATOR LEAD\n\n` +
+    `👤 ${name}\n` +
+    `📧 ${email}\n` +
+    `📞 ${phone}\n` +
+    `🏭 Industry: ${industryLabel}\n\n` +
+    `💡 Starting analysis now...`
+  );
 });
 
 // ─── ROI Calculator Tracking ──────────────────────────────────────────────────
