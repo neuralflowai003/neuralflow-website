@@ -840,119 +840,144 @@ Industry: [their likely industry]
 <meta name="color-scheme" content="dark">
 <style>
 @media only screen and (max-width:600px){
-  .btn-wrap td{display:block!important;padding:0 0 10px 0!important}
-  .hero-h1{font-size:26px!important}
+  .outer{padding:16px 8px!important}
+  .card{padding:28px 20px!important}
+  .hero-title{font-size:28px!important}
+  .btn-block td{display:block!important;padding:0 0 10px 0!important;text-align:center!important}
+  .detail-label{width:80px!important}
 }
 </style>
 <title>Consultation Confirmed — NeuralFlow AI</title>
 </head>
-<body style="margin:0;padding:0;background:#06060b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#06060b;padding:32px 16px;">
+<body style="margin:0;padding:0;background:#050508;">
+<table width="100%" cellpadding="0" cellspacing="0" class="outer" style="background:#050508;padding:40px 20px;">
 <tr><td align="center">
-<table width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
 
-  <!-- ACCENT BAR -->
-  <tr><td style="background:#FF6B2B;height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>
+  <!-- GRADIENT TOP BAR -->
+  <tr><td height="4" style="background:linear-gradient(90deg,#FF6B2B 0%,#7B61FF 100%);font-size:0;line-height:0;">&nbsp;</td></tr>
 
   <!-- HEADER -->
-  <tr><td style="background:#0d0d14;padding:28px 36px 22px;border-left:1px solid rgba(255,255,255,0.07);border-right:1px solid rgba(255,255,255,0.07);">
+  <tr><td class="card" style="background:#0a0a0f;padding:32px 40px 28px;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td><span style="font-size:22px;font-weight:800;letter-spacing:-0.5px;"><span style="color:#fff;">Neural</span><span style="color:#FF6B2B;">Flow</span><span style="color:#fff;"> AI</span></span></td>
-      <td align="right"><span style="background:#FF6B2B;color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:6px 14px;border-radius:20px;">✓ CONFIRMED</span></td>
+      <td>
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1;">
+          <span style="color:#ffffff;">Neural</span><span style="color:#FF6B2B;">Flow</span><span style="color:#ffffff;"> AI</span>
+        </div>
+        <div style="margin-top:5px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2.5px;color:#888899;text-transform:uppercase;">AI CONSULTING &amp; AUTOMATION</div>
+      </td>
+      <td align="right" valign="middle">
+        <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#FF6B2B;color:#ffffff;font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:7px 16px;border-radius:100px;">✓ CONFIRMED</span>
+      </td>
     </tr></table>
   </td></tr>
 
   <!-- HERO -->
-  <tr><td style="background:#0d0d14;padding:36px 36px 28px;border-left:1px solid rgba(255,255,255,0.07);border-right:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);">
-    <h1 class="hero-h1" style="margin:0 0 14px;font-size:30px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2;">Your Consultation<br>is Confirmed.</h1>
-    <p style="margin:0;font-size:15px;color:#a0a0b0;line-height:1.7;">${clientGreeting} your 1-hour strategy session with <strong style="color:#fff;">Danny Boehmer</strong> is locked in. Everything you need is below.</p>
+  <tr><td class="card" style="background:#0a0a0f;padding:44px 40px 40px;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
+    <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#FF6B2B;margin-bottom:16px;">YOUR BOOKING</div>
+    <div class="hero-title" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:34px;font-weight:800;color:#ffffff;letter-spacing:-1px;line-height:1.15;margin-bottom:18px;">You're on the calendar.</div>
+    <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;font-size:15px;color:#888899;line-height:1.75;">${clientGreeting} your 1-hour strategy session with <span style="color:#ffffff;font-weight:600;">Danny Boehmer</span> is confirmed. Everything you need to join is below.</p>
   </td></tr>
 
-  <!-- DETAILS -->
-  <tr><td style="background:#111118;padding:24px 36px;border-left:1px solid rgba(255,255,255,0.07);border-right:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);">
-    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:16px;">Session Details</div>
-    <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:11px;color:#a0a0b0;width:110px;vertical-align:top;padding-top:2px;">📅 Date &amp; Time</td>
-          <td style="font-size:14px;font-weight:700;color:#fff;">${slotLabel}</td>
-        </tr></table>
-      </td></tr>
-      <tr><td style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:11px;color:#a0a0b0;width:110px;vertical-align:top;padding-top:2px;">⏱ Duration</td>
-          <td style="font-size:14px;font-weight:700;color:#fff;">1 hour</td>
-        </tr></table>
-      </td></tr>
-      <tr><td style="padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:11px;color:#a0a0b0;width:110px;vertical-align:top;padding-top:2px;">📍 Format</td>
-          <td style="font-size:14px;font-weight:700;color:#fff;">Google Meet (video call)</td>
-        </tr></table>
-      </td></tr>
-      <tr><td style="padding:9px 0;">
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="font-size:11px;color:#a0a0b0;width:110px;vertical-align:top;padding-top:2px;">🔗 Meet Link</td>
-          <td style="font-size:14px;">${meetLink
-            ? `<a href="${meetLink}" style="color:#FF6B2B;font-weight:600;text-decoration:none;word-break:break-all;">${meetLink}</a>`
-            : `<span style="color:#a0a0b0;">Google Calendar invite with link coming shortly.</span>`}</td>
-        </tr></table>
+  <!-- SESSION DETAILS CARD -->
+  <tr><td style="padding:0;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-left:3px solid #FF6B2B;background:#0d0d15;">
+      <tr><td class="card" style="padding:28px 40px;">
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">SESSION DETAILS</div>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td class="detail-label" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;color:#888899;width:100px;vertical-align:top;padding-top:2px;">Date &amp; Time</td>
+              <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;">${slotLabel}</td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td class="detail-label" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;color:#888899;width:100px;vertical-align:top;padding-top:2px;">Duration</td>
+              <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;">1 hour</td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td class="detail-label" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;color:#888899;width:100px;vertical-align:top;padding-top:2px;">Format</td>
+              <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;">Google Meet — Video Call</td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:10px 0;">
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td class="detail-label" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;color:#888899;width:100px;vertical-align:top;padding-top:2px;">Meet Link</td>
+              <td style="font-size:14px;">${meetLink
+                ? `<a href="${meetLink}" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#FF6B2B;font-weight:600;text-decoration:none;word-break:break-all;">${meetLink}</a>`
+                : `<span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#888899;">Google Calendar invite with link coming shortly.</span>`}</td>
+            </tr></table>
+          </td></tr>
+        </table>
       </td></tr>
     </table>
   </td></tr>
 
-  <!-- BUTTONS -->
-  <tr><td style="background:#111118;padding:20px 36px 26px;border-left:1px solid rgba(255,255,255,0.07);border-right:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);">
-    <table cellpadding="0" cellspacing="0" class="btn-wrap"><tr>
-      <td style="padding-right:10px;">
+  <!-- CTA BUTTONS -->
+  <tr><td class="card" style="background:#0a0a0f;padding:28px 40px 32px;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
+    <table cellpadding="0" cellspacing="0" class="btn-block"><tr>
+      <td style="padding-right:12px;">
         ${meetLink
-          ? `<a href="${meetLink}" style="display:inline-block;background:#FF6B2B;color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 24px;border-radius:8px;">Join Google Meet →</a>`
-          : `<span style="display:inline-block;background:#1e1e2a;color:#a0a0b0;font-size:14px;font-weight:700;padding:13px 24px;border-radius:8px;">Meet link coming shortly</span>`}
+          ? `<a href="${meetLink}" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;background:linear-gradient(135deg,#FF6B2B 0%,#7B61FF 100%);color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:1px;padding:14px 28px;border-radius:100px;">Join Google Meet &rarr;</a>`
+          : `<span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;background:#1a1a24;color:#888899;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:14px 28px;border-radius:100px;">Link Coming Shortly</span>`}
       </td>
       <td>
-        <a href="${gcalUrl}" style="display:inline-block;background:transparent;color:#FF6B2B;font-size:14px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:8px;border:1.5px solid #FF6B2B;">+ Add to Calendar</a>
+        <a href="${gcalUrl}" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;background:transparent;color:#ffffff;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:1px;padding:13px 28px;border-radius:100px;border:1px solid rgba(255,255,255,0.15);">+ Add to Calendar</a>
       </td>
     </tr></table>
   </td></tr>
 
   <!-- WHAT TO EXPECT -->
-  <tr><td style="background:#0a0a12;padding:28px 36px;border-left:1px solid rgba(255,255,255,0.07);border-right:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);">
-    <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#7B61FF;margin-bottom:16px;">What to Expect on the Call</div>
+  <tr><td class="card" style="background:#050508;padding:36px 40px;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
+    <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#7B61FF;margin-bottom:24px;">WHAT TO EXPECT</div>
     <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td style="padding:7px 0;"><table cellpadding="0" cellspacing="0"><tr>
-        <td style="width:26px;vertical-align:top;"><span style="display:inline-block;width:18px;height:18px;background:#FF6B2B;border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#fff;font-weight:700;">1</span></td>
-        <td style="font-size:14px;color:#a0a0b0;line-height:1.6;padding-left:8px;">We'll walk through your current workflows and identify where automation can have the biggest impact.</td>
-      </tr></table></td></tr>
-      <tr><td style="padding:7px 0;"><table cellpadding="0" cellspacing="0"><tr>
-        <td style="width:26px;vertical-align:top;"><span style="display:inline-block;width:18px;height:18px;background:#7B61FF;border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#fff;font-weight:700;">2</span></td>
-        <td style="font-size:14px;color:#a0a0b0;line-height:1.6;padding-left:8px;">You'll see real examples of AI systems we've built for businesses like yours — no fluff, just results.</td>
-      </tr></table></td></tr>
-      <tr><td style="padding:7px 0;"><table cellpadding="0" cellspacing="0"><tr>
-        <td style="width:26px;vertical-align:top;"><span style="display:inline-block;width:18px;height:18px;background:#FF6B2B;border-radius:50%;text-align:center;line-height:18px;font-size:10px;color:#fff;font-weight:700;">3</span></td>
-        <td style="font-size:14px;color:#a0a0b0;line-height:1.6;padding-left:8px;">You'll leave with a clear automation roadmap and a custom implementation plan — whether we work together or not.</td>
-      </tr></table></td></tr>
+      <tr><td style="padding:0 0 18px 0;">
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:20px;height:20px;background:#FF6B2B;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:800;color:#fff;">1</span></td>
+          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#888899;line-height:1.7;">We'll map your current workflows and pinpoint exactly where AI can cut time and cost.</td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:0 0 18px 0;">
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:20px;height:20px;background:#7B61FF;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:800;color:#fff;">2</span></td>
+          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#888899;line-height:1.7;">You'll see real systems we've built — actual results, no slide decks.</td>
+        </tr></table>
+      </td></tr>
+      <tr><td>
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:20px;height:20px;background:#FF6B2B;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:800;color:#fff;">3</span></td>
+          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#888899;line-height:1.7;">You'll walk away with a custom roadmap — whether we work together or not.</td>
+        </tr></table>
+      </td></tr>
     </table>
   </td></tr>
 
   <!-- SIGN-OFF -->
-  <tr><td style="background:#0d0d14;padding:24px 36px 28px;border-left:1px solid rgba(255,255,255,0.07);border-right:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);">
+  <tr><td class="card" style="background:#0a0a0f;padding:28px 40px 32px;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
     <table cellpadding="0" cellspacing="0"><tr>
-      <td style="vertical-align:top;padding-right:14px;">
-        <div style="width:44px;height:44px;border-radius:50%;background:#FF6B2B;text-align:center;line-height:44px;font-size:16px;font-weight:800;color:#fff;">D</div>
+      <td style="vertical-align:top;padding-right:16px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:#FF6B2B;text-align:center;line-height:44px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:800;color:#ffffff;">D</div>
       </td>
-      <td style="vertical-align:top;">
-        <div style="font-size:14px;font-weight:700;color:#fff;">Danny Boehmer</div>
-        <div style="font-size:12px;color:#a0a0b0;margin-top:3px;">Founder, NeuralFlow AI</div>
-        <div style="font-size:12px;margin-top:3px;"><a href="mailto:danny@neuralflowai.io" style="color:#FF6B2B;text-decoration:none;">danny@neuralflowai.io</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="tel:+19083475095" style="color:#FF6B2B;text-decoration:none;">(908) 347-5095</a></div>
+      <td style="vertical-align:middle;">
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;">Danny Boehmer</div>
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;color:#888899;margin-top:2px;">Founder — NeuralFlow AI</div>
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;margin-top:4px;">
+          <a href="mailto:danny@neuralflowai.io" style="color:#FF6B2B;text-decoration:none;">danny@neuralflowai.io</a>
+          <span style="color:#888899;"> &nbsp;·&nbsp; </span>
+          <a href="tel:+19083475095" style="color:#FF6B2B;text-decoration:none;">(908) 347-5095</a>
+        </div>
       </td>
     </tr></table>
-    <p style="margin:14px 0 0;font-size:13px;color:#a0a0b0;line-height:1.6;">Looking forward to connecting. If anything comes up, just reply to this email.</p>
+    <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:16px 0 0;font-size:13px;color:#888899;line-height:1.65;">See you on the call. If anything comes up, just reply directly to this email.</p>
   </td></tr>
 
   <!-- FOOTER -->
-  <tr><td style="background:#080810;padding:20px 36px;text-align:center;border:1px solid rgba(255,255,255,0.07);border-top:none;">
-    <a href="https://neuralflowai.io" style="font-size:13px;font-weight:700;color:#FF6B2B;text-decoration:none;">neuralflowai.io</a>
-    <p style="margin:6px 0 0;font-size:11px;color:rgba(160,160,176,0.35);">© 2026 NeuralFlow AI LLC · Bayonne, NJ · All rights reserved.</p>
+  <tr><td style="background:#030305;padding:20px 40px;text-align:center;border:1px solid rgba(255,255,255,0.06);border-top:none;">
+    <a href="https://neuralflowai.io" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#FF6B2B;text-decoration:none;">NEURALFLOWAI.IO</a>
+    <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:8px 0 0;font-size:10px;color:rgba(136,136,153,0.4);">© 2026 NeuralFlow AI LLC &nbsp;·&nbsp; Bayonne, NJ &nbsp;·&nbsp; All rights reserved.</p>
   </td></tr>
 
 </table>
