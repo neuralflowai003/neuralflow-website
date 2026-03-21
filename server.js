@@ -1264,8 +1264,22 @@ app.get('/api/availability', chatRateLimit, async (req, res) => {
 });
 
 app.post('/api/book', chatRateLimit, async (req, res) => {
+  const { name, email, slotStart, slotEnd, slotLabel, company, phone, notes } = req.body;
+  if (!name || !email || !slotStart) {
+    return res.status(400).json({ success: false, error: 'Missing required fields.' });
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ success: false, error: 'Invalid email address.' });
+  }
+  if (isNaN(Date.parse(slotStart))) {
+    return res.status(400).json({ success: false, error: 'Invalid slot time.' });
+  }
+  if (name.length > 200 || email.length > 254 || (notes && notes.length > 2000)) {
+    return res.status(400).json({ success: false, error: 'Input too long.' });
+  }
   try {
-    await bookAppointment(req.body);
+    await bookAppointment({ name, email, slotStart, slotEnd, slotLabel, company: company || '', phone: phone || '', notes: notes || '' });
     res.json({ success: true });
   } catch (err) {
     console.error('Book endpoint error:', err.message);
@@ -1440,6 +1454,13 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // immediately without depending on Claude outputting a BOOK command.
     const YES_REGEX = /^\s*(yes|yep|yup|yeah|sure|ok|okay|correct|perfect|great|absolutely|definitely|for sure|sounds good|that works|looks good|go ahead|book it|do it|lock it in|lock that in|confirmed|please|yes please|please do|please book|book that|let'?s do it|make it happen|i confirm|confirmed|book me in|set it up|done|go for it|100|👍)\s*[.!]*\s*$/i;
     const agreedEntry = agreedSlots.get(convId);
+
+    // If the user said "yes" but the slot window expired, tell them instead of silently passing to Claude
+    if (agreedEntry?.slot && YES_REGEX.test(lastUserMsgRaw.trim()) && Date.now() - agreedEntry.storedAt >= 15 * 60 * 1000) {
+      agreedSlots.delete(convId);
+      return res.json({ reply: "I'm sorry, that booking window has expired! Let me pull up fresh availability for you.", booked: false });
+    }
+
     if (agreedEntry?.slot && agreedEntry?.email && YES_REGEX.test(lastUserMsgRaw.trim()) && Date.now() - agreedEntry.storedAt < 15 * 60 * 1000) {
       const { slot, name, email, company, notes } = agreedEntry;
       console.log(`🔒 Direct booking — bypassing Claude for ${convId}: ${slot.label} | ${name} | ${email}`);
@@ -2019,15 +2040,19 @@ ${slotsText}`;
       }
 
       if (slot) {
-        // Fresh fetch to verify slot is still available (skip for direct fallback to avoid blocking)
+        // Fresh fetch to verify slot is still available
         const exactDate = slot.start.split('T')[0];
         const freshSlots = await getAvailableSlots(1, exactDate);
         const normalizeLabel = l => l.replace(/\b(EDT|EST)\b/, 'ET');
-        const freshSlot = freshSlots ? freshSlots.find(s => normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
+        const freshSlot = freshSlots ? freshSlots.find(s => s.start === slot.start || normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
 
-        // Only block if we have fresh data AND it's explicitly unavailable
-        // Always verify — race condition: another user could have booked between confirmation and now
-        if (freshSlots && freshSlots.length > 0 && !freshSlot && matchMethod !== 'Direct BOOK Fallback') {
+        // Block if calendar API failed — can't verify, fail safe
+        if (freshSlots === null) {
+          return res.json({ reply: "I'm having trouble verifying that time slot right now. Could you try again in a moment?", booked: false });
+        }
+
+        // Block if slot not found in fresh data — taken or no longer available (applies to all match methods including direct fallback)
+        if (!freshSlot) {
           conversationSlots.delete(convId);
           agreedSlots.delete(convId);
           const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
