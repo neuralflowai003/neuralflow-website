@@ -53,6 +53,14 @@ const allowedOrigins = [
   'http://localhost:8080',
 ];
 app.use(helmet({ contentSecurityPolicy: false })); // CSP off — we serve inline scripts in index.html
+
+// Redirect www → non-www so Google only indexes one canonical version
+app.use((req, res, next) => {
+  if (req.hostname === 'www.neuralflowai.io') {
+    return res.redirect(301, `https://neuralflowai.io${req.originalUrl}`);
+  }
+  next();
+});
 app.use(cors({
   origin: (origin, cb) => {
     // Allow requests with no origin (server-to-server, curl, Postman)
@@ -69,6 +77,42 @@ function escapeHtml(str) {
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
+
+// ─── SEO ──────────────────────────────────────────────────────────────────────
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send(
+    'User-agent: *\n' +
+    'Allow: /\n' +
+    'Disallow: /bookings\n' +
+    'Disallow: /api/\n' +
+    'Disallow: /oauth/\n' +
+    '\n' +
+    'Sitemap: https://neuralflowai.io/sitemap.xml\n'
+  );
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  const now = new Date().toISOString().split('T')[0];
+  res.type('application/xml');
+  res.send(
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>weekly</changefreq>\n` +
+    `    <priority>1.0</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://roi.neuralflowai.io/roi-calculator</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.8</priority>\n` +
+    `  </url>\n` +
+    `</urlset>\n`
+  );
+});
 
 app.get('/bookings', (req, res) => {
   const pass = process.env.BOOKINGS_PASSWORD;
