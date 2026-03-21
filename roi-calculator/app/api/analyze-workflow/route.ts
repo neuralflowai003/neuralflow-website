@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const userInput = typeof body.userInput === 'string' ? body.userInput.trim() : '';
 
-    if (!userInput || userInput.length < 10) {
+    if (!userInput || userInput.length < 10 || userInput.length > 2000) {
       return NextResponse.json(
         { error: 'Please describe your workflow in more detail.' },
         { status: 400 }
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-haiku-4-5',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 512,
           system: SYSTEM_PROMPT,
           messages: [{ role: 'user', content: userInput }],

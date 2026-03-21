@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { ROIResult } from '@/lib/roi-engine';
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const fmt = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
@@ -21,7 +30,7 @@ function buildEmailHtml(roi: ROIResult): string {
                     <div style="width:24px;height:24px;border-radius:50%;background-color:#16a34a;text-align:center;line-height:24px;font-size:12px;font-weight:700;color:#ffffff;font-family:${fontStack};">${i + 1}</div>
                   </td>
                   <td style="padding-left:8px;">
-                    <p style="margin:0;font-size:14px;color:#374151;line-height:1.5;font-family:${fontStack};">${phase.replace(/^Phase \d+:\s*/, '')}</p>
+                    <p style="margin:0;font-size:14px;color:#374151;line-height:1.5;font-family:${fontStack};">${escapeHtml(phase.replace(/^Phase \d+:\s*/, ''))}</p>
                   </td>
                 </tr>
               </table>`).join('')}
@@ -67,7 +76,7 @@ function buildEmailHtml(roi: ROIResult): string {
               <!-- Headline -->
               <h1 style="margin:0 0 8px;font-size:28px;font-weight:800;color:#111827;line-height:1.25;letter-spacing:-0.5px;font-family:${fontStack};">Your AI Automation ROI Report</h1>
               <p style="margin:0 0 24px;font-family:${fontStack};">
-                <span style="display:inline-block;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600;color:#15803d;">${roi.inputs.taskName}</span>
+                <span style="display:inline-block;background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600;color:#15803d;">${escapeHtml(roi.inputs.taskName)}</span>
               </p>
 
               <!-- 3 stat cards -->
