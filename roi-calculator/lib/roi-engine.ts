@@ -9,6 +9,7 @@ export interface WorkflowData {
   implementationCost: number;
   monthlyFee?: number;
   suggestedPhases?: string[];
+  missedRevenueMonthly?: number; // revenue lost from missed calls/leads per month
 }
 
 export interface ROIResult {
@@ -16,7 +17,8 @@ export interface ROIResult {
   laborSavingsAnnual: number;
   errorReductionAnnual: number;
   opportunityCostAnnual: number;
-  totalAnnualSavings: number;       // gross
+  missedRevenueAnnual: number;
+  totalAnnualSavings: number;       // gross (all sources)
   neuralflowMonthlyCost: number;    // monthlyFee × 12
   netYear1: number;                 // gross − setup − monthly×12
   netOngoing: number;               // gross − monthly×12 (Year 2+)
@@ -24,6 +26,7 @@ export interface ROIResult {
   netProjection: [number, number, number];  // net 3-year
   breakevenMonth: number;
   automationPotential: number;
+  hoursPerYear: number;
   suggestedPhases: string[];
   inputs: WorkflowData;
 }
@@ -40,6 +43,7 @@ export function calculateROI(data: WorkflowData): ROIResult {
     monthlyFee = 450,
     taskName,
     suggestedPhases = [],
+    missedRevenueMonthly = 0,
   } = data;
 
   const runsPerYear = frequencyPerWeek * 52;
@@ -48,7 +52,8 @@ export function calculateROI(data: WorkflowData): ROIResult {
   const laborSavingsAnnual = hoursPerYear * hourlyRate * automationPotential;
   const errorReductionAnnual = errorRate * costPerError * runsPerYear * automationPotential;
   const opportunityCostAnnual = hoursPerYear * automationPotential * hourlyRate * 0.5;
-  const totalAnnualSavings = laborSavingsAnnual + errorReductionAnnual + opportunityCostAnnual;
+  const missedRevenueAnnual = missedRevenueMonthly * 12;
+  const totalAnnualSavings = laborSavingsAnnual + errorReductionAnnual + opportunityCostAnnual + missedRevenueAnnual;
 
   const neuralflowMonthlyCost = monthlyFee * 12;
   const netYear1 = totalAnnualSavings - implementationCost - neuralflowMonthlyCost;
@@ -74,6 +79,7 @@ export function calculateROI(data: WorkflowData): ROIResult {
     laborSavingsAnnual,
     errorReductionAnnual,
     opportunityCostAnnual,
+    missedRevenueAnnual,
     totalAnnualSavings,
     neuralflowMonthlyCost,
     netYear1,
@@ -82,6 +88,7 @@ export function calculateROI(data: WorkflowData): ROIResult {
     netProjection: [netYear1Proj, netYear2Proj, netYear3Proj],
     breakevenMonth,
     automationPotential,
+    hoursPerYear,
     suggestedPhases,
     inputs: data,
   };
