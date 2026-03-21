@@ -61,6 +61,10 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, '')));
 
+function escapeHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
 
@@ -73,12 +77,12 @@ app.get('/bookings', (req, res) => {
   try { bookings = JSON.parse(fs.readFileSync(BOOKINGS_LOG, 'utf8')); } catch {}
   bookings = bookings.slice().reverse(); // newest first
   const rows = bookings.map((b, i) => {
-    const dt = b.slotLabel || b.slotStart || 'Unknown';
+    const dt = escapeHtml(b.slotLabel || b.slotStart || 'Unknown');
     const booked = b.bookedAt ? new Date(b.bookedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
     return `<tr style="border-bottom:1px solid rgba(255,255,255,0.05)">
-      <td style="padding:14px 12px;color:#fff;font-weight:600">${b.name || '—'}</td>
-      <td style="padding:14px 12px;color:#a0a0b0">${b.company || '—'}</td>
-      <td style="padding:14px 12px"><a href="mailto:${b.email}" style="color:#FF6B2B;text-decoration:none">${b.email || '—'}</a></td>
+      <td style="padding:14px 12px;color:#fff;font-weight:600">${escapeHtml(b.name) || '—'}</td>
+      <td style="padding:14px 12px;color:#a0a0b0">${escapeHtml(b.company) || '—'}</td>
+      <td style="padding:14px 12px"><a href="mailto:${escapeHtml(b.email)}" style="color:#FF6B2B;text-decoration:none">${escapeHtml(b.email) || '—'}</a></td>
       <td style="padding:14px 12px;color:#fff">${dt}</td>
       <td style="padding:14px 12px;color:#a0a0b0;font-size:12px">${booked}</td>
     </tr>`;
@@ -1185,7 +1189,7 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
   }
 });
 
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', chatRateLimit, async (req, res) => {
   const { name, email, scope } = req.body;
 
   if (!name || !email || !scope) {
@@ -1204,13 +1208,13 @@ app.post('/api/contact', async (req, res) => {
         from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
         to: process.env.GMAIL_USER,
         subject: `🔥 New Contact Form — ${name}`,
-        html: `<p>Name: ${name}<br/>Email: ${email}<br/>Scope: ${scope}</p>`,
+        html: `<p>Name: ${escapeHtml(name)}<br/>Email: ${escapeHtml(email)}<br/>Scope: ${escapeHtml(scope)}</p>`,
       });
       await resend.emails.send({
         from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
         to: email,
         subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
-        html: `<p>Hi ${name.split(' ')[0]}, I'll get back to you within 24 hours! - Danny</p>`,
+        html: `<p>Hi ${escapeHtml(name.split(' ')[0])}, I'll get back to you within 24 hours! - Danny</p>`,
       });
       sent = true;
     } catch (e) {
@@ -1227,7 +1231,12 @@ app.post('/api/contact', async (req, res) => {
 });
 
 app.post('/api/accept-proposal', async (req, res) => {
-  const { name, businessName, email, phone, amount, fee } = req.body;
+  const { name, businessName, email, phone, amount, fee, token } = req.body;
+
+  const proposalSecret = process.env.PROPOSAL_SECRET;
+  if (proposalSecret && token !== proposalSecret) {
+    return res.status(403).json({ ok: false, error: 'Invalid proposal link. Please use the link sent to you by Danny.' });
+  }
 
   if (!name || !businessName || !email) {
     return res.status(400).json({ ok: false, error: 'Name, Business Name, and Email are required.' });
@@ -1255,12 +1264,12 @@ app.post('/api/accept-proposal', async (req, res) => {
       html: `
         <div style="${emailStyles}">
           <h1 style="color: ${accentColor};">New Proposal Accepted!</h1>
-          <p><strong>Business:</strong> ${businessName}</p>
-          <p><strong>Contact:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
-          <p><strong>Deposit:</strong> $${amount}</p>
-          <p><strong>Monthly Fee:</strong> $${fee}/mo</p>
+          <p><strong>Business:</strong> ${escapeHtml(businessName)}</p>
+          <p><strong>Contact:</strong> ${escapeHtml(name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+          <p><strong>Phone:</strong> ${escapeHtml(phone || 'N/A')}</p>
+          <p><strong>Deposit:</strong> $${Number(amount) || 0}</p>
+          <p><strong>Monthly Fee:</strong> $${Number(fee) || 0}/mo</p>
           <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
           <p><em>Action required: Send DocuSign agreement and Stripe invoice now.</em></p>
         </div>
@@ -1274,12 +1283,12 @@ app.post('/api/accept-proposal', async (req, res) => {
       subject: `Welcome to NeuralFlow AI — Here's What Happens Next`,
       html: `
         <div style="${emailStyles}">
-          <h2 style="color: ${accentColor};">Welcome to NeuralFlow AI, ${name.split(' ')[0]}!</h2>
-          <p>Your proposal has been accepted. We're excited to start this journey with <strong>${businessName}</strong>.</p>
+          <h2 style="color: ${accentColor};">Welcome to NeuralFlow AI, ${escapeHtml(name.split(' ')[0])}!</h2>
+          <p>Your proposal has been accepted. We're excited to start this journey with <strong>${escapeHtml(businessName)}</strong>.</p>
           <p>Here's what happens next:</p>
           <ol>
             <li>We'll send your consulting agreement via <strong>DocuSign</strong> within 24 hours.</li>
-            <li>A deposit invoice will follow for <strong>$${amount}</strong> to begin work.</li>
+            <li>A deposit invoice will follow for <strong>$${Number(amount) || 0}</strong> to begin work.</li>
             <li>Onboarding starts immediately after the agreement is signed.</li>
           </ol>
           <p><strong>Expected go-live:</strong> 10–14 days from today.</p>
@@ -2107,7 +2116,7 @@ setInterval(async () => { try {
 }, 15 * 60 * 1000);
 
 // ─── ROI Calculator Lead Capture ──────────────────────────────────────────────
-app.post('/api/roi-lead', (req, res) => {
+app.post('/api/roi-lead', chatRateLimit, (req, res) => {
   const { name, email, phone, roi, industry } = req.body || {};
 
   if (!name || !email || !phone) {
@@ -2132,7 +2141,7 @@ app.post('/api/roi-lead', (req, res) => {
 });
 
 // ─── ROI Calculator Tracking ──────────────────────────────────────────────────
-app.post('/api/track', (req, res) => {
+app.post('/api/track', chatRateLimit, (req, res) => {
   const { event, data } = req.body || {};
   res.json({ ok: true }); // always respond fast
 

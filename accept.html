@@ -302,6 +302,7 @@
         const clientParam = urlParams.get('client');
         const amountParam = urlParams.get('amount');
         const feeParam = urlParams.get('fee');
+        const proposalToken = urlParams.get('t') || '';
 
         if (clientParam) {
             document.getElementById('businessName').value = clientParam;
@@ -327,7 +328,8 @@
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 amount: amountParam || '0',
-                fee: feeParam || '0'
+                fee: feeParam || '0',
+                token: proposalToken
             };
 
             try {
