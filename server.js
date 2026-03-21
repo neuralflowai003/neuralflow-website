@@ -1374,6 +1374,43 @@ app.get('/api/test-email', chatRateLimit, async (req, res) => {
   res.json(results);
 });
 
+// ── Test booking emails (fires real email templates with dummy data) ───────────
+app.get('/api/test-booking-email', async (req, res) => {
+  if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
+  const slotStart = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const slotEnd   = new Date(Date.now() + 49 * 60 * 60 * 1000).toISOString();
+  try {
+    const r = await fetch(`http://localhost:${process.env.PORT || 3000}/api/book`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Test Client',
+        email: process.env.GMAIL_USER,
+        slotStart,
+        slotEnd,
+        slotLabel: 'Wednesday at 2:00 PM EDT (TEST)',
+        company: 'Test Co',
+        phone: '9083475095',
+        notes: JSON.stringify({
+          leadNotes: 'Wants to automate appointment reminders and reduce no-shows.',
+          leadPain: 'Spending 10hrs/week on manual follow-up. 30% no-show rate.',
+          teamTools: 'Team of 5, using Google Calendar and a basic CRM.',
+          pricingDetails: 'Implementation: $3,500\nMonthly: $1,200/mo\nROI: 6x in year 1',
+          dealValue: 17900,
+          salesAngles: 'Strong ROI case. Decision maker is on the call.',
+          nextSteps: 'Send proposal after call.',
+          objections: 'May ask about contract length.',
+          competitorIntel: 'Looked at a competitor — found it too complex.',
+        }),
+      }),
+    });
+    const data = await r.json();
+    res.json({ triggered: true, book_result: data });
+  } catch (e) {
+    res.json({ triggered: false, error: e.message });
+  }
+});
+
 app.get('/api/availability', chatRateLimit, async (req, res) => {
   res.json({ slots: await getAvailableSlots(90, req.query.date || null) });
 });
@@ -1669,14 +1706,29 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
           searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
         }
       } else {
-        // Month only: "in March", "March"
-        for (const [i, month] of monthNames.entries()) {
-          if (lastUserMsg.includes(month)) {
-            const d = new Date(); d.setMonth(i);
-            if (d < new Date(new Date().setHours(0,0,0,0))) d.setFullYear(d.getFullYear() + 1);
-            d.setDate(1);
-            searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
-            break;
+        // Day of week: "monday", "tuesday", etc.
+        const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+        const dayMatch = lastUserMsg.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
+        if (dayMatch) {
+          const targetDow = dayNames.indexOf(dayMatch[1].toLowerCase());
+          const d = new Date();
+          d.setHours(0, 0, 0, 0);
+          // Advance to the next occurrence of that day (always at least tomorrow)
+          let daysAhead = targetDow - d.getDay();
+          if (daysAhead <= 0) daysAhead += 7;
+          d.setDate(d.getDate() + daysAhead);
+          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1;
+          console.log(`📅 Day-of-week "${dayMatch[1]}" → ${searchFromDate}`);
+        } else {
+          // Month only: "in March", "March"
+          for (const [i, month] of monthNames.entries()) {
+            if (lastUserMsg.includes(month)) {
+              const d = new Date(); d.setMonth(i);
+              if (d < new Date(new Date().setHours(0,0,0,0))) d.setFullYear(d.getFullYear() + 1);
+              d.setDate(1);
+              searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
+              break;
+            }
           }
         }
       }
