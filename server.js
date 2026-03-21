@@ -156,6 +156,7 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
+const MAX_RATE_LIMIT_ENTRIES = 5000;
 function chatRateLimit(req, res, next) {
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
   const now = Date.now();
@@ -163,6 +164,12 @@ function chatRateLimit(req, res, next) {
   const maxRequests = 30;
   const entry = chatRateLimits.get(ip);
   if (!entry || now > entry.resetAt) {
+    if (chatRateLimits.size >= MAX_RATE_LIMIT_ENTRIES) {
+      // Evict oldest expired entry to prevent unbounded growth
+      for (const [key, val] of chatRateLimits.entries()) {
+        if (now > val.resetAt) { chatRateLimits.delete(key); break; }
+      }
+    }
     chatRateLimits.set(ip, { count: 1, resetAt: now + windowMs });
     return next();
   }
@@ -176,6 +183,7 @@ function chatRateLimit(req, res, next) {
 // ─── Conversation Cache ───────────────────────────────────────────────────────
 const conversationSlots = new Map();
 const agreedSlots = new Map(); // { slot, storedAt }
+const MAX_CONVERSATION_SLOTS = 2000;
 setInterval(() => {
   const expiry = Date.now() - 30 * 60 * 1000; // 30 min expiry
   for (const [key, val] of conversationSlots.entries()) {
@@ -183,6 +191,15 @@ setInterval(() => {
   }
   for (const [key, val] of agreedSlots.entries()) {
     if (val.storedAt < expiry) agreedSlots.delete(key);
+  }
+  // Hard cap — evict oldest if still over limit
+  if (conversationSlots.size > MAX_CONVERSATION_SLOTS) {
+    const toDelete = conversationSlots.size - MAX_CONVERSATION_SLOTS;
+    let i = 0;
+    for (const key of conversationSlots.keys()) {
+      if (i++ >= toDelete) break;
+      conversationSlots.delete(key);
+    }
   }
 }, 10 * 60 * 1000);
 
@@ -225,15 +242,27 @@ function flushBookingQueue() {
 }
 
 // ─── Telegram Alert Helper ────────────────────────────────────────────────────
-function sendTelegramAlert(msg) {
+function sendTelegramAlert(msg, attempt = 0) {
   const tgToken = process.env.TELEGRAM_BOT_TOKEN;
   const tgChat = process.env.TELEGRAM_CHAT_ID;
   if (!tgToken || !tgChat) { console.error('⚠️ Telegram not configured — alert dropped:', msg); return; }
   const payload = JSON.stringify({ chat_id: tgChat, text: msg });
   const req = https.request(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
-  }, () => {});
-  req.on('error', () => {});
+  }, (res) => {
+    if (res.statusCode >= 500 && attempt < 2) {
+      setTimeout(() => sendTelegramAlert(msg, attempt + 1), 3000 * (attempt + 1));
+    }
+  });
+  req.on('error', (e) => {
+    console.error(`⚠️ Telegram alert failed (attempt ${attempt + 1}):`, e.message);
+    if (attempt < 2) setTimeout(() => sendTelegramAlert(msg, attempt + 1), 3000 * (attempt + 1));
+  });
+  req.setTimeout(10000, () => {
+    console.error('⚠️ Telegram alert timed out');
+    req.destroy();
+    if (attempt < 2) setTimeout(() => sendTelegramAlert(msg, attempt + 1), 3000 * (attempt + 1));
+  });
   req.write(payload);
   req.end();
 }
@@ -1195,6 +1224,9 @@ app.post('/api/contact', chatRateLimit, async (req, res) => {
   if (!name || !email || !scope) {
     return res.json({ success: false, error: 'Please fill in all fields.' });
   }
+  if (name.length > 200 || scope.length > 2000 || email.length > 254) {
+    return res.json({ success: false, error: 'Input too long.' });
+  }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
   if (!emailRegex.test(email)) {
     return res.json({ success: false, error: 'Please enter a valid email address.' });
@@ -1240,6 +1272,9 @@ app.post('/api/accept-proposal', async (req, res) => {
 
   if (!name || !businessName || !email) {
     return res.status(400).json({ ok: false, error: 'Name, Business Name, and Email are required.' });
+  }
+  if (name.length > 200 || businessName.length > 300 || email.length > 254 || (phone && phone.length > 30)) {
+    return res.status(400).json({ ok: false, error: 'Input too long.' });
   }
 
   try {
@@ -1771,12 +1806,18 @@ ${slotsText}`;
       let resAnthropic;
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          resAnthropic = await anthropic.messages.create({
-            model: 'claude-haiku-4-5',
-            max_tokens: 600,
-            system: systemPrompt,
-            messages
-          });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 25000);
+          try {
+            resAnthropic = await anthropic.messages.create({
+              model: 'claude-haiku-4-5',
+              max_tokens: 600,
+              system: systemPrompt,
+              messages
+            }, { signal: controller.signal });
+          } finally {
+            clearTimeout(timeoutId);
+          }
           break;
         } catch (e) {
           if (attempt === 0) await new Promise(r => setTimeout(r, 2000));
