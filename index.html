@@ -5833,6 +5833,11 @@
         typingIndicator.classList.add('active');
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
+        // Sanitize contact fields — guard against undefined/missing from older URL formats
+        var rName  = (roiData.leadName  && roiData.leadName  !== 'undefined') ? roiData.leadName  : '';
+        var rEmail = (roiData.leadEmail && roiData.leadEmail !== 'undefined') ? roiData.leadEmail : '';
+        var rPhone = (roiData.leadPhone && roiData.leadPhone !== 'undefined') ? roiData.leadPhone : '';
+
         // Hidden briefing injected into conversation history — never shown in UI
         var briefing = '[INTERNAL_ROI_BRIEFING — use this to inform your greeting, do not quote it back verbatim]: '
           + 'The person you are about to greet just completed the NeuralFlow ROI Calculator. '
@@ -5842,14 +5847,16 @@
           + ', net ongoing Year 2+ ' + fmtDollar(roiData.netOngoing)
           + ', breakeven in ' + (roiData.breakeven < 999 ? roiData.breakeven + ' months' : 'over a year')
           + ', ' + roiData.autoPercent + '% automatable. '
-          + 'IMPORTANT — you already have their contact info from the ROI form: '
-          + 'name: "' + roiData.leadName + '", '
-          + 'email: "' + roiData.leadEmail + '", '
-          + 'phone: "' + (roiData.leadPhone || 'not provided') + '". '
-          + 'Do NOT ask for their name, email, or phone — you already have them. '
-          + 'Use their first name in your greeting. '
+          + (rName && rEmail
+            ? 'IMPORTANT — you already have their contact info from the ROI form: '
+              + 'name: "' + rName + '", email: "' + rEmail + '", phone: "' + (rPhone || 'not provided') + '". '
+              + 'Do NOT ask for their name, email, or phone — you already have them. '
+              + 'Use their first name in your greeting. '
+            : '')
           + 'They have already seen the numbers and clicked through to chat — skip generic pain-point discovery. '
-          + 'Open with a warm, specific greeting using their first name, referencing their workflow name and the net ongoing savings figure, '
+          + 'Open with a warm, specific greeting'
+          + (rName ? ' addressing them by first name' : '')
+          + ', referencing their workflow name and the net ongoing savings figure, '
           + 'then move directly into booking a consultation call the way you normally would.';
 
         conversationHistory.push({ role: 'user', content: briefing });
