@@ -6043,6 +6043,7 @@
 
         // --- MOBILE: pulse the chat button 3 times, no bubble ---
         if (isMobile) {
+          playChime();
           var btn = document.getElementById('chatWidgetBtn');
           if (btn) {
             btn.classList.add('aria-mobile-nudge');
