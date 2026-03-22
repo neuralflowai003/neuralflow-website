@@ -9,7 +9,10 @@ export const metadata: Metadata = {
   title: 'NeuralFlow AI — Free ROI Calculator',
   description:
     'Find out exactly what your manual workflows are costing you. AI analysis returns real dollar savings, breakeven timeline, and a custom 3-phase automation roadmap — in 60 seconds.',
-  metadataBase: new URL('https://neuralflowai.io'),
+  metadataBase: new URL('https://roi.neuralflowai.io'),
+  alternates: {
+    canonical: 'https://roi.neuralflowai.io/roi-calculator',
+  },
   openGraph: {
     title: 'NeuralFlow AI — Free ROI Calculator',
     description:
