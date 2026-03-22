@@ -1719,6 +1719,9 @@
       transform-origin: bottom right;
     }
     .aria-nudge-bubble:hover { border-color: rgba(255,107,43,0.85); }
+    @media (max-width: 768px) {
+      .aria-nudge-bubble { bottom: 88px; right: 14px; max-width: calc(100vw - 28px); }
+    }
     @keyframes nudgeBounce {
       0%,100% { transform: scale(1); }
       15%      { transform: scale(1.07); }
@@ -6041,18 +6044,16 @@
         if (isChatOpen) return;
         sessionStorage.setItem('aria_auto_fired', '1');
 
-        // --- MOBILE: pulse the chat button 3 times, no bubble ---
+        // --- MOBILE: pulse button AND show bubble ---
         if (isMobile) {
-          playChime();
-          var btn = document.getElementById('chatWidgetBtn');
-          if (btn) {
-            btn.classList.add('aria-mobile-nudge');
-            setTimeout(function () { btn.classList.remove('aria-mobile-nudge'); }, 3000);
+          var mobileBtn = document.getElementById('chatWidgetBtn');
+          if (mobileBtn) {
+            mobileBtn.classList.add('aria-mobile-nudge');
+            setTimeout(function () { mobileBtn.classList.remove('aria-mobile-nudge'); }, 3000);
           }
-          return;
         }
 
-        // --- DESKTOP: speech bubble ---
+        // --- ALL DEVICES: speech bubble + chime ---
         var chimePlayed = playChime();
 
         var bubble = document.createElement('div');
