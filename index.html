@@ -1650,19 +1650,20 @@
       width: 60px;
       height: 60px;
       border-radius: 50%;
-      background: var(--accent);
+      background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
       color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 20px rgba(255, 107, 43, 0.4);
+      box-shadow: 0 4px 24px rgba(123, 97, 255, 0.45), 0 2px 12px rgba(255, 107, 43, 0.3);
       cursor: pointer;
       z-index: 9999;
-      transition: transform 0.3s ease;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .chat-widget-btn:hover {
-      transform: scale(1.05);
+      transform: scale(1.07);
+      box-shadow: 0 6px 32px rgba(123, 97, 255, 0.6), 0 3px 16px rgba(255, 107, 43, 0.4);
     }
 
     .chat-widget-btn svg {
@@ -1677,19 +1678,24 @@
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      border: 2px solid var(--accent);
-      animation: pulse-ring 2s infinite;
+      border: 2px solid rgba(123, 97, 255, 0.7);
+      animation: pulse-ring 2.2s ease-out infinite;
       z-index: -1;
+    }
+
+    .chat-pulse-ring:nth-child(2) {
+      border-color: rgba(255, 107, 43, 0.5);
+      animation-delay: 1.1s;
     }
 
     @keyframes pulse-ring {
       0% {
         transform: scale(1);
-        opacity: 0.8;
+        opacity: 0.9;
       }
 
       100% {
-        transform: scale(1.6);
+        transform: scale(1.75);
         opacity: 0;
       }
     }
@@ -1700,7 +1706,7 @@
       right: 22px;
       max-width: 230px;
       background: #1a1a1a;
-      border: 1.5px solid rgba(255,107,43,0.55);
+      border: 1.5px solid rgba(123,97,255,0.55);
       border-radius: 16px 16px 4px 16px;
       padding: 12px 30px 12px 14px;
       font-size: 13.5px;
@@ -5397,6 +5403,7 @@
 
   <!-- AI RECEPTIONIST WIDGET -->
   <div class="chat-widget-btn" id="chatWidgetBtn" title="Chat with ARIA">
+    <div class="chat-pulse-ring"></div>
     <div class="chat-pulse-ring"></div>
     <div class="chat-badge" id="chatBadge">1</div>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
