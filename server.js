@@ -966,8 +966,6 @@ Industry: [their likely industry]
         <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;color:#888899;margin-top:2px;">Founder — NeuralFlow AI</div>
         <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;margin-top:4px;">
           <a href="mailto:danny@neuralflowai.io" style="color:#FF6B2B;text-decoration:none;">danny@neuralflowai.io</a>
-          <span style="color:#888899;"> &nbsp;·&nbsp; </span>
-          <a href="tel:+19083475095" style="color:#FF6B2B;text-decoration:none;">(908) 347-5095</a>
         </div>
       </td>
     </tr></table>
