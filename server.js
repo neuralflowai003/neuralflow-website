@@ -1822,8 +1822,9 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     let pastDateNote = false;
     let weekendNote = false;
     if (searchFromDate) {
-      const today = new Date(); today.setHours(0,0,0,0);
-      const reqD = new Date(searchFromDate + 'T12:00:00'); reqD.setHours(0,0,0,0);
+      const { year: nyY, month: nyM, date: nyD } = getNYToday();
+      const today = new Date(Date.UTC(nyY, nyM, nyD));
+      const reqD = new Date(searchFromDate + 'T12:00:00Z');
       if (reqD < today) {
         searchFromDate = null;
         pastDateNote = true;
@@ -2101,7 +2102,7 @@ When the client asks for more options on the same day ("what else do you have", 
 SCHEDULING RULES:
 - Plain text only — no asterisks, no bold, no markdown, no bullet symbols
 - Copy slot labels EXACTLY character-for-character from the list — never reformat or paraphrase
-- Never offer a slot less than 24 hours from now (today is ${todayFormatted})
+- Never offer a slot less than 4 hours from now (today is ${todayFormatted})
 - Never invent slots that aren't in the list
 - Never include the year when stating dates (say "Tuesday, April 15" not "Tuesday, April 15, 2026")
 - The slotStart in the BOOK command must always match the [start:ISO] from the exact slot you confirmed
