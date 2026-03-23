@@ -1651,6 +1651,23 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       console.log(`⏰ Detected time: ${hr}:${String(roundedMin).padStart(2, '0')}`);
     }
 
+    // Fallback: bare number with no AM/PM — e.g. "maybe 4?", "how about 3", "can we do 2:30"
+    if (!requestedTime) {
+      const bareMatch = lastUserMsg.match(/\b(?:do|at|about|maybe|around|try)\s+(\d{1,2})(?::(\d{2}))?\b/i);
+      if (bareMatch) {
+        let hr = parseInt(bareMatch[1]);
+        const min = parseInt(bareMatch[2] || '0');
+        if (hr >= 1 && hr <= 12) {
+          // 1–7 → assume PM (no one books a 2am call); 8–11 → AM; 12 → noon (PM)
+          if (hr >= 1 && hr <= 7) hr += 12;
+          let roundedMin = min < 15 ? 0 : min < 45 ? 30 : 60;
+          if (roundedMin === 60) { hr = (hr + 1) % 24; roundedMin = 0; }
+          requestedTime = { hr, min: roundedMin };
+          console.log(`⏰ Bare time (assumed ${hr >= 12 ? 'PM' : 'AM'}): ${hr}:${String(roundedMin).padStart(2,'0')}`);
+        }
+      }
+    }
+
     // ── 2. Date phrase detection (runs FIRST, before flexible check) ──────────
     let searchFromDate = null;
     let daysWindow = 7;
