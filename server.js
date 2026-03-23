@@ -1637,11 +1637,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     }
 
     // ── 0b. Clear stale agreedSlot if user is proposing a different time/date ──
-    // Prevents old confirmed slot from being booked if user changes their mind
+    // Prevents old confirmed slot from being booked if user changes their mind.
+    // NOTE: only use unambiguous signals — explicit AM/PM time, day name, date phrase, or flat refusal.
+    // Do NOT use bare-number regex here — "about 5 people" would falsely clear a confirmed slot.
     const NO_REGEX = /^\s*(no|nope|nah|not that|not anymore|never mind|nevermind|cancel|stop|actually|wait|hold on|different|change it|wrong time|wrong day)\s*[.!?]*\s*$/i;
     const proposingNewTime = !!(
       lastUserMsg.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i) ||
-      lastUserMsg.match(/\b(?:do|at|about|maybe|around|try)\s+(\d{1,2})\b/i) ||
       lastUserMsg.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next week|next month)\b/i) ||
       NO_REGEX.test(lastUserMsgRaw.trim())
     );
@@ -1665,10 +1666,15 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       console.log(`⏰ Detected time: ${hr}:${String(roundedMin).padStart(2, '0')}`);
     }
 
-    // Fallback: bare number with no AM/PM — e.g. "maybe 4?", "how about 3", "can we do 2:30"
+    // Fallback: bare number time — only trigger on short messages or clear time-asking patterns
+    // e.g. "maybe 4?", "how about 3", "can we do 2:30" — NOT "about 5 people on my team"
     if (!requestedTime) {
+      const isShortMsg = lastUserMsgRaw.trim().length <= 20;
       const bareMatch = lastUserMsg.match(/\b(?:do|at|about|maybe|around|try)\s+(\d{1,2})(?::(\d{2}))?\b/i);
-      if (bareMatch) {
+      // Only treat bare number as a time if the message is short (likely a direct time reply)
+      // AND doesn't contain words that suggest it's about quantity, not time
+      const hasQuantityWords = /\b(people|person|employee|staff|client|call|meeting|week|month|day|hour|minute|team|member|lead|deal|project|call[s]?|thing[s]?)\b/i.test(lastUserMsg);
+      if (bareMatch && isShortMsg && !hasQuantityWords) {
         let hr = parseInt(bareMatch[1]);
         const min = parseInt(bareMatch[2] || '0');
         if (hr >= 1 && hr <= 12) {
@@ -1973,6 +1979,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         if (!existing.email) {
           sendTelegramAlert(`👀 ARIA LEAD\n${detectedEmail} is talking to ARIA right now`);
         }
+        if (pendingLeads.size >= 1000) { const oldest = [...pendingLeads.entries()].sort((a,b) => a[1].lastSeen - b[1].lastSeen)[0]; if (oldest) pendingLeads.delete(oldest[0]); }
         pendingLeads.set(convId, { ...existing, email: detectedEmail, lastSeen: Date.now(), followedUp: existing.followedUp || false });
         savePendingLeads();
       }
@@ -2129,8 +2136,11 @@ ${slotsText}`;
       aiReplyText = resAnthropic.content[0].text;
     } catch (e) {
       console.log('Anthropic failed, falling back to OpenRouter');
+      const orAbort = new AbortController();
+      const orTimer = setTimeout(() => orAbort.abort(), 25000);
       const resOpenRouter = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
+        signal: orAbort.signal,
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
@@ -2143,6 +2153,7 @@ ${slotsText}`;
           messages: [{ role: 'system', content: systemPrompt }, ...messages]
         })
       });
+      clearTimeout(orTimer);
       if (!resOpenRouter.ok) throw new Error('OpenRouter failed');
       const data = await resOpenRouter.json();
       aiReplyText = data.choices[0].message.content;
@@ -2224,6 +2235,7 @@ ${slotsText}`;
             if (ph) { confirmedPhone = ph[0]; break; }
           }
         }
+        if (agreedSlots.size >= 500) { const oldest = [...agreedSlots.entries()].sort((a,b) => a[1].storedAt - b[1].storedAt)[0]; if (oldest) agreedSlots.delete(oldest[0]); }
         agreedSlots.set(convId, { slot: matchedSlot, storedAt: Date.now(), name: confirmedName, email: confirmedEmail, phone: confirmedPhone, company: confirmedCompany, notes: userMsgs });
         console.log(`📌 Agreed slot stored: ${matchedSlot.label} | name="${confirmedName}" email="${confirmedEmail}" company="${confirmedCompany}"`);
       }
