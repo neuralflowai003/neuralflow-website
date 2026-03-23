@@ -2142,10 +2142,28 @@ ${slotsText}`;
     const lowerReply = aiReplyText.toLowerCase();
     if (lowerReply.includes('just to confirm') || lowerReply.includes("i'm booking")) {
       const activeSlots = conversationSlots.get(convId)?.slots || slots || [];
-      const matchedSlot = activeSlots.find(s => {
-        const core = s.label.replace(/\s*\[start:[^\]]+\]/g, '').replace(/\s*\/\s*\d{1,2}:\d{2}\s*(AM|PM)\s+\w+\s+your time/i, '').trim();
-        return aiReplyText.includes(core);
+      // Normalize timezone abbreviations so EDT/EST/ET all match
+      const normTZ = s => s.replace(/\b(EDT|EST|ET)\b/gi, 'ET');
+      let matchedSlot = activeSlots.find(s => {
+        const core = normTZ(s.label.replace(/\s*\[start:[^\]]+\]/g, '').replace(/\s*\/\s*\d{1,2}:\d{2}\s*(AM|PM)\s+\w+\s+your time/i, '').trim());
+        return normTZ(aiReplyText).includes(core);
       });
+      // Fallback: match by extracting the time from ARIA's reply and comparing to slot times
+      if (!matchedSlot) {
+        const timeInReply = aiReplyText.match(/\b(\d{1,2}):(\d{2})\s*(AM|PM)\b/i);
+        if (timeInReply) {
+          let hr = parseInt(timeInReply[1]);
+          const min = parseInt(timeInReply[2]);
+          const ap = timeInReply[3].toLowerCase();
+          if (ap === 'pm' && hr < 12) hr += 12;
+          if (ap === 'am' && hr === 12) hr = 0;
+          matchedSlot = activeSlots.find(s => {
+            const ny = new Date(new Date(s.start).toLocaleString('en-US', { timeZone: 'America/New_York' }));
+            return ny.getHours() === hr && ny.getMinutes() === min;
+          });
+          if (matchedSlot) console.log(`📌 Agreed slot matched via time fallback: ${matchedSlot.label}`);
+        }
+      }
       if (matchedSlot) {
         // Extract name + email from "I'm booking [slot] for [Name] at [email]"
         const nameEmailMatch = aiReplyText.match(/for\s+([A-Za-z][A-Za-z '\-]{1,40}?)\s+at\s+([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/i);
