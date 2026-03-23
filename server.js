@@ -344,6 +344,14 @@ refreshGlobalSlotCache();
 setInterval(refreshGlobalSlotCache, 2 * 60 * 1000);
 
 // ─── Helper: DST-Aware NY Offset ──────────────────────────────────────────────
+// Returns { year, month (0-based), date } for today in New York time
+function getNYToday() {
+  const now = new Date();
+  const { hours } = getNYOffset(now);
+  const ny = new Date(now.getTime() - hours * 3600000);
+  return { year: ny.getUTCFullYear(), month: ny.getUTCMonth(), date: ny.getUTCDate() };
+}
+
 function getNYOffset(date) {
   const year = date.getUTCFullYear();
   const dstStart = new Date(Date.UTC(year, 2, 8));
@@ -441,8 +449,11 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
   try {
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-    // Window starts from tomorrow if no specific date given (Today + 1 day)
-    const windowStart = startFromDate ? new Date(startFromDate + 'T00:00:00') : (() => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1); return d; })();
+    // Window starts from tomorrow if no specific date given — use ET so after 8pm UTC doesn't skip a day
+    const windowStart = startFromDate ? new Date(startFromDate + 'T00:00:00') : (() => {
+      const { year, month, date } = getNYToday();
+      return new Date(Date.UTC(year, month, date + 1));
+    })();
     const windowEnd = new Date(windowStart);
     windowEnd.setDate(windowEnd.getDate() + Math.max(daysWindow, 1)); // min 1 day to avoid empty range error
 
@@ -1698,13 +1709,19 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const mMatch = lastUserMsg.match(/\bin\s+(\d+)\s+months?\b/);
 
     if (lastUserMsg.match(/\btomorrow\b|\bnext day\b/)) {
-      const d = new Date(); d.setDate(d.getDate() + 1);
-      searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1;
+      const { year, month, date } = getNYToday();
+      searchFromDate = new Date(Date.UTC(year, month, date + 1)).toISOString().split('T')[0]; daysWindow = 1;
     } else if (lastUserMsg.match(/\bend of (the )?month\b/)) {
-      const d = new Date();
-      const target = new Date(d.getFullYear(), d.getMonth(), 20);
-      if (d.getDate() >= 20) target.setMonth(target.getMonth() + 1);
-      searchFromDate = target.toISOString().split('T')[0]; daysWindow = 10;
+      const { year, month, date } = getNYToday();
+      const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+      const startDay = Math.max(date + 1, 25); // tomorrow at earliest, aim for the 25th+
+      let target;
+      if (startDay > lastDayOfMonth) {
+        target = new Date(Date.UTC(year, month + 1, 25)); // spilled into next month
+      } else {
+        target = new Date(Date.UTC(year, month, startDay));
+      }
+      searchFromDate = target.toISOString().split('T')[0]; daysWindow = 7;
     } else if (lastUserMsg.match(/\bnext week\b|\bfollowing week\b/)) {
       const d = new Date(); d.setDate(d.getDate() + 7);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isNextWeek = true;
@@ -1775,13 +1792,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         const dayMatch = lastUserMsg.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
         if (dayMatch) {
           const targetDow = dayNames.indexOf(dayMatch[1].toLowerCase());
-          const d = new Date();
-          d.setHours(0, 0, 0, 0);
+          const { year, month, date } = getNYToday();
+          const todayDow = new Date(Date.UTC(year, month, date)).getUTCDay();
           // Advance to the next occurrence of that day (always at least tomorrow)
-          let daysAhead = targetDow - d.getDay();
+          let daysAhead = targetDow - todayDow;
           if (daysAhead <= 0) daysAhead += 7;
-          d.setDate(d.getDate() + daysAhead);
-          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 1;
+          searchFromDate = new Date(Date.UTC(year, month, date + daysAhead)).toISOString().split('T')[0]; daysWindow = 1;
           console.log(`📅 Day-of-week "${dayMatch[1]}" → ${searchFromDate}`);
         } else {
           // Month only: "in March", "March"
