@@ -467,7 +467,7 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
     const busy = data.calendars.primary.busy || [];
     const slots = [];
     const slotsPerDay = {}; // FIX 2: max 2 slots per date
-    const now24h = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h buffer — no same-day or next-day slots
+    const now24h = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4h buffer — slots need at least 4 hours notice
 
     const d = new Date(windowStart);
     d.setHours(0, 0, 0, 0);
