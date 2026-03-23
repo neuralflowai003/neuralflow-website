@@ -1636,6 +1636,20 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       await refreshGlobalSlotCache();
     }
 
+    // ── 0b. Clear stale agreedSlot if user is proposing a different time/date ──
+    // Prevents old confirmed slot from being booked if user changes their mind
+    const NO_REGEX = /^\s*(no|nope|nah|not that|not anymore|never mind|nevermind|cancel|stop|actually|wait|hold on|different|change it|wrong time|wrong day)\s*[.!?]*\s*$/i;
+    const proposingNewTime = !!(
+      lastUserMsg.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i) ||
+      lastUserMsg.match(/\b(?:do|at|about|maybe|around|try)\s+(\d{1,2})\b/i) ||
+      lastUserMsg.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next week|next month)\b/i) ||
+      NO_REGEX.test(lastUserMsgRaw.trim())
+    );
+    if (proposingNewTime && agreedSlots.has(convId)) {
+      console.log(`🗑️ Clearing stale agreedSlot — user changed time/date or declined`);
+      agreedSlots.delete(convId);
+    }
+
     // ── 1. Specific time detection ────────────────────────────────────────────
     let requestedTime = null;
     const timeMatch = lastUserMsg.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i);
