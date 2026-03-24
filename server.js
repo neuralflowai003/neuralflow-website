@@ -352,6 +352,12 @@ function getNYToday() {
   return { year: ny.getUTCFullYear(), month: ny.getUTCMonth(), date: ny.getUTCDate() };
 }
 
+// Returns a Date object whose UTC fields represent today's ET date at midnight ET
+function getNYDateObj() {
+  const { year, month, date } = getNYToday();
+  return new Date(Date.UTC(year, month, date));
+}
+
 function getNYOffset(date) {
   const year = date.getUTCFullYear();
   const dstStart = new Date(Date.UTC(year, 2, 8));
@@ -1723,46 +1729,47 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       }
       searchFromDate = target.toISOString().split('T')[0]; daysWindow = 7;
     } else if (lastUserMsg.match(/\bnext week\b|\bfollowing week\b/)) {
-      const d = new Date(); d.setDate(d.getDate() + 7);
+      const d = getNYDateObj(); d.setUTCDate(d.getUTCDate() + 7);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isNextWeek = true;
     } else if (lastUserMsg.match(/\bcouple weeks?\b|\bfew weeks?\b/)) {
-      const d = new Date(); d.setDate(d.getDate() + 14);
+      const d = getNYDateObj(); d.setUTCDate(d.getUTCDate() + 14);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
     } else if (wMatch) {
-      const d = new Date(); d.setDate(d.getDate() + parseInt(wMatch[1]) * 7);
+      const d = getNYDateObj(); d.setUTCDate(d.getUTCDate() + parseInt(wMatch[1]) * 7);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
     } else if (lastUserMsg.match(/\bnext month\b/)) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(1);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30; isMonthRange = true;
     } else if (lastUserMsg.match(/\bearly next month\b|\bbeginning of next month\b|\bstart of next month\b/)) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1);
+      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(1);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
     } else if (lastUserMsg.match(/\b(first|1st)\s+week\b/)) {
       // "first week" — look at conversation context to determine which month they mean
       const priorSlots = conversationSlots.get(convId)?.slots;
-      const refDate = priorSlots?.[0] ? new Date(priorSlots[0].start) : new Date();
+      const today = getNYDateObj();
+      const refDate = priorSlots?.[0] ? new Date(priorSlots[0].start) : today;
       // If prior slots are in the future (different month), use that month; else next month
-      const refMonth = refDate > new Date() && refDate.getUTCMonth() !== new Date().getUTCMonth()
-        ? new Date(refDate.getUTCFullYear(), refDate.getUTCMonth(), 1)
-        : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(1); return d; })();
+      const refMonth = refDate > today && refDate.getUTCMonth() !== today.getUTCMonth()
+        ? new Date(Date.UTC(refDate.getUTCFullYear(), refDate.getUTCMonth(), 1))
+        : (() => { const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(1); return d; })();
       searchFromDate = refMonth.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\b(second|2nd)\s+week\b/)) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(8);
+      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(8);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\b(third|3rd)\s+week\b/)) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(15);
+      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(15);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\b(last|final|fourth|4th)\s+week\b/)) {
-      const d = new Date(); d.setMonth(d.getMonth() + 1); d.setDate(22);
+      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(22);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\bin a few months?\b|\ba couple months?\b|\bin 2 months?\b/)) {
-      const d = new Date(); d.setDate(d.getDate() + 60);
+      const d = getNYDateObj(); d.setUTCDate(d.getUTCDate() + 60);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30;
     } else if (lastUserMsg.match(/\bin 3 months?\b/)) {
-      const d = new Date(); d.setDate(d.getDate() + 90);
+      const d = getNYDateObj(); d.setUTCDate(d.getUTCDate() + 90);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30;
     } else if (mMatch) {
-      const d = new Date(); d.setDate(d.getDate() + parseInt(mMatch[1]) * 30);
+      const d = getNYDateObj(); d.setUTCDate(d.getUTCDate() + parseInt(mMatch[1]) * 30);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30;
     } else {
       // Specific date: "March 15", "the 15th", "15th"
@@ -1771,19 +1778,19 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         const monthStr = dateMatch[1];
         const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
         if (dayNum >= 1 && dayNum <= 31) {
-          const d = new Date();
+          const d = getNYDateObj();
           if (monthStr) {
-            d.setMonth(monthNames.indexOf(monthStr));
+            d.setUTCMonth(monthNames.indexOf(monthStr));
           } else {
             const prior = conversationSlots.get(convId);
             if (prior?.slots?.length > 0) {
               const ref = new Date(prior.slots[0].start);
-              const candidate = new Date(ref.getUTCFullYear(), ref.getUTCMonth(), dayNum, 12);
-              if (candidate > new Date()) { d.setFullYear(ref.getUTCFullYear()); d.setMonth(ref.getUTCMonth()); }
+              const candidate = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), dayNum));
+              if (candidate > getNYDateObj()) { d.setUTCFullYear(ref.getUTCFullYear()); d.setUTCMonth(ref.getUTCMonth()); }
             }
           }
-          d.setDate(dayNum);
-          if (d < new Date(new Date().setHours(0,0,0,0))) d.setFullYear(d.getFullYear() + 1);
+          d.setUTCDate(dayNum);
+          if (d < getNYDateObj()) d.setUTCFullYear(d.getUTCFullYear() + 1);
           searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
         }
       } else {
@@ -1803,9 +1810,9 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
           // Month only: "in March", "March"
           for (const [i, month] of monthNames.entries()) {
             if (lastUserMsg.includes(month)) {
-              const d = new Date(); d.setMonth(i);
-              if (d < new Date(new Date().setHours(0,0,0,0))) d.setFullYear(d.getFullYear() + 1);
-              d.setDate(1);
+              const d = getNYDateObj(); d.setUTCMonth(i);
+              if (d < getNYDateObj()) d.setUTCFullYear(d.getUTCFullYear() + 1);
+              d.setUTCDate(1);
               searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
               break;
             }
