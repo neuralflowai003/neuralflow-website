@@ -420,6 +420,20 @@ function formatSlotInClientTz(isoStr, tz) {
   } catch { return null; }
 }
 
+// ─── Extract date from text (e.g. "Friday, Apr 3" → "2026-04-03") ───────────
+function extractDateFromText(text) {
+  const match = text.match(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\w*,?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+(\d{1,2})/i);
+  if (!match) return null;
+  const monthAbbrs = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  const mi = monthAbbrs.findIndex(m => match[2].toLowerCase().startsWith(m));
+  if (mi < 0) return null;
+  const d = getNYDateObj();
+  d.setUTCMonth(mi);
+  d.setUTCDate(parseInt(match[3]));
+  if (d < getNYDateObj()) d.setUTCFullYear(d.getUTCFullYear() + 1);
+  return d.toISOString().split('T')[0];
+}
+
 // ─── Pick one morning / afternoon / evening slot per day ─────────────────────
 // Parses the hour from the slot label ("at 9:00 AM ET") so we don't fight UTC offsets
 function pickDaySlots(allSlots) {
@@ -953,21 +967,38 @@ Industry: [their likely industry]
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td style="padding:0 0 18px 0;">
         <table cellpadding="0" cellspacing="0"><tr>
-          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:20px;height:20px;background:#FF6B2B;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:800;color:#fff;">1</span></td>
-          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#888899;line-height:1.7;">We'll map your current workflows and pinpoint exactly where AI can cut time and cost.</td>
+          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:24px;height:24px;background:linear-gradient(135deg,#FF6B2B,#7B61FF);border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:800;color:#fff;">1</span></td>
+          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#c0c0cc;line-height:1.7;"><strong style="color:#ffffff;">Workflow Audit</strong> — We'll map your current processes and pinpoint exactly where AI saves you time and money.</td>
         </tr></table>
       </td></tr>
       <tr><td style="padding:0 0 18px 0;">
         <table cellpadding="0" cellspacing="0"><tr>
-          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:20px;height:20px;background:#7B61FF;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:800;color:#fff;">2</span></td>
-          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#888899;line-height:1.7;">You'll see real systems we've built — actual results, no slide decks.</td>
+          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:24px;height:24px;background:linear-gradient(135deg,#7B61FF,#FF6B2B);border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:800;color:#fff;">2</span></td>
+          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#c0c0cc;line-height:1.7;"><strong style="color:#ffffff;">Real Results</strong> — You'll see actual systems we've built for businesses like yours. No slide decks, just proof.</td>
         </tr></table>
       </td></tr>
       <tr><td>
         <table cellpadding="0" cellspacing="0"><tr>
-          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:20px;height:20px;background:#FF6B2B;border-radius:50%;text-align:center;line-height:20px;font-size:10px;font-weight:800;color:#fff;">3</span></td>
-          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#888899;line-height:1.7;">You'll walk away with a custom roadmap — whether we work together or not.</td>
+          <td style="vertical-align:top;padding-right:14px;"><span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;display:inline-block;width:24px;height:24px;background:linear-gradient(135deg,#FF6B2B,#7B61FF);border-radius:50%;text-align:center;line-height:24px;font-size:11px;font-weight:800;color:#fff;">3</span></td>
+          <td style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;color:#c0c0cc;line-height:1.7;"><strong style="color:#ffffff;">Custom Roadmap</strong> — You walk away with a clear action plan, whether we work together or not. Zero pressure.</td>
         </tr></table>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <!-- COME PREPARED -->
+  <tr><td class="card" style="background:#0a0a0f;padding:28px 40px;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
+    <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#FF6B2B;margin-bottom:16px;">COME PREPARED</div>
+    <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:0 0 14px;font-size:13px;color:#888899;line-height:1.7;">To make the most of our time, think about:</p>
+    <table cellpadding="0" cellspacing="0" width="100%">
+      <tr><td style="padding:6px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;color:#c0c0cc;line-height:1.6;">
+        <span style="color:#FF6B2B;margin-right:8px;">&#x25B8;</span> Which tasks eat up the most time every week?
+      </td></tr>
+      <tr><td style="padding:6px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;color:#c0c0cc;line-height:1.6;">
+        <span style="color:#FF6B2B;margin-right:8px;">&#x25B8;</span> What tools and software does your team use daily?
+      </td></tr>
+      <tr><td style="padding:6px 0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;color:#c0c0cc;line-height:1.6;">
+        <span style="color:#FF6B2B;margin-right:8px;">&#x25B8;</span> Any bottlenecks or pain points you'd love to eliminate?
       </td></tr>
     </table>
   </td></tr>
@@ -976,23 +1007,37 @@ Industry: [their likely industry]
   <tr><td class="card" style="background:#0a0a0f;padding:28px 40px 32px;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
     <table cellpadding="0" cellspacing="0"><tr>
       <td style="vertical-align:top;padding-right:16px;">
-        <div style="width:44px;height:44px;border-radius:50%;background:#FF6B2B;text-align:center;line-height:44px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:800;color:#ffffff;">D</div>
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#FF6B2B,#7B61FF);text-align:center;line-height:48px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:18px;font-weight:800;color:#ffffff;">D</div>
       </td>
       <td style="vertical-align:middle;">
-        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;font-weight:700;color:#ffffff;">Danny Boehmer</div>
-        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;color:#888899;margin-top:2px;">Founder — NeuralFlow AI</div>
-        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;margin-top:4px;">
-          <a href="mailto:danny@neuralflowai.io" style="color:#FF6B2B;text-decoration:none;">danny@neuralflowai.io</a>
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;color:#ffffff;">Danny Boehmer</div>
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;color:#FF6B2B;margin-top:3px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;">Founder — NeuralFlow AI</div>
+        <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;margin-top:5px;">
+          <a href="mailto:danny@neuralflowai.io" style="color:#888899;text-decoration:none;">danny@neuralflowai.io</a>
+          <span style="color:rgba(255,255,255,0.15);margin:0 6px;">|</span>
+          <a href="https://neuralflowai.io" style="color:#888899;text-decoration:none;">neuralflowai.io</a>
         </div>
       </td>
     </tr></table>
-    <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:16px 0 0;font-size:13px;color:#888899;line-height:1.65;">See you on the call. If anything comes up, just reply directly to this email.</p>
+    <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:18px 0 0;font-size:13px;color:#888899;line-height:1.65;">Looking forward to the call. If anything comes up, just reply to this email and we'll sort it out.</p>
+  </td></tr>
+
+  <!-- RESCHEDULE NOTE -->
+  <tr><td style="background:#050508;padding:16px 40px;text-align:center;border-left:1px solid rgba(255,255,255,0.06);border-right:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
+    <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:0;font-size:11px;color:rgba(136,136,153,0.5);line-height:1.6;">Need to reschedule? No worries — just reply to this email or <a href="https://neuralflowai.io" style="color:#FF6B2B;text-decoration:none;">chat with ARIA</a> to pick a new time.</p>
   </td></tr>
 
   <!-- FOOTER -->
   <tr><td style="background:#030305;padding:20px 40px;text-align:center;border:1px solid rgba(255,255,255,0.06);border-top:none;">
-    <a href="https://neuralflowai.io" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#FF6B2B;text-decoration:none;">NEURALFLOWAI.IO</a>
-    <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:8px 0 0;font-size:10px;color:rgba(136,136,153,0.4);">© 2026 NeuralFlow AI LLC &nbsp;·&nbsp; Bayonne, NJ &nbsp;·&nbsp; All rights reserved.</p>
+    <table cellpadding="0" cellspacing="0" width="100%"><tr>
+      <td align="center">
+        <a href="https://neuralflowai.io" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;font-weight:800;letter-spacing:-0.3px;text-decoration:none;">
+          <span style="color:#ffffff;">Neural</span><span style="color:#FF6B2B;">Flow</span><span style="color:#ffffff;"> AI</span>
+        </a>
+        <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:6px 0 0;font-size:10px;color:rgba(136,136,153,0.35);letter-spacing:0.5px;">AI Consulting &amp; Automation &nbsp;&middot;&nbsp; Bayonne, NJ</p>
+        <p style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;margin:4px 0 0;font-size:9px;color:rgba(136,136,153,0.25);">&copy; 2026 NeuralFlow AI LLC &nbsp;&middot;&nbsp; All rights reserved.</p>
+      </td>
+    </tr></table>
   </td></tr>
 
 </table>
@@ -1030,6 +1075,18 @@ Industry: [their likely industry]
             <span style="display:inline-block;background:${urgencyColor};color:#fff;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;padding:6px 14px;border-radius:100px;margin-left:8px;">${urgencyEmoji} ${urgencyLabel}</span>
           </td>
         </tr>
+      </table>
+    </td></tr>
+
+    <!-- TL;DR -->
+    <tr><td style="background:#0d0d15;padding:20px 40px;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <table cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="font-size:13px;color:#c0c0cc;line-height:1.6;">
+            <strong style="color:#fff;">${escapeHtml(name)}</strong>${company ? ` from <strong style="color:#fff;">${escapeHtml(company)}</strong>` : ''} &nbsp;&middot;&nbsp; ${slotLabel}${phone ? ` &nbsp;&middot;&nbsp; <a href="tel:${escapeHtml(phone.replace(/\\s/g,''))}" style="color:#FF6B2B;text-decoration:none;">${escapeHtml(phone)}</a>` : ''}
+          </td>
+        </tr>
+        ${summary ? `<tr><td style="padding-top:8px;font-size:12px;color:#a0a0b0;line-height:1.6;font-style:italic;">${escapeHtml(summary.substring(0, 200))}</td></tr>` : ''}
       </table>
     </td></tr>
 
@@ -1123,17 +1180,20 @@ Industry: [their likely industry]
       </table>
     </td></tr>
 
-    <!-- BUTTONS -->
+    <!-- QUICK ACTIONS -->
     <tr><td style="background:#0f0f16;padding:0 40px 28px;">
-      <table cellpadding="0" cellspacing="0">
+      <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:14px;">QUICK ACTIONS</div>
+      <table cellpadding="0" cellspacing="0" width="100%">
         <tr>
-          <td style="padding-right:10px;">
-            <a href="${calEventUrl}" style="display:inline-block;background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;font-size:13px;font-weight:700;text-decoration:none;padding:12px 20px;border-radius:8px;">📅 View Event</a>
+          <td style="padding-right:8px;width:33%;">
+            <a href="mailto:${escapeHtml(email)}" style="display:block;background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;font-size:12px;font-weight:700;text-decoration:none;padding:14px 16px;border-radius:10px;text-align:center;">Reply to Lead</a>
           </td>
-          <td style="padding-right:10px;">
-            <a href="mailto:${escapeHtml(email)}" style="display:inline-block;background:transparent;color:#FF6B2B;font-size:13px;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:8px;border:1.5px solid #FF6B2B;">✉️ Email Lead</a>
+          <td style="padding-right:8px;width:33%;">
+            <a href="${calEventUrl}" style="display:block;background:transparent;color:#fff;font-size:12px;font-weight:700;text-decoration:none;padding:13px 16px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.12);">View Event</a>
           </td>
-          ${phone ? `<td><a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" style="display:inline-block;background:transparent;color:#a0a0b0;font-size:13px;font-weight:700;text-decoration:none;padding:11px 20px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.1);">📞 Call Lead</a></td>` : ''}
+          <td style="width:33%;">
+            ${phone ? `<a href="tel:${escapeHtml(phone.replace(/\s/g,''))}" style="display:block;background:transparent;color:#a0a0b0;font-size:12px;font-weight:700;text-decoration:none;padding:13px 16px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.08);">Call Lead</a>` : `<span style="display:block;padding:13px 16px;font-size:12px;color:rgba(160,160,176,0.3);text-align:center;">No Phone</span>`}
+          </td>
         </tr>
       </table>
     </td></tr>
@@ -1141,7 +1201,7 @@ Industry: [their likely industry]
     <!-- FOOTER -->
     <tr><td style="background:#06060b;padding:20px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.05);">
       <a href="https://neuralflowai.io" style="font-size:12px;font-weight:700;color:#FF6B2B;text-decoration:none;">neuralflowai.io</a>
-      <p style="margin:6px 0 0;font-size:11px;color:rgba(160,160,176,0.4);">© 2026 NeuralFlow AI LLC · 🤖 Booked via ARIA</p>
+      <p style="margin:6px 0 0;font-size:11px;color:rgba(160,160,176,0.4);">© 2026 NeuralFlow AI LLC · Booked via ARIA</p>
     </td></tr>
 
   </table>
@@ -1627,7 +1687,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     // ── DIRECT BOOKING: detect user confirming a stored booking ──────────────
     // This runs before Claude — so if the user says any form of "yes", we book
     // immediately without depending on Claude outputting a BOOK command.
-    const YES_REGEX = /^\s*(yes|yep|yup|yeah|sure|ok|okay|correct|perfect|great|absolutely|definitely|for sure|sounds good|that works|looks good|go ahead|book it|do it|lock it in|lock that in|confirmed|please|yes please|please do|please book|book that|let'?s do it|make it happen|i confirm|confirmed|book me in|set it up|done|go for it|100|👍)\s*[.!]*\s*$/i;
+    const YES_REGEX = /^\s*(yes|yep|yup|yeah|sure|ok|okay|correct|perfect|great|absolutely|definitely|for sure|sounds good|that works|looks good|go ahead|book it|do it|lock it in|lock that in|confirmed|please|yes please|please do|please book|book that|let'?s do it|make it happen|i confirm|confirmed|book me in|set it up|done|go for it|100|👍|yeah do it|yep do it|yes do it|yeah book it|yep book it|yeah go ahead|yeah let'?s do it|yes let'?s do it|yeah let'?s go|sure do it|ok do it|ok book it|yeah please|yep please|sure thing|bet|yessir|yes sir)\s*(?:\w+)?\s*[.!?]*\s*$/i;
     const agreedEntry = agreedSlots.get(convId);
 
     // If the user said "yes" but the slot window expired, tell them instead of silently passing to Claude
@@ -1714,7 +1774,18 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const wMatch = lastUserMsg.match(/\bin\s+(\d+)\s+weeks?\b/);
     const mMatch = lastUserMsg.match(/\bin\s+(\d+)\s+months?\b/);
 
-    if (lastUserMsg.match(/\btomorrow\b|\bnext day\b/)) {
+    if (lastUserMsg.match(/\b(same\s+day|same\s+date|that\s+day|that\s+date)\b/i)) {
+      // "same day" / "that day" — infer date from conversation context
+      const prior = conversationSlots.get(convId);
+      if (prior?.slots?.length > 0) {
+        searchFromDate = prior.slots[0].start.split('T')[0]; daysWindow = 1;
+        console.log('📅 "same day" → from conversation slots:', searchFromDate);
+      } else {
+        const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
+        const inferred = extractDateFromText(lastAssistant);
+        if (inferred) { searchFromDate = inferred; daysWindow = 1; console.log('📅 "same day" → from assistant message:', searchFromDate); }
+      }
+    } else if (lastUserMsg.match(/\btomorrow\b|\bnext day\b/)) {
       const { year, month, date } = getNYToday();
       searchFromDate = new Date(Date.UTC(year, month, date + 1)).toISOString().split('T')[0]; daysWindow = 1;
     } else if (lastUserMsg.match(/\bend of (the )?month\b/)) {
@@ -1865,7 +1936,6 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     } else if (requestedTime) {
       // Time-only: reuse stored slots for the established date — no re-fetch needed
-      // We already fetched all available hours for that date
       const prior = conversationSlots.get(convId);
       const validStored = prior?.slots?.filter(s => new Date(s.start) > new Date()) || [];
       if (validStored.length > 0) {
@@ -1873,7 +1943,21 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         searchFromDate = slots[0].start.split('T')[0];
         console.log('⏰ Time-only — reusing stored slots for', searchFromDate);
       } else {
-        slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
+        // Try to infer date from recent assistant messages before falling back to global cache
+        const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
+        const inferredDate = extractDateFromText(lastAssistant);
+        if (inferredDate) {
+          console.log('⏰ Time-only — inferred date from assistant message:', inferredDate);
+          slots = await getAvailableSlots(1, inferredDate, true);
+          if (slots?.length > 0) {
+            conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
+            searchFromDate = inferredDate;
+          }
+        }
+        // Original fallback if inference failed
+        if (!slots || slots.length === 0) {
+          slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
+        }
       }
     } else if (userIsFlexible) {
       console.log('📦 Flexible user — using global cache');
@@ -2197,20 +2281,39 @@ ${slotsText}`;
         const core = normTZ(s.label.replace(/\s*\[start:[^\]]+\]/g, '').replace(/\s*\/\s*\d{1,2}:\d{2}\s*(AM|PM)\s+\w+\s+your time/i, '').trim());
         return normTZ(aiReplyText).includes(core);
       });
-      // Fallback: match by extracting the time from ARIA's reply and comparing to slot times
+      // Fallback: match by extracting date+time from ARIA's reply
       if (!matchedSlot) {
         const timeInReply = aiReplyText.match(/\b(\d{1,2}):(\d{2})\s*(AM|PM)\b/i);
+        const dateInReply = aiReplyText.match(/(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\w*,?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+(\d{1,2})/i);
         if (timeInReply) {
           let hr = parseInt(timeInReply[1]);
           const min = parseInt(timeInReply[2]);
           const ap = timeInReply[3].toLowerCase();
           if (ap === 'pm' && hr < 12) hr += 12;
           if (ap === 'am' && hr === 12) hr = 0;
-          matchedSlot = activeSlots.find(s => {
-            const ny = new Date(new Date(s.start).toLocaleString('en-US', { timeZone: 'America/New_York' }));
-            return ny.getHours() === hr && ny.getMinutes() === min;
-          });
-          if (matchedSlot) console.log(`📌 Agreed slot matched via time fallback: ${matchedSlot.label}`);
+
+          // First: match by date AND time to avoid cross-date mismatches
+          if (dateInReply) {
+            const monthAbbrs = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+            const replyDay = parseInt(dateInReply[3]);
+            const replyMonthIdx = monthAbbrs.findIndex(m => dateInReply[2].toLowerCase().startsWith(m));
+            if (replyMonthIdx >= 0) {
+              matchedSlot = activeSlots.find(s => {
+                const ny = new Date(new Date(s.start).toLocaleString('en-US', { timeZone: 'America/New_York' }));
+                return ny.getHours() === hr && ny.getMinutes() === min && ny.getDate() === replyDay && ny.getMonth() === replyMonthIdx;
+              });
+              if (matchedSlot) console.log(`📌 Agreed slot matched via date+time: ${matchedSlot.label}`);
+            }
+          }
+
+          // Fallback: time-only match
+          if (!matchedSlot) {
+            matchedSlot = activeSlots.find(s => {
+              const ny = new Date(new Date(s.start).toLocaleString('en-US', { timeZone: 'America/New_York' }));
+              return ny.getHours() === hr && ny.getMinutes() === min;
+            });
+            if (matchedSlot) console.log(`📌 Agreed slot matched via time fallback: ${matchedSlot.label}`);
+          }
         }
       }
       if (matchedSlot) {
@@ -2322,7 +2425,7 @@ ${slotsText}`;
       if (slot) {
         // Fresh fetch to verify slot is still available
         const exactDate = slot.start.split('T')[0];
-        const freshSlots = await getAvailableSlots(1, exactDate);
+        const freshSlots = await getAvailableSlots(1, exactDate, true);
         const normalizeLabel = l => l.replace(/\b(EDT|EST)\b/, 'ET');
         const freshSlot = freshSlots ? freshSlots.find(s => s.start === slot.start || normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
 
@@ -2333,8 +2436,13 @@ ${slotsText}`;
 
         // Block if slot not found in fresh data — taken or no longer available (applies to all match methods including direct fallback)
         if (!freshSlot) {
-          conversationSlots.delete(convId);
           agreedSlots.delete(convId);
+          // Preserve date context: store remaining slots for the same day so "same day" / "4pm" still works
+          if (freshSlots && freshSlots.length > 0) {
+            conversationSlots.set(convId, { slots: freshSlots, fetchedAt: Date.now() });
+          } else {
+            conversationSlots.delete(convId);
+          }
           const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
           aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
           return res.json({ reply: reply + "\n" + aiReplyText, booked: false });
