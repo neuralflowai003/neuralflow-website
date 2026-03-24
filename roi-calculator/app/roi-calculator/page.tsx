@@ -174,11 +174,13 @@ function SliderRow({
                 onMouseLeave={() => setShowTip(false)}
                 onFocus={() => setShowTip(true)}
                 onBlur={() => setShowTip(false)}
+                aria-label={`More info about ${label}`}
                 className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold leading-none transition-colors"
                 style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.3)' }}
               >?</button>
               {showTip && (
                 <div
+                  role="tooltip"
                   className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 rounded-xl px-3 py-2.5 text-[11px] leading-relaxed z-10 pointer-events-none shadow-2xl"
                   style={{ background: 'rgba(8,14,24,0.95)', border: '1px solid rgba(255,107,43,0.15)', color: 'rgba(255,255,255,0.65)' }}
                 >
@@ -194,6 +196,11 @@ function SliderRow({
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={value}
+        aria-valuetext={format(value)}
         className="w-full"
       />
     </div>
@@ -355,6 +362,9 @@ function ResultsPanel({
     autoPercent: Math.round(live.automationPotential * 100),
     industry: industry ?? 'general',
     hoursFreed: Math.round(live.hoursPerYear),
+    leadName: leadName ?? '',
+    leadEmail: leadEmail ?? '',
+    leadPhone: leadPhone ?? '',
   })));
   const ariaUrl = `https://neuralflowai.io/?aria_roi=${encodeURIComponent(ariaContext)}`;
 
@@ -570,11 +580,12 @@ function ResultsPanel({
         {/* Worker type toggle */}
         <div className="mb-5">
           <p className="text-xs mb-2.5" style={{ color: 'rgba(255,255,255,0.35)' }}>How does the person doing this task get paid?</p>
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="group" aria-label="Worker payment type">
             {(['hourly', 'revenue'] as WorkerType[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setWorkerType(t)}
+                aria-pressed={workerType === t}
                 className="flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all"
                 style={workerType === t
                   ? { background: 'rgba(255,107,43,0.1)', border: '1px solid rgba(255,107,43,0.35)', color: '#FF6B2B' }
@@ -646,6 +657,8 @@ function ResultsPanel({
               <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(123,97,255,0.7)' }}>Missed Lead Revenue</p>
               <button
                 onClick={() => setIncludeMissed((v) => !v)}
+                aria-expanded={includeMissed}
+                aria-controls="missed-revenue-section"
                 className="text-xs px-3 py-1 rounded-full transition-all"
                 style={includeMissed
                   ? { background: 'rgba(123,97,255,0.1)', border: '1px solid rgba(123,97,255,0.35)', color: '#7B61FF' }
@@ -656,7 +669,7 @@ function ResultsPanel({
               </button>
             </div>
             {includeMissed && (
-              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              <motion.div id="missed-revenue-section" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.28)' }}>
                   Estimate revenue you're losing from missed calls or slow follow-up. We assume 30% of those calls convert if answered instantly.
                 </p>
@@ -735,15 +748,18 @@ function ResultsPanel({
       <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
         <button
           onClick={() => setShowMethod((v) => !v)}
+          aria-expanded={showMethod}
+          aria-controls="methodology-content"
           className="w-full flex items-center justify-between px-5 py-3.5 text-xs transition-colors"
           style={{ color: 'rgba(255,255,255,0.3)' }}
         >
           <span className="uppercase tracking-widest">How we calculate this</span>
-          <span style={{ color: '#FF6B2B' }}>{showMethod ? '−' : '+'}</span>
+          <span aria-hidden="true" style={{ color: '#FF6B2B' }}>{showMethod ? '−' : '+'}</span>
         </button>
         <AnimatePresence>
           {showMethod && (
             <motion.div
+              id="methodology-content"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -820,6 +836,7 @@ function ResultsPanel({
                 type="email" value={emailInput}
                 onChange={(e) => { setEmailInput(e.target.value); setEmailError(''); setEmailStatus('idle'); }}
                 placeholder="Enter your email"
+                aria-label="Email address for report"
                 className="flex-1 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' }}
                 onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,107,43,0.4)')}
@@ -828,6 +845,7 @@ function ResultsPanel({
               />
               <button
                 onClick={handleEmailSubmit} disabled={emailStatus === 'sending'}
+                aria-busy={emailStatus === 'sending'}
                 className="flex items-center justify-center gap-2 text-sm font-semibold py-2.5 px-5 rounded-xl transition-all whitespace-nowrap disabled:opacity-40"
                 style={{ background: 'rgba(255,107,43,0.1)', border: '1px solid rgba(255,107,43,0.3)', color: '#FF6B2B' }}
                 onMouseEnter={e => { if (emailStatus !== 'sending') { e.currentTarget.style.background = 'rgba(255,107,43,0.18)'; e.currentTarget.style.borderColor = 'rgba(255,107,43,0.5)'; } }}
@@ -1018,7 +1036,7 @@ export default function ROICalculatorPage() {
                 <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>
                   Select your industry — pre-fills a description
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="group" aria-label="Select your industry">
                   {(Object.entries(INDUSTRY_PRESETS) as [Industry, IndustryPreset][])
                     .filter(([k]) => k !== 'general')
                     .map(([key, p], i) => (
@@ -1027,6 +1045,7 @@ export default function ROICalculatorPage() {
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.22 + i * 0.04 }}
+                        aria-pressed={selectedIndustry === key}
                         onClick={() => {
                           if (selectedIndustry === key) {
                             setSelectedIndustry(null);
@@ -1057,6 +1076,7 @@ export default function ROICalculatorPage() {
                 transition={{ delay: 0.28 }}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                aria-label="Describe your workflow situation"
                 placeholder={`Describe your situation in plain English...\n\nExamples:\n"I own a nail salon. My techs stop mid-service to answer the phone, we miss bookings, and our no-show rate kills us."\n\n"Every Monday we pull sales data from three spreadsheets, reconcile it, and email leadership. Takes 2 hours."`}
                 className="w-full h-48 rounded-2xl px-5 py-4 text-sm text-white resize-none outline-none transition-all text-left"
                 style={{ background: 'rgba(8,14,24,0.7)', border: '1px solid rgba(255,255,255,0.07)', color: '#fff' }}
@@ -1083,6 +1103,7 @@ export default function ROICalculatorPage() {
                       key={field.placeholder}
                       type={field.type}
                       placeholder={field.placeholder}
+                      aria-label={field.placeholder}
                       value={field.value}
                       onChange={(e) => field.onChange(e.target.value)}
                       className="rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all"

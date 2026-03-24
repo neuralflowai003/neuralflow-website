@@ -92,7 +92,30 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      cursor: none !important;
+    }
+
+    /* Custom cursor only on non-touch devices */
+    @media (pointer: fine) {
+      * { cursor: none; }
+    }
+
+    /* Skip nav link for keyboard users */
+    .skip-link {
+      position: absolute;
+      top: -40px;
+      left: 0;
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 16px;
+      z-index: 100000;
+      font-size: 14px;
+      font-family: 'Space Grotesk', sans-serif;
+      text-decoration: none;
+      border-radius: 0 0 8px 0;
+      transition: top 0.2s;
+    }
+    .skip-link:focus {
+      top: 0;
     }
 
     html {
@@ -2382,15 +2405,17 @@
 
 <body data-cursor="default">
 
-  <!-- Custom cursor glow -->
-  <div id="cursor-glow"></div>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
-  <div class="scroll-progress" id="scrollProgress"></div>
-  <div id="cursor-dot"></div>
-  <div id="cursor-ring"><span id="cursor-text">VIEW</span></div>
+  <!-- Custom cursor glow -->
+  <div id="cursor-glow" aria-hidden="true"></div>
+
+  <div class="scroll-progress" id="scrollProgress" role="progressbar" aria-label="Page scroll progress"></div>
+  <div id="cursor-dot" aria-hidden="true"></div>
+  <div id="cursor-ring" aria-hidden="true"><span id="cursor-text">VIEW</span></div>
 
   <!-- NAV -->
-  <nav id="nav">
+  <nav id="nav" aria-label="Main navigation">
     <div class="container nav-inner">
       <a href="#home" class="logo magnetic" data-strength="10">Neural<span>Flow</span></a>
       <div class="nav-links">
@@ -2418,7 +2443,7 @@
     <div id="mobile-menu-drawer">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;">
         <a href="#home" class="logo" onclick="closeMobileMenu()" style="font-family:'Space Grotesk',sans-serif;font-size:1.4rem;font-weight:700;letter-spacing:-1px;">Neural<span style="color:var(--accent);">Flow</span></a>
-        <button onclick="closeMobileMenu()" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);font-size:24px;line-height:1;">✕</button>
+        <button onclick="closeMobileMenu()" aria-label="Close navigation menu" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);font-size:24px;line-height:1;">✕</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <a href="#services" class="mob-link" onclick="closeMobileMenu()">Services</a>
@@ -2435,12 +2460,13 @@
     </div>
   </div>
 
+  <main id="main-content">
   <header class="hero" id="home">
     <div class="hero-bg-base"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
-    <canvas id="neuralCanvas"></canvas>
+    <canvas id="neuralCanvas" aria-hidden="true"></canvas>
 
     <div class="container hero-content">
       <div class="badge reveal">
@@ -2806,7 +2832,7 @@
             </div>
             <h3>AI Consulting</h3>
             <p>Comprehensive audits of your tech stack to build a high-ROI AI integration roadmap.</p>
-            <div class="learn-more" data-modal="ai-consulting" onclick="openServiceModal(this)">Learn More</div>
+            <button class="learn-more" type="button" data-modal="ai-consulting" onclick="openServiceModal(this)">Learn More</button>
           </div>
         </div>
 
@@ -2824,7 +2850,7 @@
             </div>
             <h3>Workflow Automation</h3>
             <p>Connect disjointed systems into seamless, zero-touch operational flows.</p>
-            <div class="learn-more" data-modal="workflow-automation" onclick="openServiceModal(this)">Learn More</div>
+            <button class="learn-more" type="button" data-modal="workflow-automation" onclick="openServiceModal(this)">Learn More</button>
           </div>
         </div>
 
@@ -2840,7 +2866,7 @@
             </div>
             <h3>Custom App Dev</h3>
             <p>Bespoke internal tools and SaaS products built with modern, scalable stacks.</p>
-            <div class="learn-more" data-modal="custom-app-dev" onclick="openServiceModal(this)">Learn More</div>
+            <button class="learn-more" type="button" data-modal="custom-app-dev" onclick="openServiceModal(this)">Learn More</button>
           </div>
         </div>
 
@@ -2860,7 +2886,7 @@
             </div>
             <h3>Software Integration</h3>
             <p>Resilient APIs and middleware to ensure real-time data accuracy across platforms.</p>
-            <div class="learn-more" data-modal="software-integration" onclick="openServiceModal(this)">Learn More</div>
+            <button class="learn-more" type="button" data-modal="software-integration" onclick="openServiceModal(this)">Learn More</button>
           </div>
         </div>
 
@@ -2876,7 +2902,7 @@
             </div>
             <h3>AI Receptionists</h3>
             <p>Deploy sophisticated LLM agents that handle support and qualify inbound leads 24/7.</p>
-            <div class="learn-more" data-modal="ai-receptionists" onclick="openServiceModal(this)">Learn More</div>
+            <button class="learn-more" type="button" data-modal="ai-receptionists" onclick="openServiceModal(this)">Learn More</button>
           </div>
         </div>
 
@@ -2900,7 +2926,7 @@
             </div>
             <h3>Process Optimization</h3>
             <p>A holistic redesign of how your company functions. Trim the fat, maximize output.</p>
-            <div class="learn-more" data-modal="process-optimization" onclick="openServiceModal(this)">Learn More</div>
+            <button class="learn-more" type="button" data-modal="process-optimization" onclick="openServiceModal(this)">Learn More</button>
           </div>
         </div>
 
@@ -3853,7 +3879,7 @@
     <div class="build-outer">
       <div class="build-track" id="buildTrack">
         <!-- Card 1: AI Receptionist -->
-        <div class="build-card" data-modal="build-ai-receptionist" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-ai-receptionist" onclick="openServiceModal(this)">
           <div class="build-chip">AI Agent</div>
           <div class="build-mockup">
             <div class="chat-mock">
@@ -3873,7 +3899,7 @@
           <p>Autonomous agents that book appointments, answer FAQs, and qualify leads 24/7.</p>
         </div>
         <!-- Card 2: Custom Dashboard -->
-        <div class="build-card" data-modal="build-dashboard" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-dashboard" onclick="openServiceModal(this)">
           <div class="build-chip">Analytics</div>
           <div class="build-mockup">
             <div class="dash-mock">
@@ -3906,7 +3932,7 @@
           <p>Real-time command centers pulling data from all your tools into one beautiful UI.</p>
         </div>
         <!-- Card 3: Automation Pipeline -->
-        <div class="build-card" data-modal="build-pipeline" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-pipeline" onclick="openServiceModal(this)">
           <div class="build-chip">Automation</div>
           <div class="build-mockup">
             <div class="pipe-mock">
@@ -3943,7 +3969,7 @@
           <p>Complex workflows engineered in code for zero latency and infinite scalability.</p>
         </div>
         <!-- Card 4: Lead Gen -->
-        <div class="build-card" data-modal="build-leadgen" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-leadgen" onclick="openServiceModal(this)">
           <div class="build-chip">Growth</div>
           <div class="build-mockup">
             <div class="leads-mock">
@@ -3978,7 +4004,7 @@
           <p>Scrape, enrich, and automatically email hyper-personalized outreach at scale.</p>
         </div>
         <!-- Card 5: Chatbot -->
-        <div class="build-card" data-modal="build-chatbot" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-chatbot" onclick="openServiceModal(this)">
           <div class="build-chip">Conversion</div>
           <div class="build-mockup">
             <div class="bot-mock">
@@ -4004,7 +4030,7 @@
           <p>Website AI that converts visitors into leads — answers questions, qualifies, books.</p>
         </div>
         <!-- Card 6: Analytics -->
-        <div class="build-card" data-modal="build-analytics" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-analytics" onclick="openServiceModal(this)">
           <div class="build-chip">Insights</div>
           <div class="build-mockup">
             <div class="analytics-mock">
@@ -4034,7 +4060,7 @@
           <p>Custom analytics platforms that turn raw data into revenue-driving decisions.</p>
         </div>
         <!-- Duplicate cards for seamless infinite loop -->
-        <div class="build-card" data-modal="build-ai-receptionist" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-ai-receptionist" onclick="openServiceModal(this)">
           <div class="build-chip">AI Agent</div>
           <div class="build-mockup">
             <div class="chat-mock">
@@ -4053,7 +4079,7 @@
           <h3>AI Receptionists</h3>
           <p>Autonomous agents that book appointments, answer FAQs, and qualify leads 24/7.</p>
         </div>
-        <div class="build-card" data-modal="build-dashboard" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-dashboard" onclick="openServiceModal(this)">
           <div class="build-chip">Analytics</div>
           <div class="build-mockup">
             <div class="dash-mock">
@@ -4073,7 +4099,7 @@
           <h3>Custom Dashboards</h3>
           <p>Real-time command centers pulling data from all your tools into one beautiful UI.</p>
         </div>
-        <div class="build-card" data-modal="build-pipeline" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-pipeline" onclick="openServiceModal(this)">
           <div class="build-chip">Automation</div>
           <div class="build-mockup">
             <div class="pipe-mock">
@@ -4101,7 +4127,7 @@
           <h3>Automation Pipelines</h3>
           <p>Complex workflows engineered in code for zero latency and infinite scalability.</p>
         </div>
-        <div class="build-card" data-modal="build-leadgen" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-leadgen" onclick="openServiceModal(this)">
           <div class="build-chip">Growth</div>
           <div class="build-mockup">
             <div class="leads-mock">
@@ -4114,7 +4140,7 @@
           <h3>Lead Gen Systems</h3>
           <p>Scrape, enrich, and automatically email hyper-personalized outreach at scale.</p>
         </div>
-        <div class="build-card" data-modal="build-chatbot" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-chatbot" onclick="openServiceModal(this)">
           <div class="build-chip">Conversion</div>
           <div class="build-mockup">
             <div class="bot-mock">
@@ -4136,7 +4162,7 @@
           <h3>Intelligent Chatbots</h3>
           <p>Website AI that converts visitors into leads — answers, qualifies, books.</p>
         </div>
-        <div class="build-card" data-modal="build-analytics" onclick="openServiceModal(this)">
+        <div class="build-card" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openServiceModal(this)}" data-modal="build-analytics" onclick="openServiceModal(this)">
           <div class="build-chip">Insights</div>
           <div class="build-mockup">
             <div class="analytics-mock">
@@ -4673,7 +4699,7 @@
       <div class="hiw-grid">
 
         <!-- CONSULT -->
-        <div class="hiw-card" onclick="toggleHIW(this)">
+        <div class="hiw-card" role="button" tabindex="0" aria-expanded="false" onclick="toggleHIW(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleHIW(this)}">
           <div class="hiw-phase-bg">01</div>
           <div class="hiw-num">Phase 01</div>
           <div class="hiw-graphic">
@@ -4734,7 +4760,7 @@
         </div>
 
         <!-- BUILD -->
-        <div class="hiw-card" onclick="toggleHIW(this)">
+        <div class="hiw-card" role="button" tabindex="0" aria-expanded="false" onclick="toggleHIW(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleHIW(this)}">
           <div class="hiw-phase-bg">02</div>
           <div class="hiw-num">Phase 02</div>
           <div class="hiw-graphic">
@@ -4795,7 +4821,7 @@
         </div>
 
         <!-- SCALE -->
-        <div class="hiw-card" onclick="toggleHIW(this)">
+        <div class="hiw-card" role="button" tabindex="0" aria-expanded="false" onclick="toggleHIW(this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleHIW(this)}">
           <div class="hiw-phase-bg">03</div>
           <div class="hiw-num">Phase 03</div>
           <div class="hiw-graphic">
@@ -4860,8 +4886,14 @@
   <script>
     function toggleHIW(card) {
       const isExpanded = card.classList.contains('expanded');
-      document.querySelectorAll('.hiw-card').forEach(c => c.classList.remove('expanded'));
-      if (!isExpanded) card.classList.add('expanded');
+      document.querySelectorAll('.hiw-card').forEach(c => {
+        c.classList.remove('expanded');
+        c.setAttribute('aria-expanded', 'false');
+      });
+      if (!isExpanded) {
+        card.classList.add('expanded');
+        card.setAttribute('aria-expanded', 'true');
+      }
     }
   </script>
 
@@ -5314,7 +5346,7 @@
             <label for="n_scope">Project Scope *</label>
           </div>
           <button type="submit" id="contactSubmitBtn" class="btn btn-solid magnetic" data-strength="40"
-            style="width:100%;">Send Message →</button>
+            style="width:100%;" aria-busy="false">Send Message →</button>
           <div id="contactSuccess"
             style="display:none;margin-top:16px;padding:14px;background:rgba(0,224,150,0.1);border:1px solid rgba(0,224,150,0.3);border-radius:8px;color:#00e096;font-size:14px;text-align:center;">
             ✅ Message sent! I'll get back to you within 24 hours.
@@ -5340,6 +5372,7 @@
             const scope = document.getElementById('n_scope').value;
             btn.textContent = 'Sending...';
             btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
             try {
               const res = await fetch('/api/contact', {
                 method: 'POST',
@@ -5352,6 +5385,7 @@
                 document.getElementById('contactError').style.display = 'none';
                 document.getElementById('contactForm').reset();
                 btn.textContent = '✅ Sent!';
+                btn.setAttribute('aria-busy', 'false');
               } else {
                 throw new Error(data.error || 'Failed');
               }
@@ -5360,6 +5394,7 @@
               document.getElementById('contactSuccess').style.display = 'none';
               btn.textContent = 'Initialize Link';
               btn.disabled = false;
+              btn.setAttribute('aria-busy', 'false');
             }
           }
         </script>
@@ -5367,6 +5402,8 @@
 
     </div>
   </section>
+
+  </main>
 
   <!-- FOOTER -->
   <footer>
@@ -5394,9 +5431,9 @@
   </footer>
 
   <!-- SERVICE MODAL OVERLAY -->
-  <div class="modal-overlay" id="serviceModalOverlay">
+  <div class="modal-overlay" id="serviceModalOverlay" role="dialog" aria-modal="true" aria-labelledby="smTitle">
     <div class="modal-card">
-      <button class="modal-close" id="serviceModalClose">&times;</button>
+      <button class="modal-close" id="serviceModalClose" aria-label="Close modal">&times;</button>
       <h2 class="modal-title" id="smTitle">Title</h2>
       <div class="modal-subtitle" id="smSubtitle">Subtitle</div>
       <p class="modal-body" id="smBody">Body content goes here...</p>
@@ -5416,7 +5453,7 @@
   </div>
 
   <!-- AI RECEPTIONIST WIDGET -->
-  <div class="chat-widget-btn" id="chatWidgetBtn" title="Chat with ARIA">
+  <div class="chat-widget-btn" id="chatWidgetBtn" role="button" tabindex="0" aria-label="Chat with ARIA" title="Chat with ARIA">
     <div class="chat-pulse-ring"></div>
     <div class="chat-pulse-ring"></div>
     <div class="chat-badge" id="chatBadge">1</div>
@@ -5426,7 +5463,7 @@
     </svg>
   </div>
 
-  <div class="chat-window" id="chatWindow">
+  <div class="chat-window" id="chatWindow" role="dialog" aria-label="ARIA Chat Assistant">
     <div class="chat-header">
       <div class="chat-header-info">
         <div class="chat-avatar-circle">A</div>
@@ -5437,21 +5474,21 @@
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <div class="chat-online-dot"></div>
-        <button class="chat-expand-btn" id="chatExpandBtn" title="Expand chat">&#x26F6;</button>
-        <button class="chat-close" id="chatCloseBtn">&times;</button>
+        <button class="chat-expand-btn" id="chatExpandBtn" aria-label="Expand chat" title="Expand chat">&#x26F6;</button>
+        <button class="chat-close" id="chatCloseBtn" aria-label="Close chat">&times;</button>
       </div>
     </div>
-    <div class="chat-messages" id="chatMessages">
+    <div class="chat-messages" id="chatMessages" aria-live="polite" aria-label="Chat messages">
       <!-- Chat history goes here -->
-      <div class="typing-indicator" id="typingIndicator">
+      <div class="typing-indicator" id="typingIndicator" aria-label="ARIA is typing">
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
       </div>
     </div>
-    <form class="chat-input-area" id="chatForm">
-      <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." autocomplete="off">
-      <button type="submit" class="chat-send-btn">
+    <form class="chat-input-area" id="chatForm" aria-label="Chat message form">
+      <input type="text" class="chat-input" id="chatInput" placeholder="Type a message..." autocomplete="off" aria-label="Chat message input">
+      <button type="submit" class="chat-send-btn" aria-label="Send message">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
