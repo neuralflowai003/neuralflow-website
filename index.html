@@ -5931,6 +5931,7 @@
               appendMessage('aria', data.reply);
               conversationHistory.push({ role: 'assistant', content: data.reply });
             }
+            if (data.booked) { setTimeout(function() { window.location.href = '/booked'; }, 1500); }
             chatMessages.scrollTop = chatMessages.scrollHeight;
             chatInput.focus();
           })
@@ -6022,6 +6023,7 @@
             appendMessage('aria', data.reply);
             conversationHistory.push({ role: 'assistant', content: data.reply });
           }
+          if (data.booked) { setTimeout(function() { window.location.href = '/booked'; }, 1500); }
           chatMessages.scrollTop = chatMessages.scrollHeight;
         } catch (err) {
           clearTimeout(timeout);
