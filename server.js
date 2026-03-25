@@ -2443,9 +2443,15 @@ ${slotsText}`;
           } else {
             conversationSlots.delete(convId);
           }
-          const reply = "I apologize, but it looks like that specific time was just booked by someone else! Let me check what else is available around then.";
-          aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
-          return res.json({ reply: reply + "\n" + aiReplyText, booked: false });
+          // Build rejection with alternatives — do NOT append Claude's original reply (it assumes booking succeeded)
+          let reply = "I'm sorry, that specific time was just booked by someone else!";
+          if (freshSlots && freshSlots.length > 0) {
+            const alts = freshSlots.slice(0, 3).map(s => s.label).join('\n');
+            reply += ` But here are some other times that day:\n\n${alts}\n\nWhich of those works best for you?`;
+          } else {
+            reply += " Let me check what else is available — what other day or time works for you?";
+          }
+          return res.json({ reply, booked: false });
         }
 
         if (freshSlot) slot = freshSlot;
