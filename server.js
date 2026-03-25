@@ -1441,6 +1441,7 @@ app.get('/oauth/callback', async (req, res) => {
 });
 
 app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html')));
+app.get('/booked', (req, res) => res.sendFile(path.join(__dirname, 'booked.html')));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 

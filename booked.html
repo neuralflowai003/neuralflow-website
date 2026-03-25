@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You're All Set — NeuralFlow AI</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap">
+
+  <!-- Google Analytics GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGWCHZ95J9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PGWCHZ95J9');
+    gtag('event', 'appointment_booked', { send_to: 'G-PGWCHZ95J9' });
+  </script>
+
+  <style>
+    :root {
+      --bg: #050508;
+      --bg-alt: #0a0a0f;
+      --accent: #FF6B2B;
+      --accent-glow: rgba(255, 107, 43, 0.5);
+      --text: #ffffff;
+      --muted: #888899;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+
+    ::selection { background: var(--accent); color: #000; }
+
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 520px;
+    }
+
+    /* Checkmark circle */
+    .check-circle {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: rgba(255, 107, 43, 0.1);
+      box-shadow: 0 0 50px rgba(255, 107, 43, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 2rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .check-circle svg {
+      width: 42px;
+      height: 42px;
+      stroke: var(--accent);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Checkmark draw animation */
+    .check-circle svg polyline {
+      stroke-dasharray: 30;
+      stroke-dashoffset: 30;
+      animation: draw 0.6s 0.3s ease forwards;
+    }
+
+    @keyframes draw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 50px rgba(255, 107, 43, 0.15); }
+      50% { box-shadow: 0 0 70px rgba(255, 107, 43, 0.25); }
+    }
+
+    h1 {
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      line-height: 1.1;
+    }
+
+    .subtext {
+      font-size: 1.1rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 14px 36px;
+      background: var(--accent);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border-radius: 100px;
+      text-decoration: none;
+      box-shadow: 0 0 24px rgba(255, 107, 43, 0.3);
+      transition: box-shadow 0.3s, transform 0.3s;
+    }
+
+    .btn:hover {
+      box-shadow: 0 0 40px rgba(255, 107, 43, 0.5);
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="check-circle">
+      <svg viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </div>
+    <h1>You're all set!</h1>
+    <p class="subtext">Aria has confirmed your appointment. Check your calendar for the details.</p>
+    <a href="/" class="btn">Back to Home</a>
+  </div>
+</body>
+</html>
