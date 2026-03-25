@@ -330,7 +330,10 @@ let tokenExpiresAt = 0;
 
 async function refreshGlobalSlotCache() {
   try {
-    const slots = await getAvailableSlots(90, null);
+    // Use allHours=true to find ALL available hours, then pare down with pickDaySlots
+    // This prevents skipping entire days when only 9am/1pm/4pm are booked but other hours are free
+    const raw = await getAvailableSlots(90, null, true, 36);
+    const slots = raw ? pickDaySlots(raw) : null;
     if (slots && slots.length > 0) {
       globalSlotCache = slots;
       globalSlotCacheUpdatedAt = Date.now();
