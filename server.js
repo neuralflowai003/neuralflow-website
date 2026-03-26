@@ -2245,9 +2245,14 @@ ${slotsText}`;
           else throw e;
         }
       }
-      aiReplyText = resAnthropic.content[0].text;
+      aiReplyText = resAnthropic?.content?.[0]?.text;
+      if (!aiReplyText) throw new Error('Empty Anthropic response');
     } catch (e) {
       console.log('Anthropic failed, falling back to OpenRouter');
+      if (!process.env.OPENROUTER_API_KEY) {
+        console.error('OPENROUTER_API_KEY not set — cannot fall back');
+        return res.json({ reply: "I'm having a brief technical issue. Please try again in a moment!", booked: false });
+      }
       const orAbort = new AbortController();
       const orTimer = setTimeout(() => orAbort.abort(), 25000);
       const resOpenRouter = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -2268,7 +2273,8 @@ ${slotsText}`;
       clearTimeout(orTimer);
       if (!resOpenRouter.ok) throw new Error('OpenRouter failed');
       const data = await resOpenRouter.json();
-      aiReplyText = data.choices[0].message.content;
+      aiReplyText = data?.choices?.[0]?.message?.content;
+      if (!aiReplyText) throw new Error('Empty OpenRouter response');
     }
 
     // Strip markdown formatting
@@ -2381,6 +2387,11 @@ ${slotsText}`;
       } catch (e) {
         console.error('Failed to parse BOOK JSON:', e.message);
         return res.json({ reply: 'Sorry, I had trouble with that. Could you confirm the email address again?', booked: false });
+      }
+
+      if (!bookData.name || typeof bookData.name !== 'string') {
+        console.log('⚠️ Missing name in BOOK command');
+        return res.json({ reply: "I just need your name to finalize the booking. What should I put down?", booked: false });
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
