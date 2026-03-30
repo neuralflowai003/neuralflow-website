@@ -2482,8 +2482,8 @@
       </div>
 
       <h1 class="hero-headline">
-        <span class="line-1" id="kin-1">We Grow Your Business</span>
-        <span class="line-2" id="kin-2">with AI.</span>
+        <span class="line-1" id="kin-1">More Leads. Less Work.</span>
+        <span class="line-2" id="kin-2">All AI.</span>
       </h1>
 
       <div class="typewriter-wrap reveal" style="transition-delay: 0.4s;">
@@ -3539,6 +3539,35 @@
         alert('Something went wrong. Please try again or email danny@neuralflowai.io');
       }
     };
+
+    // Auto-animate: loop between before and after
+    var seoAutoInterval = null;
+    var seoIsAfter = false;
+    function seoAutoLoop() {
+      seoAutoInterval = setInterval(function() {
+        seoIsAfter = !seoIsAfter;
+        if (seoIsAfter) window.showSeoAfter();
+        else window.showSeoBefore();
+      }, 3500);
+    }
+
+    // Start auto-loop when section enters viewport
+    var seoObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting && !seoAutoInterval) {
+          seoAutoLoop();
+        } else if (!entry.isIntersecting && seoAutoInterval) {
+          clearInterval(seoAutoInterval);
+          seoAutoInterval = null;
+        }
+      });
+    }, { threshold: 0.2 });
+    var seoSection = document.getElementById('seo');
+    if (seoSection) seoObserver.observe(seoSection);
+
+    // Stop auto-loop on manual toggle click
+    document.getElementById('seoToggleBefore').addEventListener('click', function() { clearInterval(seoAutoInterval); seoAutoInterval = null; });
+    document.getElementById('seoToggleAfter').addEventListener('click', function() { clearInterval(seoAutoInterval); seoAutoInterval = null; });
   })();
   </script>
 
