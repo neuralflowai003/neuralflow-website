@@ -700,8 +700,7 @@
       margin-bottom: 12px;
       opacity: 0;
       transform: translateY(36px);
-      animation: line1In 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards,
-                 line1Glow 3s ease-in-out 1.2s infinite;
+      animation: line1In 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
     }
 
     .line-2 {
@@ -2483,7 +2482,7 @@
 
       <h1 class="hero-headline">
         <span class="line-1" id="kin-1">More Leads. Less Work.</span>
-        <span class="line-2" id="kin-2">All AI.</span>
+        <span class="line-2" id="kin-2">Powered by AI.</span>
       </h1>
 
       <div class="typewriter-wrap reveal" style="transition-delay: 0.4s;">
@@ -5993,6 +5992,37 @@
         c.style.filter = 'blur(0)';
       });
     }, 100);
+
+    // ── Rotating hero headline ──
+    (function() {
+      var headlines = [
+        "More Leads. Less Work.",
+        "Rank #1. Get Found.",
+        "Automate Everything.",
+        "Grow While You Sleep.",
+        "Outrank Your Competition.",
+        "Turn Clicks Into Clients."
+      ];
+      var hIdx = 0;
+      var el = document.getElementById('kin-1');
+      if (!el) return;
+
+      setInterval(function() {
+        // Fade out
+        el.style.transition = 'opacity 0.5s, transform 0.5s';
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-20px)';
+        setTimeout(function() {
+          hIdx = (hIdx + 1) % headlines.length;
+          el.textContent = headlines[hIdx];
+          el.style.transform = 'translateY(20px)';
+          // Force reflow
+          void el.offsetHeight;
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        }, 500);
+      }, 3000);
+    })();
 
     // ------------------- Typewriter Effect -------------------
     const txtArr = ["AI Automation", "SEO & Search", "Workflow Optimization", "Lead Generation", "AI Agents"];
