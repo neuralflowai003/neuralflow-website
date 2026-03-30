@@ -2935,6 +2935,23 @@
           </div>
         </div>
 
+        <!-- SEO & AI Search Optimization -->
+        <div class="tilt-card reveal trigger-hover" data-tilt>
+          <div class="card-inner">
+            <div class="card-viz">
+              <div class="viz-seo">
+                <div class="viz-seo-row"><span class="viz-seo-pos">#12</span><span class="viz-seo-arrow">→</span><span class="viz-seo-pos viz-seo-top">#1</span><span class="viz-seo-kw">ai consulting near me</span></div>
+                <div class="viz-seo-row"><span class="viz-seo-pos">#9</span><span class="viz-seo-arrow">→</span><span class="viz-seo-pos viz-seo-top">#2</span><span class="viz-seo-kw">workflow automation</span></div>
+                <div class="viz-seo-row"><span class="viz-seo-pos">#15</span><span class="viz-seo-arrow">→</span><span class="viz-seo-pos viz-seo-top">#1</span><span class="viz-seo-kw">ai chatbot for business</span></div>
+                <div class="viz-seo-traffic">↑ 312% organic traffic</div>
+              </div>
+            </div>
+            <h3>SEO & AI Search</h3>
+            <p>Dominate Google and AI search results with technical SEO, content strategy, and local optimization.</p>
+            <button class="learn-more" type="button" data-modal="seo-optimization" onclick="openServiceModal(this)">Learn More</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -3241,6 +3258,19 @@
     .viz-bar-val { font-size: 10px; font-family: 'Space Grotesk',sans-serif; color: rgba(255,255,255,0.35); width: 32px; flex-shrink:0; text-align:right; }
     .viz-saving { font-size: 11px; font-family: 'Space Grotesk',sans-serif; font-weight: 700; color: #FF6B2B; text-align:center; opacity:0; transition: opacity 0.5s 1.8s; }
     .tilt-card.viz-active .viz-saving { opacity: 1; }
+
+    /* SEO & AI Search — ranking visualization */
+    .viz-seo { padding: 12px 16px; width: 100%; }
+    .viz-seo-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; opacity: 0; transform: translateX(-8px); transition: opacity 0.4s, transform 0.4s; }
+    .tilt-card.viz-active .viz-seo-row:nth-child(1) { opacity:1; transform:none; transition-delay: 0.1s; }
+    .tilt-card.viz-active .viz-seo-row:nth-child(2) { opacity:1; transform:none; transition-delay: 0.4s; }
+    .tilt-card.viz-active .viz-seo-row:nth-child(3) { opacity:1; transform:none; transition-delay: 0.7s; }
+    .viz-seo-pos { font-size: 11px; font-family: 'Space Grotesk',sans-serif; font-weight: 700; color: rgba(255,255,255,0.3); min-width: 22px; text-align: center; }
+    .viz-seo-pos.viz-seo-top { color: #FF6B2B; }
+    .viz-seo-arrow { font-size: 10px; color: rgba(255,255,255,0.15); }
+    .viz-seo-kw { font-size: 9px; font-family: 'Inter',sans-serif; color: rgba(255,255,255,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .viz-seo-traffic { font-size: 11px; font-family: 'Space Grotesk',sans-serif; font-weight: 700; color: #FF6B2B; text-align: center; margin-top: 4px; opacity: 0; transition: opacity 0.5s 1.2s; }
+    .tilt-card.viz-active .viz-seo-traffic { opacity: 1; }
   </style>
 
   <!-- ROI CALCULATOR TEASER -->
@@ -6336,6 +6366,22 @@
         ],
         who: 'Growth-focused teams, e-commerce brands, SaaS companies — anyone who has data but isn\'t fully leveraging it.',
         cta: 'Unlock My Data →',
+        link: '#contact'
+      },
+      'seo-optimization': {
+        title: 'SEO & AI Search Optimization',
+        subtitle: 'Get found on Google and every AI search engine',
+        body: 'We build SEO systems that get your business ranking on Google, ChatGPT, Perplexity, and every AI-powered search engine. From technical SEO and site speed to content strategy and local optimization — we make sure the right people find you first.',
+        included: [
+          'Full technical SEO audit & fixes',
+          'AI search optimization (ChatGPT, Perplexity, Gemini)',
+          'Local SEO & Google Business Profile setup',
+          'Keyword research & content strategy',
+          'On-page optimization & schema markup',
+          'Monthly ranking reports & adjustments'
+        ],
+        who: 'Local businesses, service companies, B2B firms — anyone who needs to be found online but isn\'t showing up where it matters.',
+        cta: 'Boost My Rankings →',
         link: '#contact'
       }
     };
