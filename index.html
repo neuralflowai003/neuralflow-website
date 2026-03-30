@@ -675,8 +675,22 @@
         text-align: center !important;
       }
       .line-1 {
-        font-size: clamp(2.2rem, 9vw, 3.5rem) !important;
+        font-size: clamp(1.8rem, 8vw, 3.5rem) !important;
         letter-spacing: -2px !important;
+        min-height: 1.2em;
+      }
+      .line-2 {
+        font-size: clamp(1.6rem, 7vw, 3rem) !important;
+        letter-spacing: -1.5px !important;
+      }
+    }
+    @media(max-width:380px) {
+      .line-1 {
+        font-size: clamp(1.5rem, 7.5vw, 2.2rem) !important;
+        letter-spacing: -1.5px !important;
+      }
+      .line-2 {
+        font-size: clamp(1.3rem, 6.5vw, 1.8rem) !important;
       }
     }
 
@@ -3361,6 +3375,13 @@
       .seo-capture-box { padding:28px 20px; }
       .seo-capture-trust { flex-direction:column; gap:6px; }
       .seo-demo-section { padding:60px 0; }
+    }
+    @media (max-width:400px) {
+      .seo-search-input-row input { font-size: 11px; }
+      .seo-result-title { font-size: 12px; }
+      .seo-result-desc { font-size: 10px; line-height: 1.4; }
+      .seo-result-rich { flex-wrap: wrap; gap: 6px; }
+      .seo-buried-label { font-size: 8px; }
     }
   </style>
 
@@ -7133,6 +7154,79 @@
       /* ---- FOOTER ---- */
       footer { padding: 48px 0 24px !important; }
       .footer-watermark { font-size: clamp(2.4rem, 12vw, 5rem) !important; }
+      .footer-tagline { font-size: 0.82rem !important; }
+      .footer-bottom { font-size: 0.72rem !important; flex-direction: column !important; gap: 4px !important; }
+
+      /* ---- SEO DEMO SECTION ---- */
+      .seo-demo-section { padding: 44px 0 !important; }
+      .seo-demo-section .section-title {
+        font-size: clamp(1.5rem, 6vw, 2.2rem) !important;
+        letter-spacing: -1px !important;
+        line-height: 1.1 !important;
+      }
+      .seo-demo-section .section-desc { font-size: 0.85rem !important; }
+      .seo-demo-layout { gap: 24px !important; padding: 0 18px !important; }
+
+      /* SEO stat cards */
+      .seo-demo-section .container > .reveal > div[style*="grid"] {
+        gap: 10px !important;
+        padding: 0 18px !important;
+      }
+      .seo-demo-section .container > .reveal > div[style*="grid"] > div {
+        padding: 16px 14px !important;
+      }
+      .seo-demo-section .container > .reveal > div[style*="grid"] > div > div:first-child {
+        font-size: 1.5rem !important;
+      }
+      .seo-demo-section .container > .reveal > div[style*="grid"] > div > div:last-child {
+        font-size: 0.75rem !important;
+      }
+
+      /* Search mockup */
+      .seo-search-mock { border-radius: 14px !important; }
+      .seo-search-topbar { padding: 10px 14px !important; }
+      .seo-search-url-bar { font-size: 9px !important; padding: 4px 10px !important; }
+      .seo-search-input-row { padding: 12px 14px 0 !important; }
+      .seo-search-input-row input { font-size: 12px !important; padding: 8px 12px !important; }
+      .seo-tab-row { padding: 6px 14px 0 !important; gap: 10px !important; }
+      .seo-tab { font-size: 9px !important; padding: 6px 0 !important; }
+      .seo-results-count { padding: 8px 14px 2px !important; font-size: 8px !important; }
+      .seo-results-area { padding: 6px 14px 14px !important; min-height: 220px !important; }
+      .seo-result { padding: 10px 0 !important; }
+      .seo-result-title { font-size: 13px !important; }
+      .seo-result-desc { font-size: 11px !important; }
+      .seo-result-url { font-size: 9px !important; }
+      .seo-result.seo-yours { padding: 10px 12px !important; margin: 4px -12px !important; border-radius: 10px !important; }
+      .seo-result-rich { gap: 10px !important; font-size: 9px !important; }
+      .seo-result-stars { font-size: 11px !important; }
+      .seo-toggle { padding: 12px 14px !important; }
+      .seo-toggle button { font-size: 11px !important; padding: 7px 16px !important; }
+
+      /* SEO lead capture */
+      .seo-capture-box { padding: 24px 18px !important; border-radius: 16px !important; }
+      .seo-capture-box h3 { font-size: 1.25rem !important; }
+      .seo-capture-box > p { font-size: 0.85rem !important; margin-bottom: 20px !important; }
+      .seo-capture-box .seo-form-group { margin-bottom: 14px !important; }
+      .seo-capture-box input { padding: 11px 12px !important; font-size: 0.9rem !important; }
+      .seo-capture-submit { padding: 13px !important; font-size: 0.9rem !important; }
+      .seo-capture-trust { flex-direction: column !important; gap: 4px !important; margin-top: 12px !important; }
+
+      /* SEO bottom CTA banner */
+      .seo-demo-section > .container:last-of-type > div {
+        padding: 28px 20px !important;
+        border-radius: 14px !important;
+      }
+      .seo-demo-section > .container:last-of-type > div > div:first-child {
+        font-size: clamp(1.1rem, 4.5vw, 1.4rem) !important;
+        line-height: 1.3 !important;
+      }
+      .seo-demo-section > .container:last-of-type > div > p {
+        font-size: 0.82rem !important;
+      }
+      .seo-demo-section > .container:last-of-type > div > .seo-capture-submit {
+        padding: 12px 24px !important;
+        font-size: 0.85rem !important;
+      }
     }
 
     /* ---- CHAT WIDGET — MOBILE ---- */
