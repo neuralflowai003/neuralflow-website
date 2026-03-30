@@ -5514,6 +5514,7 @@
     window.addEventListener('scroll', () => {
       const scrollPx = document.documentElement.scrollTop;
       const winHeightPx = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      if (!winHeightPx) return;
       const scrolled = `${scrollPx / winHeightPx * 100}%`;
       scrollProgress.style.width = scrolled;
     });
@@ -5961,11 +5962,12 @@
     })();
 
     const chatExpandBtn = document.getElementById('chatExpandBtn');
-    chatExpandBtn.addEventListener('click', () => {
+    if (chatExpandBtn) chatExpandBtn.addEventListener('click', () => {
       const isExpanded = chatWindow.classList.toggle('chat-expanded');
       chatExpandBtn.innerHTML = isExpanded ? '&#x2715;' : '&#x26F6;';
       chatExpandBtn.title = isExpanded ? 'Collapse chat' : 'Expand chat';
     });
+
 
     // ── Mobile keyboard handling ──────────────────────────────────────────────
     // When the virtual keyboard opens on iOS/Android it resizes the viewport.
