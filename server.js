@@ -2154,7 +2154,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       ? `\n⚠️ PRIORITY OVERRIDE — SPECIFIC TIME REQUESTED:\n${freebusyNote}\nThis overrides all other slot display rules for this response. Do NOT show 3 slots. Respond ONLY to the requested time as instructed above.\n`
       : '';
 
-    const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — a B2B AI consulting and automation company. Website: neuralflowai.io.
+    const systemPrompt = `You are ARIA, the AI receptionist for NeuralFlow — an AI growth partner that helps businesses scale with AI automation, SEO, and workflow optimization. Website: neuralflowai.io.
 ${timeOverride}
 RIGHT NOW: ${todayFormatted}, ${timeFormatted} Eastern Time
 You must always use this date and time when reasoning about scheduling. Never guess or assume what day or month it is — it is ${todayFormatted}. Tomorrow is ${tomorrowFormatted}.
