@@ -2671,6 +2671,54 @@ app.post('/api/roi-lead', chatRateLimit, (req, res) => {
   );
 });
 
+// ─── SEO Audit Lead Capture ──────────────────────────────────────────────────
+app.post('/api/seo-audit', chatRateLimit, (req, res) => {
+  const { website, name, email, phone } = req.body || {};
+
+  if (!website || !name || !email) {
+    return res.status(400).json({ error: 'Website, name, and email are required.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address.' });
+  }
+
+  res.json({ ok: true });
+
+  sendTelegramAlert(
+    `🔍 SEO AUDIT REQUEST\n\n` +
+    `👤 ${name}\n` +
+    `📧 ${email}\n` +
+    `📞 ${phone || 'N/A'}\n` +
+    `🌐 ${website}\n\n` +
+    `📊 Free SEO audit requested from website`
+  );
+
+  // Send confirmation email
+  fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'ARIA <aria@neuralflowai.io>',
+      to: email,
+      subject: `Your SEO Audit is on the way, ${name.split(' ')[0]}!`,
+      html: `<div style="font-family:Arial,sans-serif;background:#0a0a0f;color:#fff;padding:40px;border-radius:12px;">
+        <h2 style="color:#FF6B2B;margin-bottom:16px;">Your Free SEO Audit is Coming</h2>
+        <p>Hey ${escapeHtml(name.split(' ')[0])},</p>
+        <p>Thanks for requesting a free SEO audit for <strong>${escapeHtml(website)}</strong>. Our team is already on it.</p>
+        <p>Here's what you'll get within 48 hours:</p>
+        <ul style="color:#ccc;line-height:2;">
+          <li>Current search rankings for your top keywords</li>
+          <li>Technical SEO issues slowing you down</li>
+          <li>Competitor analysis</li>
+          <li>Custom action plan to improve rankings</li>
+        </ul>
+        <p>In the meantime, feel free to <a href="https://neuralflowai.io/?open_chat=1" style="color:#FF6B2B;">chat with ARIA</a> if you have any questions.</p>
+        <p style="margin-top:24px;">— Danny Boehmer, Founder, NeuralFlow AI</p>
+      </div>`
+    })
+  }).catch(e => console.error('SEO audit email error:', e.message));
+});
+
 // ─── ROI Calculator Tracking ──────────────────────────────────────────────────
 app.post('/api/track', chatRateLimit, (req, res) => {
   const { event, data } = req.body || {};
