@@ -701,6 +701,7 @@
       opacity: 0;
       transform: translateY(36px);
       animation: line1In 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+      text-shadow: 0 0 30px rgba(255,107,43,0.2), 0 0 80px rgba(255,107,43,0.1);
     }
 
     .line-2 {
@@ -6007,21 +6008,42 @@
       var el = document.getElementById('kin-1');
       if (!el) return;
 
+      var glowNormal = '0 0 30px rgba(255,107,43,0.2), 0 0 80px rgba(255,107,43,0.1)';
+      var glowBright = '0 0 60px rgba(255,107,43,0.55), 0 0 120px rgba(255,107,43,0.2)';
+
       setInterval(function() {
-        // Fade out
-        el.style.transition = 'opacity 0.5s, transform 0.5s';
+        // Phase 1: fade out + blur + slide up + glow dims
+        el.style.transition = 'opacity 0.7s ease, transform 0.7s ease, filter 0.7s ease, text-shadow 0.7s ease';
         el.style.opacity = '0';
-        el.style.transform = 'translateY(-20px)';
+        el.style.transform = 'translateY(-16px) scale(0.97)';
+        el.style.filter = 'blur(8px)';
+        el.style.textShadow = 'none';
+
         setTimeout(function() {
+          // Swap text while invisible
           hIdx = (hIdx + 1) % headlines.length;
           el.textContent = headlines[hIdx];
-          el.style.transform = 'translateY(20px)';
-          // Force reflow
+
+          // Reset position below (no transition)
+          el.style.transition = 'none';
+          el.style.transform = 'translateY(16px) scale(0.97)';
+          el.style.filter = 'blur(8px)';
           void el.offsetHeight;
+
+          // Phase 2: fade in + unblur + slide to center + glow pulses bright
+          el.style.transition = 'opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1), filter 0.8s cubic-bezier(0.16,1,0.3,1), text-shadow 0.8s ease';
           el.style.opacity = '1';
-          el.style.transform = 'translateY(0)';
-        }, 500);
-      }, 3000);
+          el.style.transform = 'translateY(0) scale(1)';
+          el.style.filter = 'blur(0)';
+          el.style.textShadow = glowBright;
+
+          // Phase 3: glow settles back to normal
+          setTimeout(function() {
+            el.style.transition = 'text-shadow 2s ease';
+            el.style.textShadow = glowNormal;
+          }, 900);
+        }, 700);
+      }, 4000);
     })();
 
     // ------------------- Typewriter Effect -------------------
