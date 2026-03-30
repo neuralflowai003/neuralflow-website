@@ -2425,6 +2425,7 @@
       <a href="#home" class="logo magnetic" data-strength="10">Neural<span>Flow</span></a>
       <div class="nav-links">
         <a href="#services" class="nav-link magnetic" data-strength="20">Services</a>
+        <a href="#seo" class="nav-link magnetic" data-strength="20">SEO</a>
         <a href="#work" class="nav-link magnetic" data-strength="20">Work</a>
         <a href="#process" class="nav-link magnetic" data-strength="20">Process</a>
         <a href="#about" class="nav-link magnetic" data-strength="20">About</a>
@@ -2452,6 +2453,7 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <a href="#services" class="mob-link" onclick="closeMobileMenu()">Services</a>
+        <a href="#seo" class="mob-link" onclick="closeMobileMenu()">SEO</a>
         <a href="#work" class="mob-link" onclick="closeMobileMenu()">Work</a>
         <a href="#process" class="mob-link" onclick="closeMobileMenu()">Process</a>
         <a href="#about" class="mob-link" onclick="closeMobileMenu()">About</a>
@@ -3272,6 +3274,273 @@
     .viz-seo-traffic { font-size: 11px; font-family: 'Space Grotesk',sans-serif; font-weight: 700; color: #FF6B2B; text-align: center; margin-top: 4px; opacity: 0; transition: opacity 0.5s 1.2s; }
     .tilt-card.viz-active .viz-seo-traffic { opacity: 1; }
   </style>
+
+  <!-- ═══════════════════════ SEO DEMO SECTION ═══════════════════════ -->
+  <style>
+    .seo-demo-section { padding: 120px 0; background: var(--bg-alt); position: relative; overflow: hidden; border-top: 1px solid var(--border); }
+    .seo-demo-section::before { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:800px; height:800px; border-radius:50%; background:radial-gradient(circle,rgba(255,107,43,0.04) 0%,transparent 70%); pointer-events:none; }
+    .seo-demo-layout { display:grid; grid-template-columns:1.2fr 0.8fr; gap:60px; align-items:start; max-width:1100px; margin:0 auto; padding:0 24px; }
+
+    /* Search engine mockup */
+    .seo-search-mock { background:rgba(8,14,24,0.9); border:1px solid rgba(255,107,43,0.15); border-radius:20px; box-shadow:0 24px 80px rgba(0,0,0,0.5); overflow:hidden; }
+    .seo-search-topbar { padding:16px 20px; background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:12px; }
+    .seo-search-dots { display:flex; gap:6px; }
+    .seo-search-dots span { width:10px; height:10px; border-radius:50%; }
+    .seo-search-dots span:nth-child(1) { background:#ff5f57; }
+    .seo-search-dots span:nth-child(2) { background:#febc2e; }
+    .seo-search-dots span:nth-child(3) { background:#28c840; }
+    .seo-search-url-bar { flex:1; background:rgba(255,255,255,0.05); border-radius:20px; padding:6px 14px; font-size:11px; color:rgba(255,255,255,0.4); font-family:'Inter',sans-serif; }
+
+    .seo-search-input-row { padding:20px 20px 0; display:flex; align-items:center; gap:10px; }
+    .seo-search-input-row input { flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:24px; padding:10px 16px; color:#fff; font-size:13px; font-family:'Inter',sans-serif; outline:none; }
+    .seo-search-input-row input:focus { border-color:rgba(255,107,43,0.3); }
+    .seo-search-icon { width:18px; height:18px; color:rgba(255,255,255,0.4); }
+    .seo-tab-row { padding:10px 20px 0; display:flex; gap:16px; border-bottom:1px solid rgba(255,255,255,0.06); }
+    .seo-tab { font-size:11px; color:rgba(255,255,255,0.4); padding:8px 0; font-family:'Inter',sans-serif; cursor:default; }
+    .seo-tab.active { color:#FF6B2B; border-bottom:2px solid #FF6B2B; }
+    .seo-results-count { padding:12px 20px 4px; font-size:10px; color:rgba(255,255,255,0.2); font-family:'Inter',sans-serif; }
+
+    .seo-results-area { padding:8px 20px 20px; min-height:300px; position:relative; }
+
+    /* Individual search result */
+    .seo-result { padding:14px 0; border-bottom:1px solid rgba(255,255,255,0.04); transition: opacity 0.4s, transform 0.4s; }
+    .seo-result:last-child { border-bottom:none; }
+    .seo-result-url { font-size:11px; color:rgba(255,255,255,0.35); font-family:'Inter',sans-serif; margin-bottom:2px; display:flex; align-items:center; gap:6px; }
+    .seo-result-url .seo-favicon { width:14px; height:14px; border-radius:50%; background:rgba(255,255,255,0.1); display:inline-flex; align-items:center; justify-content:center; font-size:7px; }
+    .seo-result-title { font-size:15px; color:#8ab4f8; font-family:'Inter',sans-serif; margin-bottom:3px; cursor:pointer; }
+    .seo-result-title:hover { text-decoration:underline; }
+    .seo-result-desc { font-size:12px; color:rgba(255,255,255,0.4); font-family:'Inter',sans-serif; line-height:1.5; }
+
+    /* Highlighted "your" result */
+    .seo-result.seo-yours { background:rgba(255,107,43,0.06); border:1px solid rgba(255,107,43,0.2); border-radius:12px; padding:14px 16px; margin:4px -16px; }
+    .seo-result.seo-yours .seo-result-title { color:#FF6B2B; }
+    .seo-result.seo-yours .seo-result-stars { color:#FFB400; font-size:12px; margin-bottom:2px; }
+    .seo-result.seo-yours .seo-result-rich { display:flex; gap:16px; margin-top:6px; font-size:10px; color:rgba(255,255,255,0.35); font-family:'Inter',sans-serif; }
+
+    /* Before/After toggle */
+    .seo-toggle { display:flex; justify-content:center; gap:4px; padding:16px 20px; background:rgba(255,255,255,0.02); border-top:1px solid rgba(255,255,255,0.06); }
+    .seo-toggle button { padding:8px 20px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:rgba(255,255,255,0.5); font-size:12px; font-family:'Space Grotesk',sans-serif; font-weight:600; cursor:pointer; transition:all 0.3s; }
+    .seo-toggle button.active { background:linear-gradient(135deg,#FF6B2B,#7B61FF); color:#fff; border-color:transparent; }
+    .seo-toggle button:hover:not(.active) { border-color:rgba(255,107,43,0.3); color:#fff; }
+
+    /* Before state: "yours" buried and dimmed */
+    .seo-before .seo-result.seo-yours { background:transparent; border:1px solid transparent; }
+    .seo-before .seo-result.seo-yours .seo-result-title { color:rgba(255,255,255,0.25); }
+    .seo-before .seo-result.seo-yours .seo-result-url { color:rgba(255,255,255,0.15); }
+    .seo-before .seo-result.seo-yours .seo-result-desc { color:rgba(255,255,255,0.15); }
+    .seo-before .seo-result.seo-yours .seo-result-stars,
+    .seo-before .seo-result.seo-yours .seo-result-rich { display:none; }
+    .seo-before .seo-buried-label { display:block; }
+    .seo-after .seo-buried-label { display:none; }
+    .seo-buried-label { display:none; font-size:9px; color:rgba(255,80,80,0.6); font-family:'Space Grotesk',sans-serif; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+
+    /* Lead capture box */
+    .seo-capture-box { background:rgba(6,10,20,0.85); padding:40px; border-radius:24px; border:1px solid rgba(255,107,43,0.15); box-shadow:0 20px 60px rgba(0,0,0,0.3), inset 0 0 80px rgba(255,107,43,0.02); transition:border-color 0.3s, box-shadow 0.3s; }
+    .seo-capture-box:hover { border-color:rgba(255,107,43,0.28); box-shadow:0 24px 80px rgba(0,0,0,0.4), 0 0 40px rgba(255,107,43,0.06); }
+    .seo-capture-box h3 { font-family:'Space Grotesk',sans-serif; font-size:1.6rem; font-weight:700; margin-bottom:8px; background:linear-gradient(135deg,#fff 60%,rgba(255,107,43,0.8) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .seo-capture-box > p { color:var(--muted); font-size:0.95rem; margin-bottom:28px; line-height:1.5; }
+    .seo-capture-box .seo-form-group { margin-bottom:20px; }
+    .seo-capture-box input { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:12px 14px; color:#fff; font-size:0.95rem; font-family:'Inter',sans-serif; outline:none; transition:border-color 0.3s; }
+    .seo-capture-box input:focus { border-color:rgba(255,107,43,0.4); }
+    .seo-capture-box input::placeholder { color:rgba(255,255,255,0.3); }
+    .seo-capture-submit { width:100%; padding:14px; background:linear-gradient(135deg,#FF6B2B,#7B61FF); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; font-family:'Space Grotesk',sans-serif; cursor:pointer; transition:transform 0.3s, box-shadow 0.3s; }
+    .seo-capture-submit:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(123,97,255,0.4); }
+    .seo-capture-trust { display:flex; align-items:center; justify-content:center; gap:16px; margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,107,43,0.08); }
+    .seo-capture-trust span { font-size:11px; color:var(--muted); }
+
+    .seo-capture-success { display:none; text-align:center; padding:20px 0; }
+    .seo-capture-success .seo-success-icon { font-size:40px; margin-bottom:12px; }
+    .seo-capture-success h4 { font-family:'Space Grotesk',sans-serif; font-size:1.2rem; margin-bottom:8px; color:#fff; }
+    .seo-capture-success p { color:var(--muted); font-size:0.9rem; }
+
+    @media (max-width:900px) {
+      .seo-demo-layout { grid-template-columns:1fr; gap:32px; }
+      .seo-demo-section { padding:80px 0; }
+    }
+    @media (max-width:600px) {
+      .seo-capture-box { padding:28px 20px; }
+      .seo-capture-trust { flex-direction:column; gap:6px; }
+      .seo-demo-section { padding:60px 0; }
+    }
+  </style>
+
+  <section class="seo-demo-section" id="seo">
+    <div class="container" style="text-align:center;margin-bottom:60px;">
+      <div class="reveal" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">SEO & AI Search</div>
+      <h2 class="section-title reveal">See the Difference.</h2>
+      <p class="section-desc reveal" style="margin-bottom:0;">This is what happens when NeuralFlow optimizes your search presence. Toggle between before and after.</p>
+    </div>
+
+    <div class="seo-demo-layout">
+      <!-- Search Engine Mockup -->
+      <div class="seo-search-mock reveal">
+        <div class="seo-search-topbar">
+          <div class="seo-search-dots"><span></span><span></span><span></span></div>
+          <div class="seo-search-url-bar">google.com/search?q=ai+consulting+near+me</div>
+        </div>
+        <div class="seo-search-input-row">
+          <svg class="seo-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" value="ai consulting near me" readonly>
+        </div>
+        <div class="seo-tab-row">
+          <div class="seo-tab active">All</div>
+          <div class="seo-tab">Maps</div>
+          <div class="seo-tab">Images</div>
+          <div class="seo-tab">AI Overview</div>
+        </div>
+        <div class="seo-results-count">About 2,340,000 results (0.42 seconds)</div>
+
+        <div class="seo-results-area seo-before" id="seoResults">
+          <!-- Result 1 (competitor) -->
+          <div class="seo-result">
+            <div class="seo-result-url"><div class="seo-favicon">A</div> www.acme-ai-solutions.com</div>
+            <div class="seo-result-title">AI Consulting Services — Acme AI Solutions</div>
+            <div class="seo-result-desc">Enterprise AI solutions for businesses of all sizes. Transform your operations with our consulting team.</div>
+          </div>
+          <!-- Result 2 (competitor) -->
+          <div class="seo-result">
+            <div class="seo-result-url"><div class="seo-favicon">B</div> www.brightwave.io</div>
+            <div class="seo-result-title">AI Strategy & Consulting | BrightWave</div>
+            <div class="seo-result-desc">Leading AI consulting firm helping businesses automate and scale. Free assessment available.</div>
+          </div>
+          <!-- Result 3 (competitor) -->
+          <div class="seo-result">
+            <div class="seo-result-url"><div class="seo-favicon">D</div> www.datatrek.com</div>
+            <div class="seo-result-title">DataTrek — AI Integration Consultants</div>
+            <div class="seo-result-desc">Custom AI models and workflow automation for mid-market companies. Trusted since 2019.</div>
+          </div>
+          <!-- Result 4 (yours — buried) -->
+          <div class="seo-result seo-yours">
+            <div class="seo-buried-label">Your business — page 2, position #8</div>
+            <div class="seo-result-stars"></div>
+            <div class="seo-result-url"><div class="seo-favicon" style="background:rgba(255,107,43,0.2);color:#FF6B2B;">N</div> neuralflowai.io</div>
+            <div class="seo-result-title">NeuralFlow AI — AI Growth Partner</div>
+            <div class="seo-result-desc">AI automation and consulting for businesses...</div>
+            <div class="seo-result-rich"><span>★★★★★ 4.9 rating</span><span>150+ clients</span><span>Free consultation</span></div>
+          </div>
+        </div>
+
+        <div class="seo-toggle">
+          <button class="active" id="seoToggleBefore" onclick="showSeoBefore()">Before</button>
+          <button id="seoToggleAfter" onclick="showSeoAfter()">After NeuralFlow</button>
+        </div>
+      </div>
+
+      <!-- Lead Capture -->
+      <div class="seo-capture-box reveal" style="transition-delay:0.2s;">
+        <h3>Get Your Free SEO Audit</h3>
+        <p>See exactly where your business ranks today and get a custom action plan to dominate search results.</p>
+        <form id="seoAuditForm" onsubmit="submitSeoAudit(event)">
+          <div class="seo-form-group">
+            <input type="url" id="seo_website" placeholder="Your website URL" required>
+          </div>
+          <div class="seo-form-group">
+            <input type="text" id="seo_name" placeholder="Full Name" required>
+          </div>
+          <div class="seo-form-group">
+            <input type="email" id="seo_email" placeholder="Work Email" required>
+          </div>
+          <div class="seo-form-group">
+            <input type="tel" id="seo_phone" placeholder="Phone (optional)">
+          </div>
+          <button type="submit" class="seo-capture-submit" id="seoSubmitBtn">Get My Free SEO Audit →</button>
+          <div class="seo-capture-trust">
+            <span>🔒 No spam, ever.</span>
+            <span>📊 Full report in 48 hrs.</span>
+            <span>✓ 100% free.</span>
+          </div>
+        </form>
+        <div class="seo-capture-success" id="seoSuccess">
+          <div class="seo-success-icon">📊</div>
+          <h4>Audit Request Received!</h4>
+          <p>We'll analyze your site and send a full SEO report within 48 hours. Check your email!</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  (function() {
+    var beforeResults = [
+      { favicon:'A', url:'www.acme-ai-solutions.com', title:'AI Consulting Services — Acme AI Solutions', desc:'Enterprise AI solutions for businesses of all sizes. Transform your operations with our consulting team.' },
+      { favicon:'B', url:'www.brightwave.io', title:'AI Strategy & Consulting | BrightWave', desc:'Leading AI consulting firm helping businesses automate and scale. Free assessment available.' },
+      { favicon:'D', url:'www.datatrek.com', title:'DataTrek — AI Integration Consultants', desc:'Custom AI models and workflow automation for mid-market companies. Trusted since 2019.' },
+      { yours:true, favicon:'N', url:'neuralflowai.io', title:'NeuralFlow AI — AI Growth Partner', desc:'AI automation and consulting for businesses...', buried:true }
+    ];
+    var afterResults = [
+      { yours:true, favicon:'N', url:'neuralflowai.io', title:'NeuralFlow AI — Your AI Growth Partner', desc:'We consult, automate, and optimize your business with AI, workflow automation, and SEO. 150+ businesses scaled. Book a free consultation today.', stars:true, rich:true },
+      { favicon:'A', url:'www.acme-ai-solutions.com', title:'AI Consulting Services — Acme AI Solutions', desc:'Enterprise AI solutions for businesses of all sizes. Transform your operations with our consulting team.' },
+      { favicon:'B', url:'www.brightwave.io', title:'AI Strategy & Consulting | BrightWave', desc:'Leading AI consulting firm helping businesses automate and scale. Free assessment available.' },
+      { favicon:'D', url:'www.datatrek.com', title:'DataTrek — AI Integration Consultants', desc:'Custom AI models and workflow automation for mid-market companies. Trusted since 2019.' }
+    ];
+
+    function buildResults(list, state) {
+      var area = document.getElementById('seoResults');
+      area.className = 'seo-results-area ' + state;
+      area.innerHTML = '';
+      list.forEach(function(r, i) {
+        var div = document.createElement('div');
+        div.className = 'seo-result' + (r.yours ? ' seo-yours' : '');
+        div.style.opacity = '0';
+        div.style.transform = 'translateY(8px)';
+        div.style.transition = 'opacity 0.4s ' + (i * 0.1) + 's, transform 0.4s ' + (i * 0.1) + 's';
+        var html = '';
+        if (r.buried) html += '<div class="seo-buried-label">Your business — page 2, position #8</div>';
+        if (r.stars) html += '<div class="seo-result-stars">★★★★★ 4.9 — 47 reviews</div>';
+        html += '<div class="seo-result-url"><div class="seo-favicon"' + (r.yours ? ' style="background:rgba(255,107,43,0.2);color:#FF6B2B;"' : '') + '>' + r.favicon + '</div> ' + r.url + '</div>';
+        html += '<div class="seo-result-title">' + r.title + '</div>';
+        html += '<div class="seo-result-desc">' + r.desc + '</div>';
+        if (r.rich) html += '<div class="seo-result-rich"><span>📍 Bayonne, NJ</span><span>⏱ Free consultation</span><span>🔥 150+ clients</span></div>';
+        div.innerHTML = html;
+        area.appendChild(div);
+        requestAnimationFrame(function() {
+          requestAnimationFrame(function() {
+            div.style.opacity = '1';
+            div.style.transform = 'translateY(0)';
+          });
+        });
+      });
+    }
+
+    window.showSeoBefore = function() {
+      document.getElementById('seoToggleBefore').classList.add('active');
+      document.getElementById('seoToggleAfter').classList.remove('active');
+      buildResults(beforeResults, 'seo-before');
+    };
+    window.showSeoAfter = function() {
+      document.getElementById('seoToggleAfter').classList.add('active');
+      document.getElementById('seoToggleBefore').classList.remove('active');
+      buildResults(afterResults, 'seo-after');
+    };
+
+    window.submitSeoAudit = async function(e) {
+      e.preventDefault();
+      var btn = document.getElementById('seoSubmitBtn');
+      btn.textContent = 'Sending...';
+      btn.disabled = true;
+      try {
+        var res = await fetch('/api/seo-audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            website: document.getElementById('seo_website').value,
+            name: document.getElementById('seo_name').value,
+            email: document.getElementById('seo_email').value,
+            phone: document.getElementById('seo_phone').value
+          })
+        });
+        if (res.ok) {
+          document.getElementById('seoAuditForm').style.display = 'none';
+          document.getElementById('seoSuccess').style.display = 'block';
+        } else { throw new Error(); }
+      } catch (err) {
+        btn.textContent = 'Get My Free SEO Audit →';
+        btn.disabled = false;
+        alert('Something went wrong. Please try again or email danny@neuralflowai.io');
+      }
+    };
+  })();
+  </script>
 
   <!-- ROI CALCULATOR TEASER -->
   <style>
