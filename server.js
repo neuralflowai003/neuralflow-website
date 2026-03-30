@@ -1413,7 +1413,8 @@ function scheduleNoShowRecovery({ name, email, slotStart, slotLabel }) {
         console.log(`📬 No-show recovery email sent to ${email}`);
         sendTelegramAlert(`⚠️ NO-SHOW\n${name} (${email}) missed their ${slotLabel} call.\nRecovery email sent with 3 new slots.`);
       } else {
-        const d = await r.json();
+        let d;
+        try { d = await r.json(); } catch (_) { d = {}; }
         console.error('⚠️ No-show recovery email failed:', d.message || JSON.stringify(d));
       }
     } catch (e) {
