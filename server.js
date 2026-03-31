@@ -46,8 +46,12 @@ if (process.env.GOOGLE_REFRESH_TOKEN) {
   oauth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
   oauth2Client.getAccessToken().then(t => console.log('✅ Google auth OK')).catch(e => console.error('❌ Google auth failed:', e.message));
 } else if (fs.existsSync(TOKEN_PATH)) {
-  oauth2Client.setCredentials(JSON.parse(fs.readFileSync(TOKEN_PATH)));
-  console.log('✅ Google auth loaded from token file');
+  try {
+    oauth2Client.setCredentials(JSON.parse(fs.readFileSync(TOKEN_PATH)));
+    console.log('✅ Google auth loaded from token file');
+  } catch (e) {
+    console.error('❌ Failed to parse Google token file:', e.message);
+  }
 } else {
   console.error('❌ No Google credentials found — calendar booking will fail');
 }
@@ -1652,7 +1656,8 @@ app.post('/api/accept-proposal', async (req, res) => {
             headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to, subject, html })
           });
-          const data = await r.json();
+          let data;
+          try { data = await r.json(); } catch (_) { data = {}; }
           if (r.ok) { console.log(`✅ ${label} sent (Resend id: ${data.id})`); return; }
           throw new Error(data.message || JSON.stringify(data));
         } catch (e) {
@@ -2555,7 +2560,8 @@ async function sendReminderEmail(booking, type) {
         body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to: email, subject, html })
       });
       if (r.ok) { console.log(`✅ ${type} reminder sent to ${email}`); return; }
-      throw new Error((await r.json()).message);
+      let errMsg; try { errMsg = (await r.json()).message; } catch (_) { errMsg = r.statusText; }
+      throw new Error(errMsg);
     } catch (e) {
       console.error(`❌ ${type} reminder attempt ${i + 1} failed:`, e.message);
       if (i < 2) await new Promise(r => setTimeout(r, 3000));
@@ -2638,7 +2644,8 @@ setInterval(async () => { try {
           lead.followedUp = true;
           savePendingLeads();
         } else {
-          console.error('❌ Follow-up email failed:', (await r.json()).message);
+          let errMsg; try { errMsg = (await r.json()).message; } catch (_) { errMsg = r.statusText; }
+          console.error('❌ Follow-up email failed:', errMsg);
         }
       } catch (e) { console.error('❌ Follow-up email error:', e.message); }
     }
