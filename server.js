@@ -117,6 +117,42 @@ app.get('/sitemap.xml', (req, res) => {
     `    <priority>1.0</priority>\n` +
     `  </url>\n` +
     `  <url>\n` +
+    `    <loc>https://neuralflowai.io/#services</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>weekly</changefreq>\n` +
+    `    <priority>0.9</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/#seo</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>weekly</changefreq>\n` +
+    `    <priority>0.9</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/#work</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>weekly</changefreq>\n` +
+    `    <priority>0.8</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/#process</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.7</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/#about</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.7</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/#contact</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.8</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
     `    <loc>https://roi.neuralflowai.io/roi-calculator</loc>\n` +
     `    <lastmod>${now}</lastmod>\n` +
     `    <changefreq>monthly</changefreq>\n` +
