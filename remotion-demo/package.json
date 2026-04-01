@@ -1,0 +1,23 @@
+{
+  "name": "remotion-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "preview": "remotion preview src/index.ts",
+    "render": "remotion render src/index.ts NeuralFlowDemo out/demo.mp4",
+    "still": "remotion still src/index.ts NeuralFlowDemo --frame=95 out/thumbnail.png"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.443",
+    "@remotion/cli": "^4.0.443",
+    "@types/react": "^19.2.14",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "remotion": "^4.0.443",
+    "typescript": "^6.0.2"
+  }
+}
