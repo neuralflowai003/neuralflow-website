@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "preview": "remotion preview src/index.ts",
-    "render": "remotion render src/index.ts NeuralFlowDemo out/demo.mp4",
+    "render": "remotion render src/index.ts NeuralFlowDemo out/NeuralFlow-Demo.mp4",
+    "render:gif": "remotion render src/index.ts NeuralFlowDemo out/NeuralFlow-Demo.gif --image-format=png",
     "still": "remotion still src/index.ts NeuralFlowDemo --frame=95 out/thumbnail.png"
   },
   "keywords": [],
