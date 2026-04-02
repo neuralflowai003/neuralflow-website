@@ -367,6 +367,19 @@ let globalSlotCacheUpdatedAt = 0;
 // ─── Cached OAuth Token ───────────────────────────────────────────────────────
 let cachedAccessToken = null;
 let tokenExpiresAt = 0;
+let tokenRefreshPromise = null;
+
+async function ensureFreshToken() {
+  if (cachedAccessToken && Date.now() < tokenExpiresAt - 60000) return;
+  if (tokenRefreshPromise) return tokenRefreshPromise;
+  tokenRefreshPromise = (async () => {
+    try {
+      const r = await oauth2Client.getAccessToken().catch(() => null);
+      if (r?.token) { cachedAccessToken = r.token; tokenExpiresAt = r.res?.data?.expiry_date || (Date.now() + 3500000); }
+    } finally { tokenRefreshPromise = null; }
+  })();
+  return tokenRefreshPromise;
+}
 
 async function refreshGlobalSlotCache() {
   try {
@@ -1263,7 +1276,8 @@ Industry: [their likely industry]
           headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        const data = await res.json();
+        const text = await res.text();
+        let data; try { data = JSON.parse(text); } catch { throw new Error(`Non-JSON response: ${text.slice(0, 200)}`); }
         if (res.ok) { console.log(`✅ ${label} sent (Resend id: ${data.id})`); return; }
         throw new Error(data.message || JSON.stringify(data));
       } catch (e) {
@@ -1495,7 +1509,8 @@ app.get('/api/test-email', chatRateLimit, async (req, res) => {
       headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ from: 'NeuralFlow AI <danny@neuralflowai.io>', to: process.env.GMAIL_USER, subject: '✅ ARIA Resend Test', html: '<p>Resend is working on Railway!</p>' })
     });
-    const data = await r.json();
+    const text = await r.text();
+    let data; try { data = JSON.parse(text); } catch { data = { message: text.slice(0, 200) }; }
     if (r.ok) { results.send = 'OK'; results.resend_id = data.id; }
     else { results.error = data.message || JSON.stringify(data); }
   } catch (e) { results.error = e.message; }
@@ -1532,7 +1547,8 @@ app.get('/api/test-booking-email', async (req, res) => {
         }),
       }),
     });
-    const data = await r.json();
+    const text = await r.text();
+    let data; try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 200) }; }
     res.json({ triggered: true, book_result: data });
   } catch (e) {
     res.json({ triggered: false, error: e.message });
@@ -2049,10 +2065,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       if (dateToCheck) {
         try {
           // Always refresh token before freebusy — stored-slot path skips getAvailableSlots
-          if (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000) {
-            const r = await oauth2Client.getAccessToken().catch(() => null);
-            if (r?.token) { cachedAccessToken = r.token; tokenExpiresAt = r.res?.data?.expiry_date || (Date.now() + 3500000); }
-          }
+          await ensureFreshToken();
 
           const { hours: offsetHours, abbr } = getNYOffset(new Date(dateToCheck + 'T12:00:00'));
           const utcHr = requestedTime.hr + offsetHours;
@@ -2314,7 +2327,8 @@ ${slotsText}`;
       });
       clearTimeout(orTimer);
       if (!resOpenRouter.ok) throw new Error('OpenRouter failed');
-      const data = await resOpenRouter.json();
+      const orText = await resOpenRouter.text();
+      let data; try { data = JSON.parse(orText); } catch { throw new Error(`OpenRouter non-JSON: ${orText.slice(0, 200)}`); }
       aiReplyText = data?.choices?.[0]?.message?.content;
       if (!aiReplyText) throw new Error('Empty OpenRouter response');
     }
@@ -2514,11 +2528,17 @@ ${slotsText}`;
         if (freshSlot) slot = freshSlot;
 
         console.log(`📌 Booking confirmed: ${slot.label} | method: ${matchMethod} (Fresh Confirmed)`);
-        // Fire booking in background — don't block the response
-        bookAppointment({
-          name: bookData.name, email: bookData.email, company: bookData.company,
-          phone: bookData.phone || '', notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
-        }).catch(err => console.error('Background booking error:', err.message));
+        // Await booking so we know it succeeded before telling the client
+        try {
+          await bookAppointment({
+            name: bookData.name, email: bookData.email, company: bookData.company,
+            phone: bookData.phone || '', notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
+          });
+        } catch (err) {
+          console.error('Booking failed:', err.message);
+          sendTelegramAlert(`🚨 BOOKING FAILED\n${bookData.name} (${bookData.email}) — ${slot.label}\nError: ${err.message}`);
+          return res.json({ reply: "I'm sorry, there was a problem completing your booking. Could you try again in a moment?", booked: false });
+        }
         conversationSlots.delete(convId);
         agreedSlots.delete(convId);
         pendingLeads.delete(convId); savePendingLeads(); // booked — no follow-up needed
@@ -2567,7 +2587,7 @@ async function sendReminderEmail(booking, type) {
         ${isOneHour ? 'Your call starts in 1 hour' : 'Your consultation is tomorrow'}
       </h1>
       <p style="margin:0;font-size:16px;color:${textMuted};line-height:1.6;">
-        Hi <strong style="color:#fff;">${firstName}</strong>, just a heads-up — your strategy session with Danny Boehmer is coming up ${isOneHour ? 'very soon' : 'tomorrow'}.
+        Hi <strong style="color:#fff;">${escapeHtml(firstName)}</strong>, just a heads-up — your strategy session with Danny Boehmer is coming up ${isOneHour ? 'very soon' : 'tomorrow'}.
       </p>
     </td></tr>
     <tr><td style="background:${bgCard};padding:0 40px 32px;">
@@ -2906,7 +2926,8 @@ async function registerTelegramWebhook() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, allowed_updates: ['message'] })
     });
-    const data = await r.json();
+    const whText = await r.text();
+    let data; try { data = JSON.parse(whText); } catch { data = { ok: false, description: whText.slice(0, 200) }; }
     console.log('📡 Telegram webhook:', data.ok ? `registered → ${url}` : `FAILED — ${data.description}`);
   } catch (e) { console.error('⚠️ Telegram webhook registration failed:', e.message); }
 }
