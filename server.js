@@ -10,6 +10,7 @@ const fs = require('fs');
 
 const https = require('https');
 const crypto = require('crypto');
+const compression = require('compression');
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -65,6 +66,20 @@ const allowedOrigins = [
   'http://localhost:8080',
 ];
 app.use(helmet({ contentSecurityPolicy: false })); // CSP off — we serve inline scripts in index.html
+app.use(compression()); // Gzip compress all responses
+
+// HSTS + Cache headers
+app.use((req, res, next) => {
+  res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$/)) {
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  } else if (req.url === '/robots.txt' || req.url === '/sitemap.xml') {
+    res.set('Cache-Control', 'public, max-age=86400');
+  } else if (req.url === '/' || req.url.endsWith('.html')) {
+    res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+  }
+  next();
+});
 
 // Redirect www → non-www so Google only indexes one canonical version
 app.use((req, res, next) => {
