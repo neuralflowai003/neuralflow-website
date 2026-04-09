@@ -2506,6 +2506,8 @@ ${slotsText}`;
       if (!slot) {
         console.error(`❌ No slot matched for convId: ${convId}`, bookData);
         sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nNo slot matched.\nClient: ${bookData.name} (${bookData.email})\nRequested: ${bookData.slotLabel}`);
+        aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
+        return res.json({ reply: aiReplyText || "I'm sorry, I couldn't find that time slot. Could you pick another time?", booked: false });
       }
 
       if (slot) {
