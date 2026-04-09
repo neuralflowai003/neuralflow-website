@@ -98,7 +98,7 @@ export const ProblemScene: React.FC = () => {
                 style={{
                   fontSize: 22,
                   fontFamily: fonts.body,
-                  color: strikeWidth > 50 ? colors.gray : colors.white,
+                  color: strikeWidth > 50 ? colors.muted : colors.white,
                   fontWeight: 500,
                 }}
               >

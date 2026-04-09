@@ -39,7 +39,7 @@ export const ServicesScene: React.FC = () => {
           fontSize: 13,
           fontFamily: fonts.body,
           fontWeight: 600,
-          color: colors.orange,
+          color: colors.accent,
           letterSpacing: 4,
           textTransform: "uppercase",
           opacity: titleOpacity,
@@ -131,7 +131,7 @@ export const ServicesScene: React.FC = () => {
                 style={{
                   fontSize: 15,
                   fontFamily: fonts.body,
-                  color: colors.gray,
+                  color: colors.muted,
                   lineHeight: 1.5,
                 }}
               >

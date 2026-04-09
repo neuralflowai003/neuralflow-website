@@ -108,7 +108,7 @@ export const HeroScene: React.FC = () => {
         style={{
           fontSize: 28,
           fontFamily: fonts.body,
-          color: colors.gray,
+          color: colors.muted,
           opacity: subOpacity,
           transform: `translateY(${subY}px)`,
           marginTop: 30,

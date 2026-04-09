@@ -113,7 +113,7 @@ export const StatsScene: React.FC = () => {
                 style={{
                   fontSize: 15,
                   fontFamily: fonts.body,
-                  color: colors.gray,
+                  color: colors.muted,
                   marginTop: 12,
                   textTransform: "uppercase",
                   letterSpacing: 2,

@@ -62,7 +62,7 @@ export const IntroScene: React.FC = () => {
           left: `${50 - lineWidth / 2}%`,
           width: `${lineWidth}%`,
           height: 1,
-          background: `linear-gradient(90deg, transparent, ${colors.orange}40, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${colors.accent}40, transparent)`,
         }}
       />
       <div
@@ -84,7 +84,7 @@ export const IntroScene: React.FC = () => {
           left: 0,
           right: 0,
           height: 2,
-          background: `linear-gradient(90deg, transparent 20%, ${colors.orange}15 50%, transparent 80%)`,
+          background: `linear-gradient(90deg, transparent 20%, ${colors.accent}15 50%, transparent 80%)`,
         }}
       />
 
@@ -156,7 +156,7 @@ export const IntroScene: React.FC = () => {
           lineHeight: 1,
         }}
       >
-        <span style={{ color: colors.orange }}>Neural</span>
+        <span style={{ color: colors.accent }}>Neural</span>
         <span>Flow</span>
         <span
           style={{
@@ -177,7 +177,7 @@ export const IntroScene: React.FC = () => {
         style={{
           fontSize: 22,
           fontFamily: fonts.body,
-          color: colors.gray,
+          color: colors.muted,
           opacity: taglineOpacity,
           transform: `translateY(${taglineY}px)`,
           marginTop: 20,

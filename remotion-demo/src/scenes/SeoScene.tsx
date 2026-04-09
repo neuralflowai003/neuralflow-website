@@ -51,7 +51,7 @@ export const SeoScene: React.FC = () => {
             fontSize: 13,
             fontFamily: fonts.body,
             fontWeight: 600,
-            color: colors.orange,
+            color: colors.accent,
             letterSpacing: 4,
             textTransform: "uppercase",
             marginBottom: 16,
@@ -86,7 +86,7 @@ export const SeoScene: React.FC = () => {
         style={{
           width: "100%",
           maxWidth: 1000,
-          background: "#0a0a14",
+          background: colors.bgAlt,
           borderRadius: 24,
           border: `1px solid ${colors.border}`,
           padding: 40,
@@ -114,7 +114,7 @@ export const SeoScene: React.FC = () => {
               label: "Monthly Traffic",
               value: `${Math.round(traffic * 48)}`,
               change: showAfter ? "+580% increase" : "48 visits/mo",
-              changeColor: showAfter ? colors.green : colors.gray,
+              changeColor: showAfter ? colors.green : colors.muted,
             },
             {
               label: "Leads/Month",
@@ -122,7 +122,7 @@ export const SeoScene: React.FC = () => {
                 ? `${Math.round(interpolate(frame, [85, 115], [2, 34], { extrapolateRight: "clamp" }))}`
                 : "2",
               change: showAfter ? "+1,600% growth" : "2 leads/mo",
-              changeColor: showAfter ? colors.green : colors.gray,
+              changeColor: showAfter ? colors.green : colors.muted,
             },
           ].map((metric, i) => {
             const metricOpacity = interpolate(
@@ -148,7 +148,7 @@ export const SeoScene: React.FC = () => {
                   style={{
                     fontSize: 12,
                     fontFamily: fonts.body,
-                    color: colors.gray,
+                    color: colors.muted,
                     textTransform: "uppercase",
                     letterSpacing: 2,
                     marginBottom: 8,
@@ -191,7 +191,7 @@ export const SeoScene: React.FC = () => {
             style={{
               fontSize: 13,
               fontFamily: fonts.body,
-              color: colors.gray,
+              color: colors.muted,
               marginBottom: 16,
               textTransform: "uppercase",
               letterSpacing: 1,
@@ -251,7 +251,7 @@ export const SeoScene: React.FC = () => {
             fontSize: 16,
             fontFamily: fonts.heading,
             fontWeight: 600,
-            color: showAfter ? colors.orange : colors.gray,
+            color: showAfter ? colors.accent : colors.muted,
           }}
         >
           {showAfter ? "✨ After NeuralFlow SEO" : "Before NeuralFlow"}

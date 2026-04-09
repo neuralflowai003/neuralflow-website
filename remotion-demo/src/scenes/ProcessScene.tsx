@@ -34,7 +34,7 @@ export const ProcessScene: React.FC = () => {
             fontSize: 13,
             fontFamily: fonts.body,
             fontWeight: 600,
-            color: colors.orange,
+            color: colors.accent,
             letterSpacing: 4,
             textTransform: "uppercase",
             marginBottom: 16,
@@ -132,7 +132,7 @@ export const ProcessScene: React.FC = () => {
                   height: 80,
                   borderRadius: "50%",
                   background: "rgba(255,255,255,0.04)",
-                  border: `2px solid ${stepOpacity > 0.5 ? colors.orange : colors.border}`,
+                  border: `2px solid ${stepOpacity > 0.5 ? colors.accent : colors.border}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -151,7 +151,7 @@ export const ProcessScene: React.FC = () => {
                 style={{
                   fontSize: 13,
                   fontFamily: fonts.mono,
-                  color: colors.orange,
+                  color: colors.accent,
                   fontWeight: 600,
                   marginBottom: 8,
                   letterSpacing: 2,
@@ -178,7 +178,7 @@ export const ProcessScene: React.FC = () => {
                 style={{
                   fontSize: 14,
                   fontFamily: fonts.body,
-                  color: colors.gray,
+                  color: colors.muted,
                   lineHeight: 1.5,
                 }}
               >

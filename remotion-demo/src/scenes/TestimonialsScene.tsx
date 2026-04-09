@@ -119,7 +119,7 @@ export const TestimonialsScene: React.FC = () => {
           style={{
             fontSize: 14,
             fontFamily: fonts.body,
-            color: colors.gray,
+            color: colors.muted,
             marginTop: 4,
           }}
         >

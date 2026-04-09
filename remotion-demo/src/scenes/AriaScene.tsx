@@ -41,7 +41,7 @@ export const AriaScene: React.FC = () => {
             fontSize: 13,
             fontFamily: fonts.body,
             fontWeight: 600,
-            color: colors.orange,
+            color: colors.accent,
             letterSpacing: 4,
             textTransform: "uppercase",
             marginBottom: 16,
@@ -82,7 +82,7 @@ export const AriaScene: React.FC = () => {
           style={{
             fontSize: 18,
             fontFamily: fonts.body,
-            color: colors.gray,
+            color: colors.muted,
             lineHeight: 1.7,
             opacity: interpolate(frame, [15, 28], [0, 1], {
               extrapolateRight: "clamp",
@@ -126,7 +126,7 @@ export const AriaScene: React.FC = () => {
                 style={{
                   fontSize: 12,
                   fontFamily: fonts.body,
-                  color: colors.gray,
+                  color: colors.muted,
                   textTransform: "uppercase",
                   letterSpacing: 1,
                   marginTop: 4,
@@ -144,7 +144,7 @@ export const AriaScene: React.FC = () => {
         style={{
           flex: 1,
           maxWidth: 580,
-          background: "#0a0a14",
+          background: colors.bgAlt,
           borderRadius: 24,
           border: `1px solid ${colors.border}`,
           overflow: "hidden",
@@ -238,7 +238,7 @@ export const AriaScene: React.FC = () => {
                           width: 6,
                           height: 6,
                           borderRadius: "50%",
-                          background: typingDot === d ? colors.orange : colors.gray,
+                          background: typingDot === d ? colors.accent : colors.muted,
                           opacity: typingDot === d ? 1 : 0.3,
                         }}
                       />

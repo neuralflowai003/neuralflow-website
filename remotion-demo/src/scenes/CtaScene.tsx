@@ -89,7 +89,7 @@ export const CtaScene: React.FC = () => {
           style={{
             fontSize: 22,
             fontFamily: fonts.body,
-            color: colors.gray,
+            color: colors.muted,
             marginBottom: 40,
             opacity: urlOpacity,
           }}
@@ -136,7 +136,7 @@ export const CtaScene: React.FC = () => {
             fontSize: 32,
             fontFamily: fonts.heading,
             fontWeight: 600,
-            color: colors.orange,
+            color: colors.accent,
             opacity: urlOpacity,
             letterSpacing: 1,
           }}
