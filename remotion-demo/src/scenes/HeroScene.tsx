@@ -1,54 +1,66 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate, useCurrentFrame, Easing } from "remotion";
 import { colors, fonts, fullCenter, gradient } from "../styles";
 
 const headlines = [
   "More Leads. Less Work.",
   "Rank #1. Get Found.",
   "Automate Everything.",
+  "Grow While You Sleep.",
 ];
 
 export const HeroScene: React.FC = () => {
   const frame = useCurrentFrame();
 
-  const fadeIn = interpolate(frame, [0, 15], [0, 1], {
+  const fadeIn = interpolate(frame, [0, 12], [0, 1], {
     extrapolateRight: "clamp",
   });
   const fadeOut = interpolate(frame, [105, 120], [1, 0], {
     extrapolateRight: "clamp",
   });
 
-  // Cycle through headlines every 40 frames
-  const cycleIndex = Math.floor(frame / 40) % headlines.length;
-  const cycleFrame = frame % 40;
+  // Cycle headlines every 30 frames
+  const cycleIndex = Math.floor(frame / 30) % headlines.length;
+  const cycleFrame = frame % 30;
 
+  // 3-phase: blur in → hold → blur out
   const headlineOpacity = interpolate(
     cycleFrame,
-    [0, 8, 32, 40],
+    [0, 6, 24, 30],
     [0, 1, 1, 0],
     { extrapolateRight: "clamp" }
   );
-  const headlineBlur = interpolate(cycleFrame, [0, 8, 32, 40], [10, 0, 0, 10], {
-    extrapolateRight: "clamp",
-  });
-  const headlineScale = interpolate(
+  const headlineBlur = interpolate(
     cycleFrame,
-    [0, 8, 32, 40],
-    [0.95, 1, 1, 1.05],
+    [0, 6, 24, 30],
+    [12, 0, 0, 12],
+    { extrapolateRight: "clamp" }
+  );
+  const headlineY = interpolate(
+    cycleFrame,
+    [0, 6, 24, 30],
+    [20, 0, 0, -20],
     { extrapolateRight: "clamp" }
   );
 
-  // Glow on the active headline
-  const glowStrength = interpolate(cycleFrame, [8, 20, 32], [40, 20, 40], {
-    extrapolateLeft: "clamp",
+  const glowStrength = interpolate(
+    Math.sin(cycleFrame * 0.2),
+    [-1, 1],
+    [20, 50]
+  );
+
+  // Subtitle
+  const subOpacity = interpolate(frame, [8, 25], [0, 1], {
     extrapolateRight: "clamp",
+  });
+  const subY = interpolate(frame, [8, 25], [30, 0], {
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
   });
 
-  // Subtitle slide up
-  const subY = interpolate(frame, [10, 30], [40, 0], {
+  // Accent line under headline
+  const lineWidth = interpolate(frame, [10, 30], [0, 300], {
     extrapolateRight: "clamp",
-  });
-  const subOpacity = interpolate(frame, [10, 30], [0, 1], {
-    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
   });
 
   return (
@@ -57,68 +69,56 @@ export const HeroScene: React.FC = () => {
         ...fullCenter,
         flexDirection: "column",
         opacity: fadeIn * fadeOut,
-        backgroundColor: colors.bg,
       }}
     >
-      {/* Gradient orbs in background */}
-      <div
-        style={{
-          position: "absolute",
-          top: "20%",
-          left: "20%",
-          width: 400,
-          height: 400,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(255,107,43,0.15), transparent 70%)",
-          filter: "blur(60px)",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: "20%",
-          right: "20%",
-          width: 400,
-          height: 400,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(123,97,255,0.15), transparent 70%)",
-          filter: "blur(60px)",
-        }}
-      />
-
       {/* Rotating headline */}
       <div
         style={{
-          fontSize: 88,
+          fontSize: 96,
           fontFamily: fonts.heading,
           fontWeight: 700,
           color: colors.white,
           opacity: headlineOpacity,
-          transform: `scale(${headlineScale})`,
+          transform: `translateY(${headlineY}px)`,
           filter: `blur(${headlineBlur}px)`,
-          textShadow: `0 0 ${glowStrength}px rgba(255,107,43,0.6), 0 0 ${glowStrength * 2}px rgba(123,97,255,0.3)`,
+          textShadow: `0 0 ${glowStrength}px rgba(255,107,43,0.5), 0 0 ${glowStrength * 2}px rgba(123,97,255,0.2)`,
           textAlign: "center",
           lineHeight: 1.1,
+          letterSpacing: "-2px",
         }}
       >
         {headlines[cycleIndex]}
       </div>
 
+      {/* Gradient accent line */}
+      <div
+        style={{
+          width: lineWidth,
+          height: 3,
+          background: gradient,
+          borderRadius: 2,
+          marginTop: 30,
+          opacity: subOpacity,
+          boxShadow: `0 0 20px rgba(255,107,43,0.3)`,
+        }}
+      />
+
       {/* Subtitle */}
       <div
         style={{
-          fontSize: 30,
+          fontSize: 28,
           fontFamily: fonts.body,
           color: colors.gray,
           opacity: subOpacity,
           transform: `translateY(${subY}px)`,
-          marginTop: 40,
+          marginTop: 30,
           textAlign: "center",
           maxWidth: 700,
-          lineHeight: 1.5,
+          lineHeight: 1.6,
+          fontWeight: 400,
         }}
       >
-        AI automation & SEO that grows your business
+        AI automation & SEO that grows your revenue
         <br />
         while you focus on what matters.
       </div>

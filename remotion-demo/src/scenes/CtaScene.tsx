@@ -1,19 +1,32 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate, useCurrentFrame, Easing } from "remotion";
 import { colors, fonts, fullCenter, gradient } from "../styles";
 
 export const CtaScene: React.FC = () => {
   const frame = useCurrentFrame();
 
-  const fadeIn = interpolate(frame, [0, 12], [0, 1], {
+  const fadeIn = interpolate(frame, [0, 15], [0, 1], {
     extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
   });
-  const scale = interpolate(frame, [0, 12], [0.85, 1], {
+  const scale = interpolate(frame, [0, 15], [0.85, 1], {
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.back(1.1)),
+  });
+
+  const glowPulse = interpolate(Math.sin(frame * 0.12), [-1, 1], [30, 80]);
+
+  // Button shimmer
+  const shimmerX = interpolate(frame, [20, 60], [-100, 200], {
     extrapolateRight: "clamp",
   });
 
-  const glowPulse = interpolate(Math.sin(frame * 0.15), [-1, 1], [30, 80]);
+  // URL fade in
+  const urlOpacity = interpolate(frame, [25, 38], [0, 1], {
+    extrapolateRight: "clamp",
+  });
 
-  const urlOpacity = interpolate(frame, [15, 25], [0, 1], {
+  // Tagline
+  const tagOpacity = interpolate(frame, [35, 48], [0, 1], {
     extrapolateRight: "clamp",
   });
 
@@ -23,19 +36,18 @@ export const CtaScene: React.FC = () => {
         ...fullCenter,
         flexDirection: "column",
         opacity: fadeIn,
-        backgroundColor: colors.bg,
       }}
     >
-      {/* Background gradient burst */}
+      {/* Big gradient burst */}
       <div
         style={{
           position: "absolute",
-          width: 800,
-          height: 800,
+          width: 1000,
+          height: 1000,
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(255,107,43,0.12), rgba(123,97,255,0.08), transparent 70%)",
-          filter: "blur(80px)",
+            "radial-gradient(circle, rgba(255,107,43,0.1), rgba(123,97,255,0.06), transparent 65%)",
+          filter: "blur(60px)",
         }}
       />
 
@@ -46,15 +58,17 @@ export const CtaScene: React.FC = () => {
           position: "relative",
         }}
       >
+        {/* Main headline */}
         <div
           style={{
-            fontSize: 64,
+            fontSize: 72,
             fontFamily: fonts.heading,
             fontWeight: 700,
             color: colors.white,
-            textShadow: `0 0 ${glowPulse}px rgba(255,107,43,0.5), 0 0 ${glowPulse * 1.5}px rgba(123,97,255,0.3)`,
-            marginBottom: 24,
+            textShadow: `0 0 ${glowPulse}px rgba(255,107,43,0.4), 0 0 ${glowPulse * 1.5}px rgba(123,97,255,0.2)`,
+            marginBottom: 16,
             lineHeight: 1.2,
+            letterSpacing: "-2px",
           }}
         >
           Ready to{" "}
@@ -70,35 +84,79 @@ export const CtaScene: React.FC = () => {
           ?
         </div>
 
-        {/* Fake button */}
+        {/* Sub text */}
+        <div
+          style={{
+            fontSize: 22,
+            fontFamily: fonts.body,
+            color: colors.gray,
+            marginBottom: 40,
+            opacity: urlOpacity,
+          }}
+        >
+          Book your free strategy call today
+        </div>
+
+        {/* CTA button with shimmer */}
         <div
           style={{
             display: "inline-block",
-            padding: "18px 48px",
-            borderRadius: 12,
+            padding: "20px 56px",
+            borderRadius: 14,
             background: gradient,
-            fontSize: 22,
+            fontSize: 24,
             fontFamily: fonts.heading,
             fontWeight: 700,
             color: colors.white,
-            boxShadow: `0 0 ${glowPulse * 0.5}px rgba(255,107,43,0.4)`,
-            marginBottom: 32,
+            boxShadow: `0 0 ${glowPulse * 0.6}px rgba(255,107,43,0.4), 0 20px 40px rgba(0,0,0,0.3)`,
+            marginBottom: 36,
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          Book Your Free Strategy Call
+          Get Your Free Growth Plan
+          {/* Shimmer effect */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: `${shimmerX}%`,
+              width: 60,
+              height: "100%",
+              background:
+                "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+              transform: "skewX(-20deg)",
+            }}
+          />
         </div>
 
         {/* URL */}
         <div
           style={{
-            fontSize: 26,
-            fontFamily: fonts.body,
+            fontSize: 32,
+            fontFamily: fonts.heading,
+            fontWeight: 600,
             color: colors.orange,
             opacity: urlOpacity,
             letterSpacing: 1,
           }}
         >
           neuralflowai.io
+        </div>
+
+        {/* Bottom tagline */}
+        <div
+          style={{
+            fontSize: 15,
+            fontFamily: fonts.body,
+            color: "rgba(255,255,255,0.4)",
+            marginTop: 16,
+            opacity: tagOpacity,
+            letterSpacing: 3,
+            textTransform: "uppercase",
+          }}
+        >
+          AI Consulting · SEO · Automation
         </div>
       </div>
     </AbsoluteFill>

@@ -7,7 +7,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="NeuralFlowDemo"
         component={NeuralFlowDemo}
-        durationInFrames={600}
+        durationInFrames={1200}
         fps={30}
         width={1920}
         height={1080}

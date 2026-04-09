@@ -1,25 +1,5 @@
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate, useCurrentFrame, Easing } from "remotion";
 import { colors, fonts, fullCenter, gradient } from "../styles";
-
-const beforeResults = [
-  { title: "Some Random Directory", url: "randomsite.com", rank: "Page 3" },
-  { title: "Your Business Name", url: "yourbusiness.com", rank: "#27" },
-];
-
-const afterResults = [
-  {
-    title: "Your Business — #1 Rated in Your City",
-    url: "yourbusiness.com",
-    rank: "#1",
-    featured: true,
-  },
-  {
-    title: "Your Business — Services & Reviews",
-    url: "yourbusiness.com/services",
-    rank: "#2",
-    featured: false,
-  },
-];
 
 export const SeoScene: React.FC = () => {
   const frame = useCurrentFrame();
@@ -27,16 +7,33 @@ export const SeoScene: React.FC = () => {
   const fadeIn = interpolate(frame, [0, 10], [0, 1], {
     extrapolateRight: "clamp",
   });
-  const fadeOut = interpolate(frame, [75, 90], [1, 0], {
+  const fadeOut = interpolate(frame, [135, 150], [1, 0], {
     extrapolateRight: "clamp",
   });
 
-  // Toggle between before/after
-  const showAfter = frame > 40;
-  const transitionProgress = interpolate(frame, [38, 48], [0, 1], {
+  // Before phase: 0-65, After phase: 65+
+  const showAfter = frame > 65;
+  const flipProgress = interpolate(frame, [60, 75], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
+    easing: Easing.inOut(Easing.cubic),
   });
+
+  // Rank number animation
+  const rankNum = showAfter
+    ? interpolate(frame, [75, 85], [27, 1], {
+        extrapolateRight: "clamp",
+        easing: Easing.out(Easing.cubic),
+      })
+    : 27;
+
+  // Traffic bar animation
+  const trafficBefore = 15;
+  const trafficAfter = interpolate(frame, [80, 110], [15, 92], {
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const traffic = showAfter ? trafficAfter : trafficBefore;
 
   return (
     <AbsoluteFill
@@ -44,172 +41,221 @@ export const SeoScene: React.FC = () => {
         ...fullCenter,
         flexDirection: "column",
         opacity: fadeIn * fadeOut,
-        backgroundColor: colors.bg,
+        padding: "0 120px",
       }}
     >
       {/* Title */}
-      <div
-        style={{
-          fontSize: 44,
-          fontFamily: fonts.heading,
-          fontWeight: 700,
-          color: colors.white,
-          marginBottom: 40,
-          textAlign: "center",
-        }}
-      >
-        SEO That{" "}
-        <span
-          style={{
-            background: gradient,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          Actually Works
-        </span>
-      </div>
-
-      {/* Before / After labels */}
-      <div
-        style={{
-          display: "flex",
-          gap: 80,
-          marginBottom: 30,
-        }}
-      >
+      <div style={{ textAlign: "center", marginBottom: 50 }}>
         <div
           style={{
-            fontSize: 22,
-            fontFamily: fonts.heading,
+            fontSize: 13,
+            fontFamily: fonts.body,
             fontWeight: 600,
-            color: showAfter ? colors.gray : colors.orange,
-            opacity: showAfter ? 0.5 : 1,
-            transition: "all 0.3s",
+            color: colors.orange,
+            letterSpacing: 4,
+            textTransform: "uppercase",
+            marginBottom: 16,
           }}
         >
-          BEFORE NeuralFlow
+          SEO Results
         </div>
         <div
           style={{
-            fontSize: 22,
+            fontSize: 52,
+            fontFamily: fonts.heading,
+            fontWeight: 700,
+            color: colors.white,
+            letterSpacing: "-1px",
+          }}
+        >
+          From Page 3 to{" "}
+          <span
+            style={{
+              background: gradient,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            #1 on Google
+          </span>
+        </div>
+      </div>
+
+      {/* Dashboard mockup */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 1000,
+          background: "#0a0a14",
+          borderRadius: 24,
+          border: `1px solid ${colors.border}`,
+          padding: 40,
+          boxShadow: showAfter
+            ? "0 0 60px rgba(255,107,43,0.08)"
+            : "0 20px 60px rgba(0,0,0,0.4)",
+        }}
+      >
+        {/* Top metrics row */}
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            marginBottom: 36,
+          }}
+        >
+          {[
+            {
+              label: "Google Rank",
+              value: `#${Math.round(rankNum)}`,
+              change: showAfter ? "↑ 26 positions" : "",
+              changeColor: colors.green,
+            },
+            {
+              label: "Monthly Traffic",
+              value: `${Math.round(traffic * 48)}`,
+              change: showAfter ? "+580% increase" : "48 visits/mo",
+              changeColor: showAfter ? colors.green : colors.gray,
+            },
+            {
+              label: "Leads/Month",
+              value: showAfter
+                ? `${Math.round(interpolate(frame, [85, 115], [2, 34], { extrapolateRight: "clamp" }))}`
+                : "2",
+              change: showAfter ? "+1,600% growth" : "2 leads/mo",
+              changeColor: showAfter ? colors.green : colors.gray,
+            },
+          ].map((metric, i) => {
+            const metricOpacity = interpolate(
+              frame,
+              [8 + i * 8, 16 + i * 8],
+              [0, 1],
+              { extrapolateRight: "clamp" }
+            );
+
+            return (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  padding: "24px 28px",
+                  background: "rgba(255,255,255,0.03)",
+                  borderRadius: 16,
+                  border: `1px solid ${colors.border}`,
+                  opacity: metricOpacity,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontFamily: fonts.body,
+                    color: colors.gray,
+                    textTransform: "uppercase",
+                    letterSpacing: 2,
+                    marginBottom: 8,
+                  }}
+                >
+                  {metric.label}
+                </div>
+                <div
+                  style={{
+                    fontSize: 42,
+                    fontFamily: fonts.heading,
+                    fontWeight: 700,
+                    color: colors.white,
+                    lineHeight: 1,
+                  }}
+                >
+                  {metric.value}
+                </div>
+                {metric.change && (
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontFamily: fonts.body,
+                      fontWeight: 600,
+                      color: metric.changeColor,
+                      marginTop: 8,
+                    }}
+                  >
+                    {metric.change}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Traffic bar chart */}
+        <div style={{ marginBottom: 12 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontFamily: fonts.body,
+              color: colors.gray,
+              marginBottom: 16,
+              textTransform: "uppercase",
+              letterSpacing: 1,
+            }}
+          >
+            Organic Traffic Growth
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 120 }}>
+            {Array.from({ length: 12 }, (_, i) => {
+              const barDelay = 30 + i * 3;
+              const isAfterMonth = i >= 6;
+              const barHeight = isAfterMonth && showAfter
+                ? interpolate(frame, [75 + (i - 6) * 5, 90 + (i - 6) * 5], [15, 20 + (i - 5) * 15], {
+                    extrapolateRight: "clamp",
+                  })
+                : interpolate(frame, [barDelay, barDelay + 10], [0, 10 + Math.random() * 8], {
+                    extrapolateRight: "clamp",
+                  });
+
+              return (
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    height: `${barHeight}%`,
+                    background: isAfterMonth && showAfter ? gradient : "rgba(255,255,255,0.08)",
+                    borderRadius: "4px 4px 0 0",
+                    minHeight: 4,
+                  }}
+                />
+              );
+            })}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: 8,
+              fontSize: 11,
+              fontFamily: fonts.mono,
+              color: "rgba(255,255,255,0.3)",
+            }}
+          >
+            <span>Jan</span>
+            <span>Mar</span>
+            <span>Jun</span>
+            <span>Sep</span>
+            <span>Dec</span>
+          </div>
+        </div>
+
+        {/* Before/After label */}
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: 20,
+            fontSize: 16,
             fontFamily: fonts.heading,
             fontWeight: 600,
             color: showAfter ? colors.orange : colors.gray,
-            opacity: showAfter ? 1 : 0.5,
           }}
         >
-          AFTER NeuralFlow
+          {showAfter ? "✨ After NeuralFlow SEO" : "Before NeuralFlow"}
         </div>
-      </div>
-
-      {/* Search results mockup */}
-      <div
-        style={{
-          width: 800,
-          background: "#0a0a14",
-          borderRadius: 16,
-          border: `1px solid ${colors.border}`,
-          padding: 32,
-          boxShadow: showAfter
-            ? "0 0 40px rgba(255,107,43,0.15)"
-            : "0 20px 40px rgba(0,0,0,0.3)",
-        }}
-      >
-        {/* Search bar */}
-        <div
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            borderRadius: 30,
-            padding: "14px 24px",
-            marginBottom: 28,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            border: `1px solid ${colors.border}`,
-          }}
-        >
-          <span style={{ fontSize: 20 }}>🔍</span>
-          <span
-            style={{
-              fontSize: 16,
-              fontFamily: fonts.body,
-              color: colors.white,
-            }}
-          >
-            best {showAfter ? "[your service]" : "[your service]"} near me
-          </span>
-        </div>
-
-        {/* Results */}
-        {(showAfter ? afterResults : beforeResults).map((result, i) => {
-          const resultOpacity = showAfter
-            ? interpolate(frame, [42 + i * 6, 48 + i * 6], [0, 1], {
-                extrapolateRight: "clamp",
-              })
-            : interpolate(frame, [8 + i * 8, 16 + i * 8], [0, 1], {
-                extrapolateRight: "clamp",
-              });
-
-          return (
-            <div
-              key={`${showAfter}-${i}`}
-              style={{
-                opacity: resultOpacity,
-                padding: "16px 0",
-                borderBottom:
-                  i < (showAfter ? afterResults : beforeResults).length - 1
-                    ? `1px solid ${colors.border}`
-                    : "none",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  fontFamily: fonts.body,
-                  color: colors.gray,
-                  marginBottom: 4,
-                }}
-              >
-                {result.url}
-              </div>
-              <div
-                style={{
-                  fontSize: 20,
-                  fontFamily: fonts.heading,
-                  fontWeight: 600,
-                  color:
-                    "featured" in result && result.featured
-                      ? colors.orange
-                      : "#6ea8fe",
-                  marginBottom: 4,
-                }}
-              >
-                {result.title}
-              </div>
-              <div
-                style={{
-                  display: "inline-block",
-                  padding: "4px 12px",
-                  borderRadius: 20,
-                  fontSize: 13,
-                  fontFamily: fonts.body,
-                  fontWeight: 600,
-                  background:
-                    "featured" in result && result.featured
-                      ? "rgba(255,107,43,0.15)"
-                      : "rgba(255,255,255,0.06)",
-                  color:
-                    "featured" in result && result.featured
-                      ? colors.orange
-                      : colors.gray,
-                }}
-              >
-                Rank: {result.rank}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </AbsoluteFill>
   );
