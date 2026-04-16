@@ -339,9 +339,11 @@
                     body: JSON.stringify(formData)
                 });
 
-                const result = await response.json();
+                const text = await response.text();
+                let result = {};
+                try { result = JSON.parse(text); } catch (_) {}
 
-                if (result.ok) {
+                if (response.ok && result.ok) {
                     document.getElementById('form-container').style.display = 'none';
                     document.getElementById('success-state').style.display = 'block';
                 } else {
