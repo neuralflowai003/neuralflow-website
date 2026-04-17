@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AI Automation Services | NeuralFlow AI</title>
+  <link rel="canonical" href="https://neuralflowai.io/automation">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+  <link rel="shortcut icon" href="/favicon.svg?v=2">
+  <meta name="description" content="NeuralFlow AI automation services — Workflow Automation, AI Receptionists, Lead Gen Pipelines, CRM Integration, and more. Automate everything, grow faster.">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="NeuralFlow AI">
+  <meta name="theme-color" content="#FF6B2B">
+  <meta property="og:title" content="AI Automation Services | NeuralFlow AI">
+  <meta property="og:description" content="Automate Everything. Grow Faster. NeuralFlow AI builds AI-powered automation systems that eliminate manual work and scale your revenue.">
+  <meta property="og:image" content="https://neuralflowai.io/og-image.png">
+  <meta property="og:url" content="https://neuralflowai.io/automation">
+  <meta property="og:type" content="website">
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGWCHZ95J9"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PGWCHZ95J9');
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #050508;
+      --bg-alt: #0a0a0f;
+      --accent: #FF6B2B;
+      --accent-glow: rgba(255, 107, 43, 0.5);
+      --purple: #7B61FF;
+      --text: #ffffff;
+      --muted: #888899;
+      --border: rgba(255, 255, 255, 0.08);
+      --glass: rgba(18, 18, 22, 0.4);
+      --transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-fast: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    h1, h2, h3, h4, h5, h6 { font-family: 'Space Grotesk', sans-serif; }
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+
+    ::selection { background: var(--accent); color: #000; }
+
+    /* Noise overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.04;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* Scroll progress */
+    .scroll-progress {
+      position: fixed;
+      top: 0; left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #FF6B2B, #7B61FF);
+      width: 0%;
+      z-index: 10001;
+      transition: width 0.1s;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 5vw; }
+
+    /* ---- NAV ---- */
+    nav {
+      position: fixed;
+      top: 0; width: 100%;
+      z-index: 1000;
+      padding: 30px 0;
+      transition: var(--transition);
+      backdrop-filter: blur(20px) saturate(180%);
+      border-bottom: 1px solid transparent;
+    }
+    nav.scrolled {
+      padding: 15px 0;
+      background: rgba(5, 5, 8, 0.8);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner { display: flex; justify-content: space-between; align-items: center; }
+    .logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem; font-weight: 700; letter-spacing: -1px;
+      background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-link {
+      font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); transition: color 0.3s;
+      position: relative; padding-bottom: 5px; overflow: hidden;
+    }
+    .nav-link::before {
+      content: ''; position: absolute; bottom: 0; left: -100%;
+      width: 100%; height: 1px; background: var(--accent);
+      transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .nav-link:hover { color: var(--text); }
+    .nav-link:hover::before { left: 0; }
+
+    @keyframes ariaButtonPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,43,0.55), 0 0 0 0 rgba(123,97,255,0.35); }
+      50%       { box-shadow: 0 0 0 7px rgba(255,107,43,0), 0 0 0 14px rgba(123,97,255,0); }
+    }
+    .nav-link-accent {
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF) !important;
+      color: #fff !important; padding: 6px 14px !important;
+      border-radius: 999px !important; font-size: 0.78rem !important;
+      letter-spacing: 0.5px !important; transition: opacity 0.25s !important;
+      animation: ariaButtonPulse 2.4s ease-in-out infinite !important;
+    }
+    .nav-link-accent:hover { opacity: 0.88 !important; animation-play-state: paused !important; }
+    .nav-link-accent::before { display: none !important; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 18px 40px; font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1px; border-radius: 100px;
+      transition: color 0.4s, border-color 0.4s, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative; overflow: hidden; z-index: 1; border: none; cursor: pointer;
+    }
+    .btn::before {
+      content: ''; position: absolute; bottom: 0; left: 0;
+      width: 100%; height: 0; background: var(--text); z-index: -1;
+      transition: height 0.6s cubic-bezier(0.19, 1, 0.22, 1);
+      border-radius: 50% 50% 0 0 / 20% 20% 0 0;
+    }
+    .btn:hover::before { height: 180%; border-radius: 0; }
+    .btn-solid { background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%); color: #fff; }
+    .btn-solid:hover { color: var(--accent); }
+    .btn-solid::before { background: #fff; }
+    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); backdrop-filter: blur(10px); }
+    .btn-ghost:hover { color: #000; border-color: #fff; }
+    .btn-ghost::before { background: #fff; }
+
+    /* Mobile hamburger */
+    #hamburger { display: none; flex-direction: column; justify-content: center; gap: 5px; width: 36px; height: 36px; background: none; border: none; cursor: pointer; padding: 4px; z-index: 10001; }
+    .ham-line { display: block; width: 100%; height: 2px; background: var(--text); border-radius: 2px; transition: 0.3s; }
+    #mobile-menu { display: none; }
+    #mobile-menu-overlay { position: fixed; inset: 0; background: rgba(5,5,8,0.7); backdrop-filter: blur(4px); z-index: 9998; }
+    #mobile-menu-drawer {
+      position: fixed; top: 0; right: 0; width: min(380px, 90vw); height: 100vh;
+      background: rgba(10,10,15,0.97); backdrop-filter: blur(30px);
+      border-left: 1px solid var(--border); z-index: 9999;
+      padding: 40px 32px; display: flex; flex-direction: column;
+    }
+    .mob-link { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 600; color: var(--text); padding: 14px 0; border-bottom: 1px solid var(--border); transition: color 0.3s; }
+    .mob-link:hover { color: var(--accent); }
+
+    /* ---- HERO ---- */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center;
+      position: relative; overflow: hidden; padding: 160px 0 120px;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(255,107,43,0.12) 0%, transparent 70%),
+                  radial-gradient(ellipse 60% 80% at 20% 60%, rgba(123,97,255,0.1) 0%, transparent 70%);
+    }
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(80px); animation: orbFloat 8s ease-in-out infinite;
+    }
+    .orb-1 { width: 500px; height: 500px; background: rgba(255,107,43,0.15); top: -100px; right: 5%; }
+    .orb-2 { width: 350px; height: 350px; background: rgba(123,97,255,0.12); bottom: 5%; left: 5%; animation-delay: -3s; }
+    @keyframes orbFloat { 0%,100%{transform:translateY(0) scale(1);} 50%{transform:translateY(-30px) scale(1.05);} }
+
+    .hero-content { position: relative; z-index: 1; max-width: 900px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,107,43,0.1); border: 1px solid rgba(255,107,43,0.3);
+      color: var(--accent); padding: 8px 20px; border-radius: 100px;
+      font-size: 0.8rem; font-weight: 600; letter-spacing: 2px;
+      text-transform: uppercase; margin-bottom: 32px;
+    }
+    .hero-badge::before { content: '⚡'; }
+    .hero h1 {
+      font-size: clamp(3.5rem, 8vw, 8rem); font-weight: 700;
+      letter-spacing: -4px; line-height: 0.95; margin-bottom: 32px;
+    }
+    .hero h1 .gradient-text {
+      background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero p {
+      font-size: clamp(1.1rem, 2vw, 1.4rem); color: var(--muted);
+      line-height: 1.6; max-width: 600px; margin-bottom: 48px;
+    }
+    .hero-ctas { display: flex; gap: 16px; flex-wrap: wrap; }
+    .hero-stats {
+      display: flex; gap: 48px; margin-top: 80px;
+      padding-top: 48px; border-top: 1px solid var(--border);
+    }
+    .stat-num {
+      font-family: 'Space Grotesk', sans-serif; font-size: 2.5rem;
+      font-weight: 700; background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .stat-label { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+    /* ---- SERVICES ---- */
+    .section { padding: 160px 0; position: relative; }
+    .section-label {
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 4px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 16px; text-align: center;
+    }
+    .section-title {
+      font-size: clamp(2.5rem, 5vw, 5rem); font-weight: 700;
+      letter-spacing: -3px; line-height: 1; margin-bottom: 20px; text-align: center;
+    }
+    .section-desc {
+      font-size: 1.1rem; color: var(--muted); max-width: 600px;
+      margin: 0 auto 64px; line-height: 1.6; text-align: center;
+    }
+
+    .services-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;
+    }
+    .service-card {
+      background: var(--glass); backdrop-filter: blur(20px);
+      border: 1px solid var(--border); border-radius: 24px;
+      padding: 40px 36px; position: relative; overflow: hidden;
+      transition: transform 0.4s var(--transition), border-color 0.4s, box-shadow 0.4s;
+    }
+    .service-card::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      background: radial-gradient(ellipse at top left, rgba(255,107,43,0.08), transparent 60%);
+      transition: opacity 0.4s;
+    }
+    .service-card:hover { transform: translateY(-8px); border-color: rgba(255,107,43,0.3); box-shadow: 0 30px 80px rgba(255,107,43,0.1); }
+    .service-card:hover::before { opacity: 1; }
+    .service-icon {
+      width: 56px; height: 56px; border-radius: 16px; display: flex;
+      align-items: center; justify-content: center; font-size: 1.6rem;
+      background: linear-gradient(135deg, rgba(255,107,43,0.15), rgba(123,97,255,0.15));
+      border: 1px solid rgba(255,107,43,0.2); margin-bottom: 24px;
+    }
+    .service-card h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 12px; }
+    .service-card p { color: var(--muted); line-height: 1.6; font-size: 0.95rem; }
+    .service-card .service-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .tag {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--accent); background: rgba(255,107,43,0.1);
+      border: 1px solid rgba(255,107,43,0.2); padding: 4px 12px; border-radius: 100px;
+    }
+
+    /* ---- PRICING ---- */
+    .pricing-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px; max-width: 1100px; margin: 0 auto;
+    }
+    .pricing-card {
+      background: var(--glass); backdrop-filter: blur(20px);
+      border: 1px solid var(--border); border-radius: 28px;
+      padding: 48px 40px; text-align: center; position: relative; overflow: hidden;
+      transition: transform 0.4s, border-color 0.4s, box-shadow 0.4s;
+    }
+    .pricing-card:hover { transform: translateY(-8px); }
+    .pricing-card.featured {
+      background: linear-gradient(135deg, rgba(255,107,43,0.08), rgba(123,97,255,0.08));
+      border-color: rgba(255,107,43,0.4);
+      box-shadow: 0 0 60px rgba(255,107,43,0.12);
+    }
+    .pricing-badge {
+      position: absolute; top: 24px; right: 24px;
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      color: #fff; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; padding: 4px 12px; border-radius: 100px;
+    }
+    .pricing-tier { font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; }
+    .pricing-price {
+      font-family: 'Space Grotesk', sans-serif; font-size: 3.5rem; font-weight: 700;
+      line-height: 1; margin-bottom: 8px;
+    }
+    .pricing-price .currency { font-size: 1.5rem; vertical-align: top; margin-top: 8px; display: inline-block; }
+    .pricing-price .period { font-size: 1rem; color: var(--muted); font-weight: 400; }
+    .pricing-price.gradient {
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .pricing-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 36px; line-height: 1.5; }
+    .pricing-features { text-align: left; margin-bottom: 40px; }
+    .pricing-features li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 0.9rem; color: var(--muted); padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-features li::before { content: '✓'; color: var(--accent); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .pricing-cta { width: 100%; }
+
+    /* ---- PROCESS ---- */
+    .process-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; position: relative; }
+    .process-steps::before {
+      content: ''; position: absolute; top: 40px; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+    .step { text-align: center; position: relative; }
+    .step-num {
+      width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 24px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700;
+      background: var(--glass); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,107,43,0.3);
+      background: linear-gradient(135deg, rgba(255,107,43,0.1), rgba(123,97,255,0.1));
+      color: var(--accent); position: relative; z-index: 1;
+    }
+    .step h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; }
+    .step p { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+
+    /* ---- CTA SECTION ---- */
+    .cta-section {
+      padding: 160px 0; text-align: center; position: relative; overflow: hidden;
+    }
+    .cta-section::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255,107,43,0.08), transparent 70%);
+    }
+    .cta-inner { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
+    .cta-section h2 {
+      font-size: clamp(2.5rem, 5vw, 5rem); font-weight: 700;
+      letter-spacing: -3px; margin-bottom: 24px; line-height: 1;
+    }
+    .cta-section p { color: var(--muted); font-size: 1.2rem; margin-bottom: 48px; line-height: 1.6; }
+
+    /* ---- FOOTER ---- */
+    footer {
+      padding: 60px 0; border-top: 1px solid var(--border);
+      text-align: center; color: var(--muted); font-size: 0.85rem;
+    }
+    footer a { color: var(--muted); transition: color 0.3s; }
+    footer a:hover { color: var(--accent); }
+    .footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 24px; }
+    .footer-links { display: flex; gap: 24px; }
+
+    /* ---- REVEAL ANIMATIONS ---- */
+    .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease, transform 0.8s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      #hamburger { display: flex; }
+      .hero h1 { letter-spacing: -2px; }
+      .hero-stats { gap: 32px; flex-wrap: wrap; }
+      .section { padding: 100px 0; }
+      .hero { padding: 140px 0 80px; }
+      .footer-inner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- NAV -->
+<nav id="nav" aria-label="Main navigation">
+  <div class="container nav-inner">
+    <a href="index.html" class="logo">Neural<span>Flow</span></a>
+    <div class="nav-links">
+      <a href="index.html#services" class="nav-link">Services</a>
+      <a href="index.html#seo" class="nav-link">SEO</a>
+      <a href="index.html#work" class="nav-link">Work</a>
+      <a href="index.html#process" class="nav-link">Process</a>
+      <a href="index.html#about" class="nav-link">About</a>
+      <a href="https://roi.neuralflowai.io/roi-calculator" target="_blank" rel="noopener" class="nav-link">ROI Calc</a>
+      <a href="chatbot.html" class="nav-link nav-link-accent">Talk to ARIA</a>
+    </div>
+    <a href="index.html#contact" class="btn btn-ghost" style="padding:10px 24px;font-size:0.8rem;">Let's Talk</a>
+    <button id="hamburger" aria-label="Open menu">
+      <span class="ham-line"></span>
+      <span class="ham-line"></span>
+      <span class="ham-line"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile menu -->
+<div id="mobile-menu">
+  <div id="mobile-menu-overlay" onclick="closeMobileMenu()"></div>
+  <div id="mobile-menu-drawer">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;">
+      <a href="index.html" class="logo" onclick="closeMobileMenu()">Neural<span style="color:var(--accent)">Flow</span></a>
+      <button onclick="closeMobileMenu()" aria-label="Close" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);font-size:24px;">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <a href="index.html#services" class="mob-link" onclick="closeMobileMenu()">Services</a>
+      <a href="index.html#seo" class="mob-link" onclick="closeMobileMenu()">SEO</a>
+      <a href="index.html#work" class="mob-link" onclick="closeMobileMenu()">Work</a>
+      <a href="index.html#process" class="mob-link" onclick="closeMobileMenu()">Process</a>
+      <a href="index.html#about" class="mob-link" onclick="closeMobileMenu()">About</a>
+      <a href="https://roi.neuralflowai.io/roi-calculator" target="_blank" rel="noopener" class="mob-link" onclick="closeMobileMenu()">ROI Calculator</a>
+      <a href="chatbot.html" class="mob-link" style="color:var(--accent);" onclick="closeMobileMenu()">Talk to ARIA</a>
+    </div>
+    <div style="margin-top:auto;padding-top:32px;">
+      <a href="index.html#contact" onclick="closeMobileMenu()" style="display:block;text-align:center;background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;font-weight:700;font-size:15px;padding:16px;border-radius:14px;font-family:'Space Grotesk',sans-serif;">Let's Talk →</a>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<header class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badge">AI Automation Services</div>
+      <h1>
+        Automate<br>
+        <span class="gradient-text">Everything.</span><br>
+        Grow Faster.
+      </h1>
+      <p>Stop losing time to manual work. NeuralFlow AI builds intelligent automation systems that run 24/7, capture every lead, and scale your revenue without scaling your headcount.</p>
+      <div class="hero-ctas">
+        <a href="index.html#contact" class="btn btn-solid">Get a Free Automation Audit</a>
+        <a href="tel:+18627019030" class="btn btn-ghost">(862) 701-9030</a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="stat-num">91%</div>
+          <div class="stat-label">Average overhead reduction</div>
+        </div>
+        <div>
+          <div class="stat-num">10x</div>
+          <div class="stat-label">Average client ROI</div>
+        </div>
+        <div>
+          <div class="stat-num">2–4wk</div>
+          <div class="stat-label">Deployment time</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- SERVICES -->
+<section class="section" id="services">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">What We Build</div>
+      <h2 class="section-title">Every automation<br>your business needs</h2>
+      <p class="section-desc">From simple Zapier flows to custom AI agents — we design, build, and deploy the automation stack that fits your business.</p>
+    </div>
+
+    <div class="services-grid">
+
+      <div class="service-card reveal">
+        <div class="service-icon">⚙️</div>
+        <h3>Workflow Automation</h3>
+        <p>Eliminate the repetitive tasks eating your margins. We map your processes and automate every manual step — from data entry to follow-ups to approvals.</p>
+        <div class="service-tags">
+          <span class="tag">No-Code</span>
+          <span class="tag">Custom Logic</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal">
+        <div class="service-icon">🤖</div>
+        <h3>AI Receptionists</h3>
+        <p>Never miss a lead again. AI agents that greet visitors, qualify prospects, answer questions, and book appointments directly into your calendar 24/7.</p>
+        <div class="service-tags">
+          <span class="tag">24/7</span>
+          <span class="tag">Multi-Channel</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal">
+        <div class="service-icon">🎯</div>
+        <h3>Lead Gen Pipelines</h3>
+        <p>Automated lead capture, scoring, and nurture sequences that turn cold traffic into warm prospects — on autopilot. Stop chasing, start closing.</p>
+        <div class="service-tags">
+          <span class="tag">Lead Scoring</span>
+          <span class="tag">Nurture</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal">
+        <div class="service-icon">🔗</div>
+        <h3>CRM Integration</h3>
+        <p>Connect your CRM to every tool in your stack. Contacts sync automatically, deal stages update in real time, and nothing falls through the cracks.</p>
+        <div class="service-tags">
+          <span class="tag">HubSpot</span>
+          <span class="tag">Salesforce</span>
+          <span class="tag">GoHighLevel</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal">
+        <div class="service-icon">✉️</div>
+        <h3>Email Sequences</h3>
+        <p>Behavior-triggered email campaigns that send the right message at exactly the right moment. Higher open rates, more conversions, zero manual effort.</p>
+        <div class="service-tags">
+          <span class="tag">Triggered</span>
+          <span class="tag">Personalized</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal">
+        <div class="service-icon">⚡</div>
+        <h3>Zapier / Make Workflows</h3>
+        <p>Expert-level Zaps and Make scenarios that connect your entire app ecosystem. If your tools don't talk to each other, they're costing you money.</p>
+        <div class="service-tags">
+          <span class="tag">Zapier</span>
+          <span class="tag">Make</span>
+          <span class="tag">n8n</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal">
+        <div class="service-icon">🛠️</div>
+        <h3>Custom API Integrations</h3>
+        <p>When no-code tools don't cut it, we build custom integrations. REST APIs, webhooks, middleware — anything that makes your systems work as one.</p>
+        <div class="service-tags">
+          <span class="tag">REST API</span>
+          <span class="tag">Webhooks</span>
+        </div>
+      </div>
+
+      <div class="service-card reveal">
+        <div class="service-icon">📞</div>
+        <h3>AI Phone Agents</h3>
+        <p>AI-powered voice agents that call leads, follow up on inquiries, and handle inbound calls with natural conversation. Your sales team, supercharged.</p>
+        <div class="service-tags">
+          <span class="tag">Inbound</span>
+          <span class="tag">Outbound</span>
+          <span class="tag">Natural Voice</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" style="background: linear-gradient(180deg, transparent, rgba(123,97,255,0.04), transparent);">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">How It Works</div>
+      <h2 class="section-title">Live in weeks,<br>not months</h2>
+      <p class="section-desc">A streamlined process designed to get your automation running fast — and built to scale with you.</p>
+    </div>
+    <div class="process-steps">
+      <div class="step reveal">
+        <div class="step-num">01</div>
+        <h3>Free Audit</h3>
+        <p>We map your current workflows and identify every dollar being lost to manual processes. No fluff — just opportunities.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02</div>
+        <h3>Custom Blueprint</h3>
+        <p>We design your automation architecture — tools, triggers, logic — tailored to your exact business, not a template.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03</div>
+        <h3>Build & Test</h3>
+        <p>Our team builds and rigorously tests every automation before it touches your live business. Zero surprises.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04</div>
+        <h3>Launch & Scale</h3>
+        <p>We deploy, monitor, and optimize your systems. As your business grows, your automation grows with it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-label">Pricing</div>
+      <h2 class="section-title">Simple, transparent<br>pricing</h2>
+      <p class="section-desc">One-time buildouts or ongoing partnerships — choose the plan that fits where you are today.</p>
+    </div>
+    <div class="pricing-grid">
+
+      <div class="pricing-card reveal">
+        <div class="pricing-tier">Starter</div>
+        <div class="pricing-price gradient">
+          <span class="currency">$</span>800
+        </div>
+        <div class="pricing-desc">One-time setup fee. Best for businesses ready to automate their first high-impact workflow.</div>
+        <ul class="pricing-features">
+          <li>1 core automation workflow</li>
+          <li>CRM or email integration</li>
+          <li>Zapier / Make build</li>
+          <li>30-day support</li>
+          <li>Setup & training call</li>
+        </ul>
+        <a href="index.html#contact" class="btn btn-ghost pricing-cta">Get Started</a>
+      </div>
+
+      <div class="pricing-card featured reveal">
+        <div class="pricing-badge">Most Popular</div>
+        <div class="pricing-tier">Growth</div>
+        <div class="pricing-price gradient">
+          <span class="currency">$</span>1,500<span class="period">/mo</span>
+        </div>
+        <div class="pricing-desc">Ongoing automation partnership. Full-stack build, maintenance, and continuous optimization every month.</div>
+        <ul class="pricing-features">
+          <li>Unlimited automation workflows</li>
+          <li>AI receptionist or phone agent</li>
+          <li>Lead gen pipeline</li>
+          <li>Monthly optimization calls</li>
+          <li>Priority support</li>
+          <li>New automations as needed</li>
+        </ul>
+        <a href="index.html#contact" class="btn btn-solid pricing-cta">Start Growing</a>
+      </div>
+
+      <div class="pricing-card reveal">
+        <div class="pricing-tier">Enterprise</div>
+        <div class="pricing-price gradient" style="font-size:2.5rem;">Custom</div>
+        <div class="pricing-desc">Full-scale AI automation for larger teams, complex workflows, and enterprise integrations.</div>
+        <ul class="pricing-features">
+          <li>Custom scope & deliverables</li>
+          <li>Dedicated automation engineer</li>
+          <li>Custom API development</li>
+          <li>SLA & uptime guarantees</li>
+          <li>Multi-department rollout</li>
+          <li>White-glove onboarding</li>
+        </ul>
+        <a href="index.html#contact" class="btn btn-ghost pricing-cta">Let's Talk</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- CTA SECTION -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-inner reveal">
+      <div class="section-label">Ready?</div>
+      <h2>Stop leaving money<br>on the table.</h2>
+      <p>Book a free automation audit and we'll show you exactly where your business is losing time and revenue — and how to fix it.</p>
+      <a href="index.html#contact" class="btn btn-solid" style="font-size:1.1rem;padding:22px 52px;">Get a Free Automation Audit</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="logo" style="font-size:1.2rem;">Neural<span style="background:linear-gradient(135deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Flow</span> AI</div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="chatbot.html">ARIA Chatbot</a>
+        <a href="index.html#contact">Contact</a>
+        <a href="mailto:danny@neuralflowai.io">danny@neuralflowai.io</a>
+        <a href="tel:+18627019030">(862) 701-9030</a>
+      </div>
+      <div style="color:var(--muted);">© 2025 NeuralFlow AI LLC. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll progress
+  window.addEventListener('scroll', () => {
+    const el = document.getElementById('scrollProgress');
+    const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+    el.style.width = pct + '%';
+  });
+
+  // Nav scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+  reveals.forEach(r => observer.observe(r));
+
+  // Mobile menu
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  hamburger.addEventListener('click', () => { mobileMenu.style.display = 'block'; });
+  function closeMobileMenu() { mobileMenu.style.display = 'none'; }
+</script>
+</body>
+</html>
