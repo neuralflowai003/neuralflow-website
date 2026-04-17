@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>About | NeuralFlow AI</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+  <meta name="description" content="NeuralFlow AI was built to give small businesses the same AI and automation tools that enterprises use — without the agency price tag. Founded by Danny Boehmer in Bayonne, NJ.">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="About NeuralFlow AI">
+  <meta property="og:description" content="Built for businesses that are serious about growth. Founded in Bayonne, NJ by Danny Boehmer.">
+  <meta property="og:url" content="https://neuralflowai.io/about.html">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#FF6B2B">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050508;
+      --orange: #FF6B2B;
+      --purple: #7B61FF;
+      --glass-bg: rgba(255,255,255,0.04);
+      --glass-border: rgba(255,255,255,0.08);
+      --text: #fff;
+      --text-muted: rgba(255,255,255,0.6);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(5,5,8,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .nav-logo {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .nav-logo span { color: var(--orange); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.8rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--text); }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-aria {
+      padding: 0.5rem 1.1rem;
+      border: 1px solid var(--purple);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--purple);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-aria:hover { background: var(--purple); color: #fff; }
+
+    .btn-cta {
+      padding: 0.5rem 1.2rem;
+      border-radius: 6px;
+      background: var(--orange);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-cta:hover { opacity: 0.85; }
+
+    /* HERO */
+    .hero {
+      padding: 160px 2rem 80px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 700px;
+      height: 500px;
+      background: radial-gradient(ellipse at center, rgba(255,107,43,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      padding: 0.35rem 1rem;
+      border-radius: 20px;
+      background: rgba(255,107,43,0.12);
+      border: 1px solid rgba(255,107,43,0.3);
+      color: var(--orange);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.2rem, 5.5vw, 4rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.02em;
+      max-width: 820px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 .accent { color: var(--orange); }
+
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* STORY */
+    .story-section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 2rem 5rem;
+    }
+
+    .story-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 3.5rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .story-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--orange), var(--purple));
+    }
+
+    .story-quote {
+      font-size: 2.5rem;
+      color: var(--orange);
+      opacity: 0.4;
+      font-family: Georgia, serif;
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+
+    .story-card h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .story-card p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.8;
+      margin-bottom: 1.25rem;
+    }
+
+    .story-card p:last-child { margin-bottom: 0; }
+
+    .story-card p strong { color: var(--text); font-weight: 600; }
+
+    /* VALUES */
+    .values-section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 2rem 5rem;
+    }
+
+    .values-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .values-header h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+
+    .values-header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    .values-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .value-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 2rem 1.75rem;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .value-card:hover {
+      border-color: rgba(255,107,43,0.3);
+      transform: translateY(-3px);
+    }
+
+    .value-icon {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .value-card h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .value-card h3 .accent { color: var(--orange); }
+
+    .value-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.65;
+    }
+
+    /* TEAM */
+    .team-section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 2rem 5rem;
+    }
+
+    .team-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .team-header h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+
+    .team-header p { color: var(--text-muted); font-size: 1rem; }
+
+    .team-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 3rem;
+      backdrop-filter: blur(10px);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2.5rem;
+      align-items: center;
+      transition: border-color 0.3s;
+    }
+    .team-card:hover { border-color: rgba(255,107,43,0.25); }
+
+    .team-avatar {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--orange), var(--purple));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .team-info h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .team-info .role {
+      color: var(--orange);
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    .team-info p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      margin-bottom: 1.25rem;
+    }
+
+    .team-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .team-tag {
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      background: rgba(123,97,255,0.1);
+      border: 1px solid rgba(123,97,255,0.2);
+      color: var(--purple);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    /* SERVICE AREAS */
+    .areas-section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 2rem 5rem;
+      text-align: center;
+    }
+
+    .areas-section h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .areas-section p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+
+    .areas-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .area-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+    }
+
+    /* CONTACT STRIP */
+    .contact-strip {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+
+    .contact-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 2rem 2.5rem;
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .contact-info h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .contact-links {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .contact-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.2s;
+    }
+    .contact-links a:hover { color: var(--orange); }
+
+    /* CTA */
+    .cta-section {
+      text-align: center;
+      padding: 3rem 2rem 7rem;
+      position: relative;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, rgba(123,97,255,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-box {
+      max-width: 700px;
+      margin: 0 auto;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 4rem 3rem;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+
+    .cta-box h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 700;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .cta-box p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+
+    .btn-large {
+      display: inline-block;
+      padding: 1rem 2.5rem;
+      border-radius: 8px;
+      background: var(--orange);
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .btn-large:hover { opacity: 0.88; transform: translateY(-2px); }
+
+    footer {
+      border-top: 1px solid var(--glass-border);
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--orange); }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .team-card { grid-template-columns: 1fr; text-align: center; }
+      .team-avatar { margin: 0 auto; }
+      .team-tags { justify-content: center; }
+      .contact-card { flex-direction: column; }
+      .story-card { padding: 2rem 1.5rem; }
+      .cta-box { padding: 2.5rem 1.5rem; }
+    }
+
+    @media (max-width: 480px) {
+      nav { padding: 1rem; }
+      .values-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">Neural<span>Flow</span> AI</a>
+  <ul class="nav-links">
+    <li><a href="index.html#services">Services</a></li>
+    <li><a href="index.html#seo">SEO</a></li>
+    <li><a href="work.html">Work</a></li>
+    <li><a href="process.html">Process</a></li>
+    <li><a href="about.html" class="active">About</a></li>
+    <li><a href="index.html#roi">ROI Calc</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="index.html#contact" class="btn-aria">Talk to ARIA</a>
+    <a href="index.html#contact" class="btn-cta">Let's Talk</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">🧠 Our Story</div>
+  <h1>Built For Businesses That Are <span class="accent">Serious About Growth</span></h1>
+  <p>We're not a big agency. We're the team that levels the playing field — giving your small business the same tools that Fortune 500 brands pay millions for.</p>
+</section>
+
+<!-- STORY -->
+<section class="story-section">
+  <div class="story-card">
+    <div class="story-quote">"</div>
+    <h2>Why NeuralFlow Exists</h2>
+    <p>
+      NeuralFlow AI was founded by <strong>Danny Boehmer</strong> in Bayonne, NJ — after watching too many great small businesses get crushed by big brands with massive marketing budgets.
+    </p>
+    <p>
+      Local shops, service businesses, solo operators — they had better products and better service. But they were invisible online. No website, no SEO, no automation. While their competitors were running AI-powered lead funnels and dominating Google, these businesses were still relying on word of mouth and hoping for the best.
+    </p>
+    <p>
+      That's the gap NeuralFlow was built to close. <strong>Enterprise-grade AI and automation tools, without the enterprise price tag.</strong> Fast deployment, no fluff, and results you can actually measure.
+    </p>
+    <p>
+      We're not here to send you monthly decks. We're here to make your phone ring.
+    </p>
+  </div>
+</section>
+
+<!-- VALUES -->
+<section class="values-section">
+  <div class="values-header">
+    <h2>What We Stand For</h2>
+    <p>These aren't buzzwords. They're how we make decisions every day.</p>
+  </div>
+
+  <div class="values-grid">
+
+    <div class="value-card">
+      <div class="value-icon">🎯</div>
+      <h3><span class="accent">Custom</span> Over Cookie-Cutter</h3>
+      <p>Every business is different. We build solutions specific to you — not recycled templates that look like everyone else.</p>
+    </div>
+
+    <div class="value-card">
+      <div class="value-icon">📈</div>
+      <h3><span class="accent">Results</span> Over Promises</h3>
+      <p>We don't sell hope. We sell a system. If we say we'll rank you higher and get you more leads, that's the plan — not a pitch.</p>
+    </div>
+
+    <div class="value-card">
+      <div class="value-icon">⚡</div>
+      <h3><span class="accent">Speed</span> Over Perfection</h3>
+      <p>Good and live beats perfect and delayed. We ship fast, iterate based on real data, and optimize as we go.</p>
+    </div>
+
+    <div class="value-card">
+      <div class="value-icon">🔍</div>
+      <h3><span class="accent">Transparency</span> Over Smoke and Mirrors</h3>
+      <p>You'll always know what we're doing and why. No black-box agency mystery. Just clear reporting and honest conversation.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team-section">
+  <div class="team-header">
+    <h2>The Team</h2>
+    <p>Small on headcount. Big on output.</p>
+  </div>
+
+  <div class="team-card">
+    <div class="team-avatar">DB</div>
+    <div class="team-info">
+      <h3>Danny Boehmer</h3>
+      <div class="role">Founder & CEO</div>
+      <p>
+        NJ-based builder focused on AI automation, digital growth, and making small businesses competitive with the big players. Danny works directly with every client — no account managers, no layers.
+      </p>
+      <div class="team-tags">
+        <span class="team-tag">AI Automation</span>
+        <span class="team-tag">SEO Strategy</span>
+        <span class="team-tag">Business Growth</span>
+        <span class="team-tag">Web Development</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICE AREAS -->
+<section class="areas-section">
+  <h2>Where We Work</h2>
+  <p>Based in New Jersey. Serving businesses across the Northeast and remotely nationwide — wherever you need results, we show up.</p>
+
+  <div class="areas-grid">
+    <div class="area-badge">📍 New Jersey</div>
+    <div class="area-badge">🗽 New York</div>
+    <div class="area-badge">🌐 Nationwide Remote</div>
+  </div>
+</section>
+
+<!-- CONTACT STRIP -->
+<section class="contact-strip">
+  <div class="contact-card">
+    <div class="contact-info">
+      <h3>Reach Out Directly</h3>
+      <div class="contact-links">
+        <a href="tel:+18627019030">📞 (862) 701-9030</a>
+        <a href="mailto:danny@neuralflowai.io">✉️ danny@neuralflowai.io</a>
+        <a href="https://neuralflowai.io" target="_blank">🌐 neuralflowai.io</a>
+      </div>
+    </div>
+    <a href="index.html#contact" class="btn-cta" style="padding: 0.85rem 2rem; font-size: 0.95rem; border-radius: 8px;">Work With Us →</a>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-box">
+    <h2>Work With Us</h2>
+    <p>If you're serious about growing your business, let's talk. We'll show you exactly what's possible — no pressure, no commitment.</p>
+    <a href="index.html#contact" class="btn-large">Start the Conversation →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2025 NeuralFlow AI LLC · Bayonne, NJ · <a href="tel:+18627019030">(862) 701-9030</a> · <a href="mailto:danny@neuralflowai.io">danny@neuralflowai.io</a></p>
+</footer>
+
+</body>
+</html>
