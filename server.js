@@ -15,6 +15,9 @@ const compression = require('compression');
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Trust Railway's reverse proxy so req.ip + x-forwarded-for are reliable and not spoofable
+app.set('trust proxy', 1);
+
 function safeEqual(a, b) {
   if (!a || !b) return false;
   const ba = Buffer.from(a); const bb = Buffer.from(b);
@@ -266,7 +269,7 @@ setInterval(() => {
 
 const MAX_RATE_LIMIT_ENTRIES = 5000;
 function chatRateLimit(req, res, next) {
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+  const ip = req.ip || (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
   const now = Date.now();
   const windowMs = 60 * 1000;
   const maxRequests = 30;
@@ -350,11 +353,18 @@ function flushBookingQueue() {
 }
 
 // ─── Telegram Alert Helper ────────────────────────────────────────────────────
+// Collapse runs of newlines from user input so a malicious field can't inject
+// fake "fields" into the alert. We keep single newlines (alerts use them as separators)
+// but cap total length to avoid blown-up messages.
+function sanitizeTelegramText(msg) {
+  if (typeof msg !== 'string') msg = String(msg);
+  return msg.replace(/\n{3,}/g, '\n\n').slice(0, 3500);
+}
 function sendTelegramAlert(msg, attempt = 0) {
   const tgToken = process.env.TELEGRAM_BOT_TOKEN;
   const tgChat = process.env.TELEGRAM_CHAT_ID;
   if (!tgToken || !tgChat) { console.error('⚠️ Telegram not configured — alert dropped:', msg); return; }
-  const payload = JSON.stringify({ chat_id: tgChat, text: msg });
+  const payload = JSON.stringify({ chat_id: tgChat, text: sanitizeTelegramText(msg) });
   const req = https.request(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
   }, (res) => {
@@ -1503,7 +1513,7 @@ app.get('/oauth/start', (req, res) => {
 app.get('/oauth/callback', async (req, res) => {
   try {
     const { tokens } = await oauth2Client.getToken(req.query.code);
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens), { mode: 0o600 });
     res.send('✅ Google Calendar connected!');
   } catch (e) {
     res.status(500).send('Auth failed');
@@ -1537,10 +1547,13 @@ app.get('/api/test-booking-email', async (req, res) => {
   if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
   const slotStart = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
   const slotEnd   = new Date(Date.now() + 49 * 60 * 60 * 1000).toISOString();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
   try {
     const r = await fetch(`http://localhost:${process.env.PORT || 3000}/api/book`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         name: 'Test Client',
         email: process.env.GMAIL_USER,
@@ -1566,7 +1579,9 @@ app.get('/api/test-booking-email', async (req, res) => {
     let data; try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 200) }; }
     res.json({ triggered: true, book_result: data });
   } catch (e) {
-    res.json({ triggered: false, error: e.message });
+    res.json({ triggered: false, error: e.name === 'AbortError' ? 'timeout' : e.message });
+  } finally {
+    clearTimeout(timeoutId);
   }
 });
 
