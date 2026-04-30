@@ -1591,7 +1591,7 @@ app.get('/api/availability', chatRateLimit, async (req, res) => {
 
 app.post('/api/book', chatRateLimit, async (req, res) => {
   const { name, email, slotStart, slotEnd, slotLabel, company, phone, notes } = req.body;
-  if (!name || !email || !slotStart) {
+  if (!name || !email || !slotStart || typeof name !== 'string' || typeof email !== 'string' || typeof slotStart !== 'string') {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -1609,14 +1609,14 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Book endpoint error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Something went wrong booking your appointment. Please try again.' });
   }
 });
 
 app.post('/api/contact', chatRateLimit, async (req, res) => {
   const { name, email, scope } = req.body;
 
-  if (!name || !email || !scope) {
+  if (!name || !email || !scope || typeof name !== 'string' || typeof email !== 'string' || typeof scope !== 'string') {
     return res.json({ success: false, error: 'Please fill in all fields.' });
   }
   if (name.length > 200 || scope.length > 2000 || email.length > 254) {
@@ -2745,7 +2745,7 @@ setInterval(async () => { try {
 app.post('/api/roi-lead', chatRateLimit, (req, res) => {
   const { name, email, phone, roi, industry } = req.body || {};
 
-  if (!name || !email || !phone) {
+  if (!name || !email || !phone || typeof name !== 'string' || typeof email !== 'string' || typeof phone !== 'string') {
     return res.status(400).json({ error: 'Name, email, and phone are required.' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -2770,7 +2770,7 @@ app.post('/api/roi-lead', chatRateLimit, (req, res) => {
 app.post('/api/seo-audit', chatRateLimit, (req, res) => {
   const { website, name, email, phone } = req.body || {};
 
-  if (!website || !name || !email) {
+  if (!website || !name || !email || typeof website !== 'string' || typeof name !== 'string' || typeof email !== 'string') {
     return res.status(400).json({ error: 'Website, name, and email are required.' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

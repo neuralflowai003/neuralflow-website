@@ -5935,9 +5935,10 @@
           async function submitContactForm(e) {
             e.preventDefault();
             const btn = document.getElementById('contactSubmitBtn');
-            const name = document.getElementById('n_name').value;
-            const email = document.getElementById('n_email').value;
-            const scope = document.getElementById('n_scope').value;
+            const name = document.getElementById('n_name').value.trim();
+            const email = document.getElementById('n_email').value.trim();
+            const scope = document.getElementById('n_scope').value.trim();
+            if (!name || !email || !scope) return;
             btn.textContent = 'Sending...';
             btn.disabled = true;
             btn.setAttribute('aria-busy', 'true');
@@ -5947,6 +5948,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, scope })
               });
+              if (!res.ok) throw new Error('Server error');
               const data = await res.json();
               if (res.ok && data.success !== false) {
                 document.getElementById('contactSuccess').style.display = 'block';
