@@ -225,8 +225,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
+  <!-- GSAP + ScrollTrigger for scroll-driven animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
 
   <style>
     /* ------------------------------------- VARIABLES & RESET ------------------------------------- */
@@ -234,13 +237,34 @@
       --bg: #050508;
       --bg-alt: #0a0a0f;
       --accent: #FF6B2B;
+      --accent-purple: #7B61FF;
       --accent-glow: rgba(255, 107, 43, 0.5);
       --text: #ffffff;
       --muted: #888899;
       --border: rgba(255, 255, 255, 0.08);
       --glass: rgba(18, 18, 22, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.06);
       --transition: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
       --transition-fast: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* Fluid Type Scale */
+      --text-xs: clamp(0.7rem, 0.65rem + 0.25vw, 0.8rem);
+      --text-sm: clamp(0.8rem, 0.75rem + 0.25vw, 0.9rem);
+      --text-base: clamp(0.9rem, 0.85rem + 0.25vw, 1rem);
+      --text-md: clamp(1rem, 0.9rem + 0.5vw, 1.2rem);
+      --text-lg: clamp(1.15rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.5vw, 2.2rem);
+      --text-2xl: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
+      --text-3xl: clamp(2.5rem, 1.8rem + 3.5vw, 5rem);
+      --text-display: clamp(3rem, 2rem + 5vw, 7rem);
+
+      /* Spacing Scale */
+      --space-xs: clamp(4px, 0.5vw, 8px);
+      --space-sm: clamp(8px, 1vw, 16px);
+      --space-md: clamp(16px, 2vw, 32px);
+      --space-lg: clamp(32px, 4vw, 64px);
+      --space-xl: clamp(64px, 8vw, 128px);
+      --space-2xl: clamp(80px, 10vw, 180px);
     }
 
     * {
@@ -305,7 +329,85 @@
     h5,
     h6,
     .display-font {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-weight: 800;
+    }
+
+    /* 12-Column Grid System */
+    .grid-12 {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: var(--space-md);
+    }
+    .col-span-1 { grid-column: span 1; }
+    .col-span-2 { grid-column: span 2; }
+    .col-span-3 { grid-column: span 3; }
+    .col-span-4 { grid-column: span 4; }
+    .col-span-5 { grid-column: span 5; }
+    .col-span-6 { grid-column: span 6; }
+    .col-span-7 { grid-column: span 7; }
+    .col-span-8 { grid-column: span 8; }
+    .col-span-9 { grid-column: span 9; }
+    .col-span-10 { grid-column: span 10; }
+    .col-span-11 { grid-column: span 11; }
+    .col-span-12 { grid-column: span 12; }
+    @media (max-width: 768px) {
+      .grid-12 { grid-template-columns: 1fr; }
+      [class*="col-span-"] { grid-column: span 1; }
+    }
+
+    /* Reusable Eyebrow Pill */
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      background: rgba(255, 107, 43, 0.06);
+      border: 1px solid rgba(255, 107, 43, 0.18);
+      border-radius: 999px;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-family: 'Inter Tight', sans-serif;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* Glassmorphism Card Base */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      transition: border-color 0.4s, box-shadow 0.4s, transform 0.4s;
+    }
+    .glass-card:hover {
+      border-color: rgba(255, 107, 43, 0.2);
+      box-shadow: 0 16px 60px rgba(255, 107, 43, 0.08);
+    }
+
+    /* Prefers Reduced Motion — kill all animations & transitions */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .reveal, .reveal-slide-right, .reveal-stagger > * {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+      }
     }
 
     a {
@@ -356,13 +458,14 @@
       top: 0;
       left: 0;
       transform: translate(-50%, -50%);
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       background: #FF6B2B;
       border-radius: 50%;
       pointer-events: none;
       z-index: 999999;
-      transition: width 0.2s, height 0.2s, background 0.2s;
+      will-change: left, top;
+      transition: width 0.25s, height 0.25s, opacity 0.25s;
     }
 
     #cursor-ring {
@@ -370,16 +473,17 @@
       top: 0;
       left: 0;
       transform: translate(-50%, -50%);
-      width: 40px;
-      height: 40px;
-      border: 2px solid #FF6B2B;
+      width: 36px;
+      height: 36px;
+      border: 1.5px solid rgba(255, 107, 43, 0.5);
       border-radius: 50%;
       pointer-events: none;
       z-index: 999998;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: width 0.3s ease, height 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+      will-change: left, top;
+      transition: width 0.3s, height 0.3s, background 0.3s, border-color 0.3s;
     }
 
     #cursor-text {
@@ -418,38 +522,41 @@
     .container {
       max-width: 1400px;
       margin: 0 auto;
-      padding: 0 5vw;
+      padding: 0 clamp(18px, 5vw, 72px);
     }
 
     .section {
-      padding: 180px 0;
+      padding: var(--space-2xl) 0;
       position: relative;
     }
 
     .section-title {
-      font-size: clamp(3rem, 6vw, 6rem);
-      font-weight: 700;
-      letter-spacing: -3px;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: var(--text-3xl);
+      font-weight: 800;
+      letter-spacing: -0.04em;
       line-height: 1;
-      margin-bottom: 2rem;
-      text-align: center;
+      margin-bottom: 1.5rem;
+      text-align: left;
       position: relative;
-      display: inline-block;
+      display: block;
       width: 100%;
     }
+    .section-title.center { text-align: center; }
     .section-title::after {
       content: '';
       display: block;
       width: 0;
       height: 3px;
-      margin: 20px auto 0;
+      margin: 20px 0 0;
       background: linear-gradient(90deg, #FF6B2B, #7B61FF);
       border-radius: 2px;
       transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    .section-title.center::after { margin: 20px auto 0; }
     .section-title.visible::after,
     .visible .section-title::after {
-      width: 120px;
+      width: 80px;
     }
 
     .gradient-text {
@@ -462,11 +569,14 @@
     }
 
     .section-desc {
-      font-size: 1.2rem;
+      font-size: var(--text-md);
       color: var(--muted);
       max-width: 600px;
-      margin-bottom: 60px;
-      line-height: 1.6;
+      margin-bottom: var(--space-lg);
+      line-height: 1.7;
+      text-align: left;
+    }
+    .section-desc.center {
       text-align: center;
       margin-left: auto;
       margin-right: auto;
@@ -498,6 +608,49 @@
       background: linear-gradient(90deg, transparent 0%, rgba(255,107,43,0.15) 30%, rgba(123,97,255,0.15) 70%, transparent 100%);
       border: none;
       margin: 0;
+    }
+
+    /* Marquee Divider */
+    .marquee-divider {
+      width: 100%;
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0;
+      background: rgba(255, 255, 255, 0.01);
+      position: relative;
+    }
+    .marquee-track {
+      display: flex;
+      width: max-content;
+      animation: marqueeScroll 30s linear infinite;
+    }
+    .marquee-track:hover { animation-play-state: paused; }
+    .marquee-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 24px;
+      padding: 0 24px;
+      font-family: 'Inter Tight', sans-serif;
+      font-size: var(--text-xs);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.12);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .marquee-item .marquee-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.4;
+      flex-shrink: 0;
+    }
+    @keyframes marqueeScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
     }
 
     /* Reveal Animation Base */
@@ -547,9 +700,9 @@
       align-items: center;
       justify-content: center;
       padding: 18px 40px;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1rem;
-      font-weight: 600;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: var(--text-sm);
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       border-radius: 100px;
@@ -655,9 +808,9 @@
     }
 
     .logo {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
       font-size: 1.5rem;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: -1px;
       transition: var(--transition-fast);
       background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
@@ -867,15 +1020,15 @@
     }
 
     .hero-content {
-      max-width: 1200px;
+      max-width: 1400px;
       position: relative;
       z-index: 10;
       width: 100%;
-      padding: 0 5vw;
+      padding: 0 clamp(18px, 5vw, 72px);
       display: flex;
       flex-direction: column;
-      align-items: center;
-      text-align: center;
+      align-items: flex-start;
+      text-align: left;
       margin: 0 auto;
     }
 
@@ -920,13 +1073,14 @@
 
     /* Kinetic Split Text */
     .hero-headline {
-      font-size: clamp(2.5rem, 4vw, 5.5rem);
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: var(--text-display);
       white-space: nowrap;
-      text-align: center;
-      font-weight: 700;
-      line-height: 0.95;
-      letter-spacing: -4px;
-      margin-bottom: 20px;
+      text-align: left;
+      font-weight: 900;
+      line-height: 0.92;
+      letter-spacing: -0.05em;
+      margin-bottom: 24px;
       text-transform: none;
       overflow: visible;
       padding-right: 8px;
@@ -935,16 +1089,16 @@
     @media(max-width:768px) {
       body .hero-headline {
         white-space: normal !important;
-        text-align: center !important;
+        text-align: left !important;
       }
       .line-1 {
-        font-size: clamp(1.8rem, 8vw, 3.5rem) !important;
-        letter-spacing: -2px !important;
+        font-size: clamp(2rem, 9vw, 3.5rem) !important;
+        letter-spacing: -0.04em !important;
         min-height: 1.2em;
       }
       .line-2 {
-        font-size: clamp(1.6rem, 7vw, 3rem) !important;
-        letter-spacing: -1.5px !important;
+        font-size: clamp(1.8rem, 8vw, 3rem) !important;
+        letter-spacing: -0.03em !important;
       }
     }
     @media(max-width:380px) {
@@ -971,14 +1125,14 @@
       overflow: visible;
       white-space: normal;
       color: #fff;
-      font-size: clamp(2.6rem, 5vw, 6rem);
-      letter-spacing: -4px;
+      font-size: var(--text-display);
+      letter-spacing: -0.05em;
       line-height: 0.92;
       margin-bottom: 12px;
       opacity: 0;
       transform: translateY(36px);
       animation: line1In 1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
-      text-shadow: 0 0 30px rgba(255,107,43,0.2), 0 0 80px rgba(255,107,43,0.1);
+      text-shadow: 0 0 30px rgba(255,107,43,0.15), 0 0 80px rgba(255,107,43,0.08);
     }
 
     .line-2 {
@@ -1008,10 +1162,10 @@
 
     /* Typewriter */
     .typewriter-wrap {
-      font-size: clamp(1.2rem, 2vw, 1.8rem);
+      font-size: var(--text-lg);
       color: var(--muted);
-      margin-bottom: 60px;
-      font-family: 'Space Grotesk';
+      margin-bottom: 48px;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
       font-weight: 400;
       height: 30px;
       display: flex;
@@ -1047,16 +1201,40 @@
     .scroll-indicator {
       position: absolute;
       bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%);
+      left: clamp(18px, 5vw, 72px);
+      transform: none;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 10px;
       color: var(--muted);
-      font-size: 0.7rem;
+      font-size: var(--text-xs);
       text-transform: uppercase;
-      letter-spacing: 3px;
+      letter-spacing: 0.2em;
+      font-family: 'Inter Tight', sans-serif;
+    }
+
+    .scroll-mouse {
+      width: 24px;
+      height: 38px;
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      border-radius: 12px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+    .scroll-mouse-dot {
+      width: 3px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 3px;
+      margin-top: 8px;
+      animation: scrollMouseDot 2s ease-in-out infinite;
+    }
+    @keyframes scrollMouseDot {
+      0% { opacity: 1; transform: translateY(0); }
+      50% { opacity: 0.3; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
 
     .scroll-arrow {
@@ -1067,27 +1245,25 @@
     }
 
     @keyframes bounceDrop {
-      0% {
-        transform: translateY(-10px);
-        opacity: 0;
-      }
-
-      50% {
-        opacity: 1;
-      }
-
-      100% {
-        transform: translateY(10px);
-        opacity: 0;
-      }
+      0% { transform: translateY(-10px); opacity: 0; }
+      50% { opacity: 1; }
+      100% { transform: translateY(10px); opacity: 0; }
     }
 
-    /* ------------------------------------- SERVICES (3D Tilt) ------------------------------------- */
+    /* ------------------------------------- SERVICES (Bento Grid) ------------------------------------- */
     .services-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 30px;
+      grid-auto-rows: auto;
+      gap: 20px;
       perspective: 1000px;
+    }
+    .services-grid .tilt-card:nth-child(1),
+    .services-grid .tilt-card:nth-child(2) {
+      grid-column: span 1;
+    }
+    @media (min-width: 769px) {
+      .services-grid .tilt-card:nth-child(1) { grid-column: span 2; }
     }
 
     .tilt-card {
@@ -1188,14 +1364,17 @@
     }
 
     .tilt-card h3 {
-      font-size: 1.8rem;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: var(--text-xl);
+      font-weight: 800;
       margin-bottom: 15px;
-      letter-spacing: -1px;
+      letter-spacing: -0.03em;
     }
 
     .tilt-card p {
       color: var(--muted);
-      line-height: 1.6;
+      font-size: var(--text-sm);
+      line-height: 1.7;
       margin-bottom: 30px;
     }
 
@@ -1414,9 +1593,9 @@
     }
 
     .stat-number {
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
       font-size: clamp(4rem, 8vw, 8rem);
-      font-weight: 700;
+      font-weight: 900;
       background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
       -webkit-background-clip: text;
       background-clip: text;
@@ -1426,9 +1605,9 @@
     }
 
     .stat-suffix {
-      font-family: 'Space Grotesk';
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
       font-size: clamp(2rem, 4vw, 4rem);
-      font-weight: 700;
+      font-weight: 800;
       background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
       -webkit-background-clip: text;
       background-clip: text;
@@ -1451,11 +1630,12 @@
     }
 
     .stat-text {
-      font-size: 0.9rem;
+      font-family: 'Inter Tight', sans-serif;
+      font-size: var(--text-xs);
       text-transform: uppercase;
-      letter-spacing: 2px;
+      letter-spacing: 0.15em;
       color: var(--muted);
-      font-weight: 500;
+      font-weight: 600;
     }
 
     /* ------------------------------------- HOW IT WORKS ------------------------------------- */
@@ -1501,9 +1681,11 @@
     }
 
     .step-content h3 {
-      font-size: 2.5rem;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: var(--text-2xl);
+      font-weight: 800;
       margin-bottom: 20px;
-      letter-spacing: -1px;
+      letter-spacing: -0.03em;
       display: flex;
       align-items: center;
       gap: 20px;
@@ -1603,8 +1785,10 @@
     }
 
     .about-top h2 {
-      font-size: clamp(2.5rem, 5vw, 4.5rem);
-      letter-spacing: -2px;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: var(--text-2xl);
+      font-weight: 800;
+      letter-spacing: -0.03em;
       margin-bottom: 40px;
       line-height: 1.05;
     }
@@ -1722,9 +1906,11 @@
     }
 
     .contact-text h2 {
-      font-size: clamp(3rem, 6vw, 5.5rem);
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: var(--text-3xl);
+      font-weight: 800;
       line-height: 1;
-      letter-spacing: -3px;
+      letter-spacing: -0.04em;
       margin-bottom: 30px;
     }
 
@@ -1844,7 +2030,8 @@
       background: #020202;
       padding: 100px 0 40px;
       overflow: hidden;
-      border-top: 1px solid var(--border);
+      border-top: 2px solid transparent;
+      border-image: linear-gradient(90deg, #FF6B2B, #7B61FF) 1;
     }
 
     footer::before {
@@ -1862,10 +2049,12 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-family: 'Space Grotesk';
-      font-size: 20vw;
-      font-weight: 800;
-      color: rgba(255, 255, 255, 0.02);
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: clamp(8rem, 18vw, 22rem);
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(255, 255, 255, 0.03);
       white-space: nowrap;
       pointer-events: none;
       z-index: 1;
@@ -1886,8 +2075,8 @@
     }
 
     .footer-tagline {
-      font-family: 'Space Grotesk';
-      font-size: 1.5rem;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
+      font-size: var(--text-lg);
       color: #fff;
     }
 
@@ -2801,13 +2990,79 @@
     </div>
 
     <div class="scroll-indicator">
+      <div class="scroll-mouse"><div class="scroll-mouse-dot"></div></div>
       <span>Scroll</span>
-      <div class="scroll-arrow"></div>
     </div>
 
     <!-- Bottom fade — dissolves canvas into the next section -->
     <div style="position:absolute;bottom:0;left:0;right:0;height:220px;background:linear-gradient(to bottom,transparent 0%,rgba(5,5,8,0.6) 50%,var(--bg) 100%);pointer-events:none;z-index:3;"></div>
   </header>
+
+  <!-- CLIENT TRUST BAR -->
+  <style>
+    .trust-bar {
+      padding: 40px 0;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .trust-bar-label {
+      text-align: center;
+      font-family: 'Inter Tight', sans-serif;
+      font-size: var(--text-xs);
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.2);
+      margin-bottom: 24px;
+    }
+    .trust-marquee {
+      display: flex;
+      width: max-content;
+      animation: marqueeScroll 40s linear infinite;
+    }
+    .trust-logo {
+      display: inline-flex;
+      align-items: center;
+      padding: 0 clamp(24px, 3vw, 48px);
+      font-family: 'Inter Tight', sans-serif;
+      font-size: clamp(1rem, 1.5vw, 1.4rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: rgba(255, 255, 255, 0.1);
+      white-space: nowrap;
+      user-select: none;
+      transition: color 0.3s;
+    }
+    .trust-logo:hover { color: rgba(255, 255, 255, 0.25); }
+  </style>
+  <section class="trust-bar" aria-label="Trusted by businesses">
+    <div class="trust-bar-label">Trusted by businesses across industries</div>
+    <div style="overflow:hidden;">
+      <div class="trust-marquee">
+        <span class="trust-logo">Local Services</span>
+        <span class="trust-logo">Healthcare</span>
+        <span class="trust-logo">E-Commerce</span>
+        <span class="trust-logo">Real Estate</span>
+        <span class="trust-logo">Law Firms</span>
+        <span class="trust-logo">Restaurants</span>
+        <span class="trust-logo">Auto Dealers</span>
+        <span class="trust-logo">Salons & Spas</span>
+        <span class="trust-logo">Fitness</span>
+        <span class="trust-logo">Home Services</span>
+        <span class="trust-logo">Local Services</span>
+        <span class="trust-logo">Healthcare</span>
+        <span class="trust-logo">E-Commerce</span>
+        <span class="trust-logo">Real Estate</span>
+        <span class="trust-logo">Law Firms</span>
+        <span class="trust-logo">Restaurants</span>
+        <span class="trust-logo">Auto Dealers</span>
+        <span class="trust-logo">Salons & Spas</span>
+        <span class="trust-logo">Fitness</span>
+        <span class="trust-logo">Home Services</span>
+      </div>
+    </div>
+  </section>
 
   <!-- CURSOR GLOW + ARIA DEMO STYLES -->
   <style>
@@ -2866,13 +3121,13 @@
       animation: pulse 2s infinite;
     }
     .aria-demo-headline {
-      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      font-size: var(--text-2xl);
       font-weight: 800;
       color: #fff;
-      line-height: 1.15;
-      letter-spacing: -1px;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
       margin: 0 0 20px;
-      font-family: 'Space Grotesk', sans-serif;
+      font-family: 'Inter Tight', 'Space Grotesk', sans-serif;
     }
     .aria-demo-sub {
       font-size: 1rem;
@@ -3066,10 +3321,10 @@
   <!-- STATS -->
   <section class="stats-section">
     <div class="container">
-      <div class="reveal" style="text-align:center;margin-bottom:64px;">
-        <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">By the Numbers</div>
-        <h2 class="section-title" style="margin:0 auto 16px;">Proof over promises.</h2>
-        <p class="section-desc" style="margin:0 auto;">Real outcomes from real businesses we've helped grow.</p>
+      <div class="reveal" style="text-align:center;margin-bottom:var(--space-lg);">
+        <div class="eyebrow" style="margin-bottom:20px;">By the Numbers</div>
+        <h2 class="section-title center" style="margin:0 auto 16px;">Proof over promises.</h2>
+        <p class="section-desc center" style="margin:0 auto;">Real outcomes from real businesses we've helped grow.</p>
       </div>
     <div class="stats-grid">
       <div class="stat-box reveal">
@@ -3119,12 +3374,32 @@
     </div>
   </section>
 
-  <hr class="section-divider">
+  <div class="marquee-divider" aria-hidden="true">
+    <div class="marquee-track">
+      <span class="marquee-item">AI Consulting <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Workflow Automation <span class="marquee-dot"></span></span>
+      <span class="marquee-item">SEO & Search <span class="marquee-dot"></span></span>
+      <span class="marquee-item">AI Receptionists <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Custom App Dev <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Process Optimization <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Lead Generation <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Revenue Growth <span class="marquee-dot"></span></span>
+      <span class="marquee-item">AI Consulting <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Workflow Automation <span class="marquee-dot"></span></span>
+      <span class="marquee-item">SEO & Search <span class="marquee-dot"></span></span>
+      <span class="marquee-item">AI Receptionists <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Custom App Dev <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Process Optimization <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Lead Generation <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Revenue Growth <span class="marquee-dot"></span></span>
+    </div>
+  </div>
   <!-- SERVICES (3D Tilt) -->
   <section class="section dot-grid-bg" id="services">
     <div class="container">
-      <h2 class="section-title reveal">How We <span class="gradient-text">Grow</span> Your Business.</h2>
-      <p class="section-desc reveal" style="transition-delay: 0.1s;">We assess your operations, identify what's costing you time and money,
+      <div class="reveal" style="text-align:center;margin-bottom:16px;"><div class="eyebrow">What We Do</div></div>
+      <h2 class="section-title center reveal">How We <span class="gradient-text">Grow</span> Your Business.</h2>
+      <p class="section-desc center reveal" style="transition-delay: 0.1s;">We assess your operations, identify what's costing you time and money,
         and implement AI, automation, and SEO to drive real growth.</p>
 
       <div class="services-grid reveal reveal-stagger">
@@ -3309,6 +3584,23 @@
     document.querySelectorAll('.tilt-card').forEach(function (c) { obs.observe(c); });
   })();
   </script>
+
+  <div class="marquee-divider" aria-hidden="true">
+    <div class="marquee-track" style="animation-direction:reverse;">
+      <span class="marquee-item">24/7 AI Agents <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Instant Booking <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Lead Qualification <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Smart Scheduling <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Zero Missed Calls <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Real-Time Alerts <span class="marquee-dot"></span></span>
+      <span class="marquee-item">24/7 AI Agents <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Instant Booking <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Lead Qualification <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Smart Scheduling <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Zero Missed Calls <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Real-Time Alerts <span class="marquee-dot"></span></span>
+    </div>
+  </div>
 
   <!-- ARIA LIVE DEMO -->
   <section class="aria-demo-section">
@@ -3642,7 +3934,7 @@
     /* Lead capture box */
     .seo-capture-box { background:rgba(6,10,20,0.85); padding:40px; border-radius:24px; border:1px solid rgba(255,107,43,0.15); box-shadow:0 20px 60px rgba(0,0,0,0.3), inset 0 0 80px rgba(255,107,43,0.02); transition:border-color 0.3s, box-shadow 0.3s; }
     .seo-capture-box:hover { border-color:rgba(255,107,43,0.28); box-shadow:0 24px 80px rgba(0,0,0,0.4), 0 0 40px rgba(255,107,43,0.06); }
-    .seo-capture-box h3 { font-family:'Space Grotesk',sans-serif; font-size:1.6rem; font-weight:700; margin-bottom:8px; background:linear-gradient(135deg,#fff 60%,rgba(255,107,43,0.8) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .seo-capture-box h3 { font-family:'Inter Tight','Space Grotesk',sans-serif; font-size:var(--text-xl); font-weight:800; margin-bottom:8px; background:linear-gradient(135deg,#fff 60%,rgba(255,107,43,0.8) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
     .seo-capture-box > p { color:var(--muted); font-size:0.95rem; margin-bottom:28px; line-height:1.5; }
     .seo-capture-box .seo-form-group { margin-bottom:20px; }
     .seo-capture-box input { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:12px 14px; color:#fff; font-size:0.95rem; font-family:'Inter',sans-serif; outline:none; transition:border-color 0.3s; }
@@ -3678,9 +3970,9 @@
 
   <section class="seo-demo-section" id="seo">
     <div class="container" style="text-align:center;margin-bottom:40px;">
-      <div class="reveal" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">SEO & AI Search</div>
-      <h2 class="section-title reveal">If They Can't <span class="gradient-text">Find</span> You,<br>They Can't <span class="gradient-text">Pay</span> You.</h2>
-      <p class="section-desc reveal" style="margin-bottom:0;">75% of people never scroll past page 1. If your business isn't ranking, your competitors are getting the calls, the leads, and the revenue that should be yours.</p>
+      <div class="reveal"><div class="eyebrow" style="margin-bottom:20px;">SEO & AI Search</div></div>
+      <h2 class="section-title center reveal">If They Can't <span class="gradient-text">Find</span> You,<br>They Can't <span class="gradient-text">Pay</span> You.</h2>
+      <p class="section-desc center reveal" style="margin-bottom:0;">75% of people never scroll past page 1. If your business isn't ranking, your competitors are getting the calls, the leads, and the revenue that should be yours.</p>
     </div>
 
     <!-- Value stats strip -->
@@ -3925,6 +4217,21 @@
     document.getElementById('seoToggleAfter').addEventListener('click', function() { clearInterval(seoAutoInterval); seoAutoInterval = null; });
   })();
   </script>
+
+  <div class="marquee-divider" aria-hidden="true">
+    <div class="marquee-track">
+      <span class="marquee-item">ROI Calculator <span class="marquee-dot"></span></span>
+      <span class="marquee-item">10x Average Return <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Data-Driven Growth <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Free Analysis <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Measurable Results <span class="marquee-dot"></span></span>
+      <span class="marquee-item">ROI Calculator <span class="marquee-dot"></span></span>
+      <span class="marquee-item">10x Average Return <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Data-Driven Growth <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Free Analysis <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Measurable Results <span class="marquee-dot"></span></span>
+    </div>
+  </div>
 
   <!-- ROI CALCULATOR TEASER -->
   <style>
@@ -4560,9 +4867,9 @@
   </style>
   <section class="showcase-section" id="work">
     <div class="container" style="text-align:center;">
-      <div class="build-eyebrow reveal">What We Deliver</div>
-      <h2 class="section-title reveal">Tools That <span class="gradient-text">Grow</span> Your Business.</h2>
-      <p class="section-desc reveal" style="transition-delay:0.1s;">Custom-built systems tailored to your industry, your workflow, and your growth goals.</p>
+      <div class="reveal" style="margin-bottom:16px;"><div class="eyebrow">What We Deliver</div></div>
+      <h2 class="section-title center reveal">Tools That <span class="gradient-text">Grow</span> Your Business.</h2>
+      <p class="section-desc center reveal" style="transition-delay:0.1s;">Custom-built systems tailored to your industry, your workflow, and your growth goals.</p>
     </div>
     <div class="build-outer">
       <div class="build-track" id="buildTrack">
@@ -5379,10 +5686,10 @@
   <section class="hiw-section section dot-grid-bg" id="process">
     <div class="container">
       <div class="reveal" style="text-align:center;margin-bottom:12px;">
-        <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;">How It Works</div>
+        <div class="eyebrow">How It Works</div>
       </div>
-      <h2 class="section-title reveal">The <span class="gradient-text">Methodology.</span></h2>
-      <p class="section-desc reveal" style="text-align:center;margin:0 auto 0;">Three phases. Zero fluff. Real results.
+      <h2 class="section-title center reveal">The <span class="gradient-text">Methodology.</span></h2>
+      <p class="section-desc center reveal" style="margin:0 auto 0;">Three phases. Zero fluff. Real results.
       </p>
 
       <div class="hiw-grid">
@@ -5635,16 +5942,17 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.25);
     }
 
-    /* Giant faded quote mark in background */
+    /* Giant decorative quote mark */
     .tcard::before {
       content: '\201C';
       position: absolute;
-      top: -10px;
-      right: 20px;
-      font-size: 140px;
-      font-family: Georgia, serif;
+      top: -20px;
+      right: 16px;
+      font-size: 180px;
+      font-family: 'Inter Tight', Georgia, serif;
+      font-weight: 900;
       line-height: 1;
-      background: linear-gradient(135deg, rgba(255,107,43,0.07) 0%, rgba(123,97,255,0.07) 100%);
+      background: linear-gradient(135deg, rgba(255,107,43,0.1) 0%, rgba(123,97,255,0.08) 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -5887,7 +6195,7 @@
   </style>
   <section class="proof-section">
     <div class="container">
-      <div class="proof-label reveal">⭐ What Clients Are Saying</div>
+      <div class="reveal" style="text-align:center;margin-bottom:16px;"><div class="eyebrow">What Clients Are Saying</div></div>
       <div class="quotes-ticker-wrap reveal">
         <div class="quotes-ticker-track">
           <span class="qtick">"ROI in 3 weeks."</span>
@@ -5972,12 +6280,25 @@
     </div>
   </section>
 
-  <hr class="section-divider">
+  <div class="marquee-divider" aria-hidden="true">
+    <div class="marquee-track" style="animation-direction:reverse;">
+      <span class="marquee-item">Built for the Bold <span class="marquee-dot"></span></span>
+      <span class="marquee-item">150+ Businesses <span class="marquee-dot"></span></span>
+      <span class="marquee-item">10x ROI Average <span class="marquee-dot"></span></span>
+      <span class="marquee-item">48hr Deployment <span class="marquee-dot"></span></span>
+      <span class="marquee-item">100% Retention <span class="marquee-dot"></span></span>
+      <span class="marquee-item">Built for the Bold <span class="marquee-dot"></span></span>
+      <span class="marquee-item">150+ Businesses <span class="marquee-dot"></span></span>
+      <span class="marquee-item">10x ROI Average <span class="marquee-dot"></span></span>
+      <span class="marquee-item">48hr Deployment <span class="marquee-dot"></span></span>
+      <span class="marquee-item">100% Retention <span class="marquee-dot"></span></span>
+    </div>
+  </div>
   <!-- ABOUT -->
   <section class="about-section section" id="about">
     <div class="container">
       <div class="about-top reveal">
-        <div class="about-eyebrow">Our Story</div>
+        <div class="eyebrow" style="margin-bottom:28px;">Our Story</div>
         <h2>Your AI<br><span class="about-bold-gradient">Growth Partner.</span></h2>
         <div class="about-divider"></div>
         <p>NeuralFlow was founded by <strong>Danny Boehmer</strong> with one mission: help businesses make more money.
@@ -5986,7 +6307,7 @@
           That's what we deliver — and we don't stop until the numbers prove it.</p>
       </div>
 
-      <div class="credentials-title reveal">Why Danny &amp; NeuralFlow?</div>
+      <div class="reveal" style="margin-bottom:40px;"><div class="eyebrow">Why Danny &amp; NeuralFlow?</div></div>
       <div class="credentials-grid">
         <div class="cred-card reveal trigger-hover">
           <span class="cred-icon">🧠</span>
@@ -6012,6 +6333,7 @@
     <div class="container contact-layout">
 
       <div class="contact-text reveal">
+        <div class="eyebrow" style="margin-bottom:24px;">Get In Touch</div>
         <h2>Ready to<br>grow your<br>business?</h2>
         <a href="mailto:danny@neuralflowai.io" class="magnetic" data-strength="20">danny@neuralflowai.io</a>
         <br>
@@ -6021,6 +6343,7 @@
           <div class="status-dot"></div>
           Available Now
         </div>
+        <div id="live-clock" style="margin-top:16px;font-family:'Inter Tight',sans-serif;font-size:var(--text-xs);letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);"></div>
       </div>
 
       <div class="form-box reveal" style="transition-delay: 0.2s;">
@@ -6096,6 +6419,19 @@
 
     </div>
   </section>
+  <script>
+    (function() {
+      var el = document.getElementById('live-clock');
+      if (!el) return;
+      function tick() {
+        var now = new Date();
+        var et = now.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        el.textContent = 'Bayonne, NJ · ' + et + ' ET';
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
 
   </main>
 
@@ -6206,35 +6542,46 @@
       scrollProgress.style.width = scrolled;
     });
 
-    // ------------------- Advanced Cursor & Magnetic Buttons -------------------
+    // ------------------- 60fps Cursor with Lerp Smoothing -------------------
     const cursorDot = document.getElementById('cursor-dot');
     const cursorRing = document.getElementById('cursor-ring');
+    const cursorGlow = document.getElementById('cursor-glow');
 
     let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
     let dotX = mouseX, dotY = mouseY;
     let ringX = mouseX, ringY = mouseY;
+    let glowX = mouseX, glowY = mouseY;
 
     window.addEventListener('mousemove', (e) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
+      if (cursorGlow) cursorGlow.style.opacity = '1';
     });
 
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
     function animateCursor() {
-      // Instant follow for dot
-      dotX = mouseX;
-      dotY = mouseY;
+      dotX = lerp(dotX, mouseX, 0.35);
+      dotY = lerp(dotY, mouseY, 0.35);
       if (cursorDot) {
         cursorDot.style.left = `${dotX}px`;
         cursorDot.style.top = `${dotY}px`;
       }
 
-      // Smooth follow for ring
-      ringX += (mouseX - ringX) * 0.15;
-      ringY += (mouseY - ringY) * 0.15;
+      ringX = lerp(ringX, mouseX, 0.12);
+      ringY = lerp(ringY, mouseY, 0.12);
       if (cursorRing) {
         cursorRing.style.left = `${ringX}px`;
         cursorRing.style.top = `${ringY}px`;
       }
+
+      glowX = lerp(glowX, mouseX, 0.06);
+      glowY = lerp(glowY, mouseY, 0.06);
+      if (cursorGlow) {
+        cursorGlow.style.left = `${glowX}px`;
+        cursorGlow.style.top = `${glowY}px`;
+      }
+
       requestAnimationFrame(animateCursor);
     }
     animateCursor();
@@ -7199,6 +7546,65 @@
     document.getElementById('mobile-menu-overlay').addEventListener('click', closeMobileMenu);
   </script>
 
+  <!-- GSAP ScrollTrigger Animations -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      gsap.utils.toArray('.section-title').forEach(function(el) {
+        gsap.from(el, {
+          y: 40, opacity: 0,
+          duration: 1,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 85%', once: true }
+        });
+      });
+
+      gsap.utils.toArray('.stat-box').forEach(function(el, i) {
+        gsap.from(el, {
+          y: 60, opacity: 0, scale: 0.95,
+          duration: 0.8,
+          delay: i * 0.1,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true }
+        });
+      });
+
+      gsap.utils.toArray('.tilt-card').forEach(function(el, i) {
+        gsap.from(el, {
+          y: 50, opacity: 0,
+          duration: 0.7,
+          delay: i * 0.08,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true }
+        });
+      });
+
+      gsap.utils.toArray('.tcard').forEach(function(el, i) {
+        gsap.from(el, {
+          y: 40, opacity: 0, rotate: 1,
+          duration: 0.7,
+          delay: i * 0.1,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true }
+        });
+      });
+
+      gsap.utils.toArray('.cred-card').forEach(function(el, i) {
+        gsap.from(el, {
+          y: 30, opacity: 0,
+          duration: 0.6,
+          delay: i * 0.1,
+          ease: 'power3.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true }
+        });
+      });
+    });
+  </script>
+
   <!-- ============================================================
        COMPREHENSIVE MOBILE OVERRIDES — loaded last to win cascade
        ============================================================ -->
@@ -7258,17 +7664,17 @@
       }
       .badge-dot { width: 6px !important; height: 6px !important; }
 
-      /* Hero CTAs — centered, compact */
+      /* Hero CTAs — left-aligned, compact */
       .hero-ctas {
         flex-direction: column !important;
-        align-items: center !important;
+        align-items: flex-start !important;
         gap: 10px !important;
         width: 100% !important;
       }
       .hero-ctas .btn {
-        width: 100% !important;
-        max-width: 260px !important;
-        padding: 13px 22px !important;
+        width: auto !important;
+        max-width: 100% !important;
+        padding: 13px 28px !important;
         font-size: 0.82rem !important;
         justify-content: center !important;
         text-align: center !important;
