@@ -442,14 +442,23 @@
       display: block;
       width: 0;
       height: 3px;
-      margin: 16px auto 0;
+      margin: 20px auto 0;
       background: linear-gradient(90deg, #FF6B2B, #7B61FF);
       border-radius: 2px;
-      transition: width 0.8s ease;
+      transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .section-title.visible::after,
     .visible .section-title::after {
-      width: 80px;
+      width: 120px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #FF6B2B, #FFA07A, #7B61FF);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradientShift 4s ease infinite;
     }
 
     .section-desc {
@@ -461,6 +470,26 @@
       text-align: center;
       margin-left: auto;
       margin-right: auto;
+    }
+
+    /* Dot grid overlay for premium depth */
+    .dot-grid-bg {
+      position: relative;
+    }
+    .dot-grid-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255,107,43,0.07) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(ellipse 70% 50% at 50% 50%, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 50%, black 20%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .dot-grid-bg > * {
+      position: relative;
+      z-index: 1;
     }
 
     .section-divider {
@@ -585,13 +614,16 @@
     .btn-ghost {
       background: transparent;
       color: var(--text);
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255,255,255,0.15);
       backdrop-filter: blur(10px);
+      box-shadow: 0 0 20px rgba(255,255,255,0.02);
+      transition: border-color 0.3s, box-shadow 0.3s, color 0.3s;
     }
 
     .btn-ghost:hover {
       color: #000;
       border-color: #fff;
+      box-shadow: 0 0 30px rgba(255,255,255,0.08);
     }
 
     .btn-ghost::before {
@@ -852,15 +884,16 @@
       align-items: center;
       gap: 12px;
       padding: 10px 20px;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255,107,43,0.15);
       border-radius: 100px;
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 107, 43, 0.04);
       backdrop-filter: blur(10px);
       font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 2px;
       margin-bottom: 40px;
       font-weight: 500;
+      box-shadow: 0 0 30px rgba(255,107,43,0.06), 0 0 60px rgba(255,107,43,0.03);
     }
 
     .badge-dot {
@@ -952,10 +985,18 @@
       display: block;
       overflow: hidden;
       padding-right: 10px;
-      background: linear-gradient(90deg, var(--accent) 0%, #FFA07A 100%);
+      background: linear-gradient(90deg, #FF6B2B, #FFA07A, #7B61FF, #FF6B2B);
+      background-size: 300% 100%;
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: gradientShift 4s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     .char {
@@ -1053,17 +1094,17 @@
       background: var(--bg-alt);
       padding: 28px 28px 32px;
       border-radius: 16px;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(255,107,43,0.08);
       position: relative;
       transform-style: preserve-3d;
-      transition: border-color var(--transition-fast), transform 0.3s ease, box-shadow 0.3s ease;
+      transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       overflow: visible;
     }
 
-    /* Glowing Animated Border */
+    /* Always-on animated gradient border */
     .tilt-card::before {
       content: '';
       position: absolute;
@@ -1071,15 +1112,16 @@
       left: 0;
       right: 0;
       bottom: 0;
-      border-radius: 12px;
-      padding: 2px;
-      background: linear-gradient(45deg, transparent, transparent, var(--accent), transparent, transparent);
+      border-radius: 16px;
+      padding: 1px;
+      background: linear-gradient(45deg, rgba(255,107,43,0.3), transparent 40%, transparent 60%, rgba(123,97,255,0.3));
       background-size: 400% 400%;
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
       mask-composite: exclude;
-      opacity: 0;
+      opacity: 0.5;
+      animation: borderGlow 6s linear infinite;
       transition: opacity 0.4s;
       z-index: 1;
       pointer-events: none;
@@ -1087,24 +1129,19 @@
 
     .tilt-card:hover::before {
       opacity: 1;
-      animation: borderGlow 3s linear infinite;
+      animation-duration: 2s;
     }
 
     @keyframes borderGlow {
-      0% {
-        background-position: 0% 50%;
-      }
-
-      100% {
-        background-position: 100% 50%;
-      }
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
     }
 
     .tilt-card:hover {
       border-color: transparent;
       background: #0c0c14;
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(255,107,43,0.06), 0 4px 16px rgba(123,97,255,0.04);
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 60px rgba(255,107,43,0.1), 0 8px 24px rgba(123,97,255,0.06), 0 0 40px rgba(255,107,43,0.04);
     }
 
     /* Inner content parallax */
@@ -1328,11 +1365,13 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      background: rgba(255,107,43,0.04);
-      border: 1px solid rgba(255,107,43,0.1);
+      background: rgba(255,107,43,0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,107,43,0.12);
       border-radius: 20px;
       padding: 40px 32px;
-      transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s ease;
+      transition: border-color 0.4s, box-shadow 0.4s, transform 0.4s ease;
       position: relative;
       overflow: hidden;
     }
@@ -1341,14 +1380,31 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at top left, rgba(255,107,43,0.06) 0%, transparent 60%);
+      background: radial-gradient(ellipse at top left, rgba(255,107,43,0.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at bottom right, rgba(123,97,255,0.05) 0%, transparent 50%);
       pointer-events: none;
     }
 
+    .stat-box::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent, rgba(255,107,43,0.06), transparent, rgba(123,97,255,0.04), transparent);
+      animation: statGlow 8s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes statGlow {
+      to { transform: rotate(360deg); }
+    }
+
     .stat-box:hover {
-      border-color: rgba(255,107,43,0.3);
-      box-shadow: 0 8px 40px rgba(255,107,43,0.08);
-      transform: translateY(-4px);
+      border-color: rgba(255,107,43,0.35);
+      box-shadow: 0 16px 60px rgba(255,107,43,0.12), 0 0 30px rgba(255,107,43,0.04);
+      transform: translateY(-6px);
     }
 
     .stat-number-wrap {
@@ -3065,9 +3121,9 @@
 
   <hr class="section-divider">
   <!-- SERVICES (3D Tilt) -->
-  <section class="section" id="services">
+  <section class="section dot-grid-bg" id="services">
     <div class="container">
-      <h2 class="section-title reveal">How We Grow Your Business.</h2>
+      <h2 class="section-title reveal">How We <span class="gradient-text">Grow</span> Your Business.</h2>
       <p class="section-desc reveal" style="transition-delay: 0.1s;">We assess your operations, identify what's costing you time and money,
         and implement AI, automation, and SEO to drive real growth.</p>
 
@@ -3623,7 +3679,7 @@
   <section class="seo-demo-section" id="seo">
     <div class="container" style="text-align:center;margin-bottom:40px;">
       <div class="reveal" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">SEO & AI Search</div>
-      <h2 class="section-title reveal">If They Can't Find You,<br>They Can't Pay You.</h2>
+      <h2 class="section-title reveal">If They Can't <span class="gradient-text">Find</span> You,<br>They Can't <span class="gradient-text">Pay</span> You.</h2>
       <p class="section-desc reveal" style="margin-bottom:0;">75% of people never scroll past page 1. If your business isn't ranking, your competitors are getting the calls, the leads, and the revenue that should be yours.</p>
     </div>
 
@@ -4505,7 +4561,7 @@
   <section class="showcase-section" id="work">
     <div class="container" style="text-align:center;">
       <div class="build-eyebrow reveal">What We Deliver</div>
-      <h2 class="section-title reveal">Tools That Grow Your Business.</h2>
+      <h2 class="section-title reveal">Tools That <span class="gradient-text">Grow</span> Your Business.</h2>
       <p class="section-desc reveal" style="transition-delay:0.1s;">Custom-built systems tailored to your industry, your workflow, and your growth goals.</p>
     </div>
     <div class="build-outer">
@@ -5320,12 +5376,12 @@
     }
   </style>
   <hr class="section-divider">
-  <section class="hiw-section section" id="process">
+  <section class="hiw-section section dot-grid-bg" id="process">
     <div class="container">
       <div class="reveal" style="text-align:center;margin-bottom:12px;">
         <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;">How It Works</div>
       </div>
-      <h2 class="section-title reveal">The Methodology.</h2>
+      <h2 class="section-title reveal">The <span class="gradient-text">Methodology.</span></h2>
       <p class="section-desc reveal" style="text-align:center;margin:0 auto 0;">Three phases. Zero fluff. Real results.
       </p>
 
