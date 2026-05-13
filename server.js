@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const compression = require('compression');
 
 const app = express();
+app.set('trust proxy', 1);
 const port = process.env.PORT || 8080;
 
 function safeEqual(a, b) {
@@ -96,10 +97,20 @@ app.use(cors({
   }
 }));
 app.use(express.json({ limit: '1mb' }));
+
+app.use((req, res, next) => {
+  const blocked = ['/google-token.json', '/pending-leads.json', '/bookings.json', '/.env', '/BUSINESS_INFO.txt'];
+  if (blocked.includes(req.path)) return res.status(403).send('Forbidden');
+  next();
+});
 app.use(express.static(path.join(__dirname, '')));
 
 function escapeHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function sanitizeTg(str) {
+  return String(str || '').substring(0, 500);
 }
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
@@ -315,6 +326,7 @@ setInterval(() => {
 // Persisted to disk so server restarts don't lose leads mid-funnel
 const PENDING_LEADS_FILE = path.join(__dirname, 'pending-leads.json');
 const pendingLeads = new Map(); // convId -> { email, name, lastSeen, followedUp }
+const MAX_PENDING_LEADS = 5000;
 try {
   if (fs.existsSync(PENDING_LEADS_FILE)) {
     const saved = JSON.parse(fs.readFileSync(PENDING_LEADS_FILE, 'utf8'));
@@ -651,7 +663,7 @@ async function bookAppointment({ name, email, company, phone, slotStart, slotEnd
   );
   if (duplicate) {
     console.warn(`⚠️ Duplicate booking detected for ${email} at ${slotLabel} — skipping`);
-    sendTelegramAlert(`⚠️ DUPLICATE BOOKING BLOCKED\nClient: ${name} (${email})\nSlot: ${slotLabel}\nAlready booked at this time.`);
+    sendTelegramAlert(`⚠️ DUPLICATE BOOKING BLOCKED\nClient: ${sanitizeTg(name)} (${sanitizeTg(email)})\nSlot: ${slotLabel}\nAlready booked at this time.`);
     return;
   }
 
@@ -1307,7 +1319,7 @@ Industry: [their likely industry]
   sendWithResend(process.env.GMAIL_USER, `${urgencyEmoji} ${dealValueStr} | ${name}${company ? ` @ ${company}` : ''} — ${slotLabel}`, dannyHtml, `Danny notification email`);
 
   // ── Booking success Telegram alert ───────────────────────────────────────────
-  sendTelegramAlert(`✅ NEW BOOKING CONFIRMED\n\n👤 ${name}\n🏢 ${company || 'N/A'}\n📧 ${email}\n📞 ${phone || 'N/A'}\n📅 ${slotLabel}\n💰 Deal value: ${dealValueStr}\n\n🤖 Booked via ARIA`);
+  sendTelegramAlert(`✅ NEW BOOKING CONFIRMED\n\n👤 ${sanitizeTg(name)}\n🏢 ${sanitizeTg(company) || 'N/A'}\n📧 ${sanitizeTg(email)}\n📞 ${sanitizeTg(phone) || 'N/A'}\n📅 ${slotLabel}\n💰 Deal value: ${dealValueStr}\n\n🤖 Booked via ARIA`);
 
   // ── 24-Hour Follow-Up Email (disabled — client only gets one email) ──────────
   if (false) try {
@@ -1503,7 +1515,7 @@ app.get('/oauth/start', (req, res) => {
 app.get('/oauth/callback', async (req, res) => {
   try {
     const { tokens } = await oauth2Client.getToken(req.query.code);
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens), { mode: 0o600 });
     res.send('✅ Google Calendar connected!');
   } catch (e) {
     res.status(500).send('Auth failed');
@@ -1594,7 +1606,7 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Book endpoint error:', err.message);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Failed to complete booking. Please try again.' });
   }
 });
 
@@ -1635,14 +1647,14 @@ app.post('/api/contact', chatRateLimit, async (req, res) => {
   }
 
   if (!sent) {
-    sendTelegramAlert(`🚨 CONTACT FORM — Resend failed\nName: ${name}\nEmail: ${email}\nScope: ${scope}`);
+    sendTelegramAlert(`🚨 CONTACT FORM — Resend failed\nName: ${sanitizeTg(name)}\nEmail: ${sanitizeTg(email)}\nScope: ${sanitizeTg(scope)}`);
     return res.json({ success: false, error: 'Something went wrong sending your message. Please try again or email danny@neuralflowai.io directly.' });
   }
 
   res.json({ success: true });
 });
 
-app.post('/api/accept-proposal', async (req, res) => {
+app.post('/api/accept-proposal', chatRateLimit, async (req, res) => {
   const { name, businessName, email, phone, amount, fee, token } = req.body;
 
   const proposalSecret = process.env.PROPOSAL_SECRET;
@@ -1659,7 +1671,7 @@ app.post('/api/accept-proposal', async (req, res) => {
 
   try {
     // 1. Telegram Notification
-    sendTelegramAlert(`🎉 NEW CLIENT ACCEPTED\n\nBusiness: ${businessName}\nContact: ${name}\nEmail: ${email}\nPhone: ${phone || 'N/A'}\nDeposit: $${Number(amount) || 0}\nMonthly: $${Number(fee) || 0}/mo`);
+    sendTelegramAlert(`🎉 NEW CLIENT ACCEPTED\n\nBusiness: ${sanitizeTg(businessName)}\nContact: ${sanitizeTg(name)}\nEmail: ${sanitizeTg(email)}\nPhone: ${sanitizeTg(phone) || 'N/A'}\nDeposit: $${Number(amount) || 0}\nMonthly: $${Number(fee) || 0}/mo`);
 
     // Shared styles for Emails
     const emailStyles = `
@@ -2161,7 +2173,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         if (!existing.email) {
           sendTelegramAlert(`👀 ARIA LEAD\n${detectedEmail} is talking to ARIA right now`);
         }
-        if (pendingLeads.size >= 1000) { const oldest = [...pendingLeads.entries()].sort((a,b) => a[1].lastSeen - b[1].lastSeen)[0]; if (oldest) pendingLeads.delete(oldest[0]); }
+        if (pendingLeads.size >= MAX_PENDING_LEADS) { const oldest = [...pendingLeads.entries()].sort((a,b) => a[1].lastSeen - b[1].lastSeen)[0]; if (oldest) pendingLeads.delete(oldest[0]); }
         pendingLeads.set(convId, { ...existing, email: detectedEmail, lastSeen: Date.now(), followedUp: existing.followedUp || false });
         savePendingLeads();
       }
@@ -2733,6 +2745,9 @@ app.post('/api/roi-lead', chatRateLimit, (req, res) => {
   if (!name || !email || !phone) {
     return res.status(400).json({ error: 'Name, email, and phone are required.' });
   }
+  if (name.length > 200 || email.length > 254 || phone.length > 30 || (industry && industry.length > 100)) {
+    return res.status(400).json({ error: 'Input too long.' });
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Please enter a valid email address.' });
   }
@@ -2743,10 +2758,10 @@ app.post('/api/roi-lead', chatRateLimit, (req, res) => {
 
   sendTelegramAlert(
     `🧮 ROI CALCULATOR LEAD\n\n` +
-    `👤 ${name}\n` +
-    `📧 ${email}\n` +
-    `📞 ${phone}\n` +
-    `🏭 Industry: ${industryLabel}\n\n` +
+    `👤 ${sanitizeTg(name)}\n` +
+    `📧 ${sanitizeTg(email)}\n` +
+    `📞 ${sanitizeTg(phone)}\n` +
+    `🏭 Industry: ${sanitizeTg(industryLabel)}\n\n` +
     `💡 Starting analysis now...`
   );
 });
@@ -2758,6 +2773,12 @@ app.post('/api/seo-audit', chatRateLimit, (req, res) => {
   if (!website || !name || !email) {
     return res.status(400).json({ error: 'Website, name, and email are required.' });
   }
+  if (name.length > 200 || email.length > 254 || website.length > 2000 || (phone && phone.length > 30)) {
+    return res.status(400).json({ error: 'Input too long.' });
+  }
+  if (!/^https?:\/\/[^\s]+$/.test(website)) {
+    return res.status(400).json({ error: 'Please enter a valid website URL.' });
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Please enter a valid email address.' });
   }
@@ -2766,10 +2787,10 @@ app.post('/api/seo-audit', chatRateLimit, (req, res) => {
 
   sendTelegramAlert(
     `🔍 SEO AUDIT REQUEST\n\n` +
-    `👤 ${name}\n` +
-    `📧 ${email}\n` +
-    `📞 ${phone || 'N/A'}\n` +
-    `🌐 ${website}\n\n` +
+    `👤 ${sanitizeTg(name)}\n` +
+    `📧 ${sanitizeTg(email)}\n` +
+    `📞 ${sanitizeTg(phone) || 'N/A'}\n` +
+    `🌐 ${sanitizeTg(website)}\n\n` +
     `📊 Free SEO audit requested from website`
   );
 
@@ -2802,26 +2823,27 @@ app.post('/api/seo-audit', chatRateLimit, (req, res) => {
 // ─── ROI Calculator Tracking ──────────────────────────────────────────────────
 app.post('/api/track', chatRateLimit, (req, res) => {
   const { event, data } = req.body || {};
-  res.json({ ok: true }); // always respond fast
+  if (typeof event !== 'string' || event.length > 100) return res.status(400).json({ error: 'Invalid event.' });
+  res.json({ ok: true });
 
   if (event === 'roi_calculated') {
     const { taskName, netOngoing, breakeven, autoPercent, industry, leadName, leadEmail, leadPhone } = data || {};
-    const industryLabel = industry && industry !== 'general' ? industry.replace(/_/g, ' ') : 'General';
+    const industryLabel = industry && industry !== 'general' ? String(industry).replace(/_/g, ' ') : 'General';
     sendTelegramAlert(
       `🧮 NEW ROI LEAD\n\n` +
-      `👤 ${leadName || 'Unknown'}\n` +
-      `📧 ${leadEmail || 'N/A'}\n` +
-      `📞 ${leadPhone || 'N/A'}\n` +
-      `🏭 Industry: ${industryLabel}\n\n` +
-      `📊 Workflow: "${taskName}"\n` +
-      `💰 Net savings: $${Math.round(netOngoing || 0).toLocaleString()}/yr\n` +
-      `⏱ Breakeven: ${breakeven < 999 ? breakeven + ' months' : 'N/A'}\n` +
-      `🤖 Automatable: ${autoPercent}%\n\n` +
+      `👤 ${sanitizeTg(leadName) || 'Unknown'}\n` +
+      `📧 ${sanitizeTg(leadEmail) || 'N/A'}\n` +
+      `📞 ${sanitizeTg(leadPhone) || 'N/A'}\n` +
+      `🏭 Industry: ${sanitizeTg(industryLabel)}\n\n` +
+      `📊 Workflow: "${sanitizeTg(taskName)}"\n` +
+      `💰 Net savings: $${Math.round(Number(netOngoing) || 0).toLocaleString()}/yr\n` +
+      `⏱ Breakeven: ${Number(breakeven) < 999 ? Number(breakeven) + ' months' : 'N/A'}\n` +
+      `🤖 Automatable: ${Number(autoPercent) || 0}%\n\n` +
       `💡 Reply to schedule a consultation`
     );
   } else if (event === 'aria_handoff') {
     const { taskName, netOngoing } = data || {};
-    sendTelegramAlert(`🔥 TALK TO ARIA CLICKED\n\nFrom ROI calc — "${taskName}"\nNet savings: $${Math.round(netOngoing || 0).toLocaleString()}/yr\nARIA is opening now...`);
+    sendTelegramAlert(`🔥 TALK TO ARIA CLICKED\n\nFrom ROI calc — "${sanitizeTg(taskName)}"\nNet savings: $${Math.round(Number(netOngoing) || 0).toLocaleString()}/yr\nARIA is opening now...`);
   }
 });
 
