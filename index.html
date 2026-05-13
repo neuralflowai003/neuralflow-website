@@ -433,6 +433,23 @@
       line-height: 1;
       margin-bottom: 2rem;
       text-align: center;
+      position: relative;
+      display: inline-block;
+      width: 100%;
+    }
+    .section-title::after {
+      content: '';
+      display: block;
+      width: 0;
+      height: 3px;
+      margin: 16px auto 0;
+      background: linear-gradient(90deg, #FF6B2B, #7B61FF);
+      border-radius: 2px;
+      transition: width 0.8s ease;
+    }
+    .section-title.visible::after,
+    .visible .section-title::after {
+      width: 80px;
     }
 
     .section-desc {
@@ -446,6 +463,14 @@
       margin-right: auto;
     }
 
+    .section-divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,107,43,0.15) 30%, rgba(123,97,255,0.15) 70%, transparent 100%);
+      border: none;
+      margin: 0;
+    }
+
     /* Reveal Animation Base */
     .reveal {
       opacity: 0;
@@ -457,6 +482,24 @@
       opacity: 1;
       transform: translateY(0);
     }
+
+    /* Stagger children inside reveal-stagger containers */
+    .reveal-stagger > * {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .reveal-stagger.visible > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-stagger.visible > *:nth-child(1) { transition-delay: 0s; }
+    .reveal-stagger.visible > *:nth-child(2) { transition-delay: 0.08s; }
+    .reveal-stagger.visible > *:nth-child(3) { transition-delay: 0.16s; }
+    .reveal-stagger.visible > *:nth-child(4) { transition-delay: 0.24s; }
+    .reveal-stagger.visible > *:nth-child(5) { transition-delay: 0.32s; }
+    .reveal-stagger.visible > *:nth-child(6) { transition-delay: 0.40s; }
+    .reveal-stagger.visible > *:nth-child(7) { transition-delay: 0.48s; }
 
     .reveal-slide-right {
       opacity: 0;
@@ -510,6 +553,25 @@
     .btn-solid {
       background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
       color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-solid::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      animation: btnShimmer 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes btnShimmer {
+      0%, 100% { left: -100%; }
+      50% { left: 150%; }
     }
 
     .btn-solid:hover {
@@ -994,7 +1056,7 @@
       border: 1px solid var(--border);
       position: relative;
       transform-style: preserve-3d;
-      transition: border-color var(--transition-fast);
+      transition: border-color var(--transition-fast), transform 0.3s ease, box-shadow 0.3s ease;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -1041,6 +1103,8 @@
     .tilt-card:hover {
       border-color: transparent;
       background: #0c0c14;
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(255,107,43,0.06), 0 4px 16px rgba(123,97,255,0.04);
     }
 
     /* Inner content parallax */
@@ -1268,7 +1332,7 @@
       border: 1px solid rgba(255,107,43,0.1);
       border-radius: 20px;
       padding: 40px 32px;
-      transition: border-color 0.3s, box-shadow 0.3s;
+      transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s ease;
       position: relative;
       overflow: hidden;
     }
@@ -1284,6 +1348,7 @@
     .stat-box:hover {
       border-color: rgba(255,107,43,0.3);
       box-shadow: 0 8px 40px rgba(255,107,43,0.08);
+      transform: translateY(-4px);
     }
 
     .stat-number-wrap {
@@ -2998,6 +3063,7 @@
     </div>
   </section>
 
+  <hr class="section-divider">
   <!-- SERVICES (3D Tilt) -->
   <section class="section" id="services">
     <div class="container">
@@ -3005,10 +3071,10 @@
       <p class="section-desc reveal" style="transition-delay: 0.1s;">We assess your operations, identify what's costing you time and money,
         and implement AI, automation, and SEO to drive real growth.</p>
 
-      <div class="services-grid">
+      <div class="services-grid reveal reveal-stagger">
 
         <!-- AI Consulting -->
-        <div class="tilt-card reveal trigger-hover" data-tilt>
+        <div class="tilt-card trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-consulting">
@@ -3027,7 +3093,7 @@
         </div>
 
         <!-- Workflow Automation -->
-        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.1s;" data-tilt>
+        <div class="tilt-card trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-workflow">
@@ -3045,7 +3111,7 @@
         </div>
 
         <!-- Custom App Dev -->
-        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.2s;" data-tilt>
+        <div class="tilt-card trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-code">
@@ -3061,7 +3127,7 @@
         </div>
 
         <!-- Software Integration -->
-        <div class="tilt-card reveal trigger-hover" data-tilt>
+        <div class="tilt-card trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-integration">
@@ -3081,7 +3147,7 @@
         </div>
 
         <!-- AI Receptionists -->
-        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.1s;" data-tilt>
+        <div class="tilt-card trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-chat">
@@ -3097,7 +3163,7 @@
         </div>
 
         <!-- Process Optimization -->
-        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.2s;" data-tilt>
+        <div class="tilt-card trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-bars">
@@ -3121,7 +3187,7 @@
         </div>
 
         <!-- SEO & AI Search Optimization -->
-        <div class="tilt-card reveal trigger-hover" data-tilt>
+        <div class="tilt-card trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-seo">
@@ -5253,6 +5319,7 @@
       100% { transform: scaleY(1) }
     }
   </style>
+  <hr class="section-divider">
   <section class="hiw-section section" id="process">
     <div class="container">
       <div class="reveal" style="text-align:center;margin-bottom:12px;">
@@ -5849,6 +5916,7 @@
     </div>
   </section>
 
+  <hr class="section-divider">
   <!-- ABOUT -->
   <section class="about-section section" id="about">
     <div class="container">
@@ -6376,28 +6444,26 @@
             entry.target.dataset.counted = true;
             const numEl = entry.target.querySelector('.stat-number');
             const target = parseInt(numEl.getAttribute('data-target'));
-            let current = 0;
-            const steps = 40;
-            const inc = target / steps;
+            const duration = 1600;
+            const start = performance.now();
 
             const barId = numEl.id.replace('s', 'sb');
             document.getElementById(barId).style.width = '100%';
 
-            const timer = setInterval(() => {
-              current += inc;
-              if (current >= target) {
-                numEl.innerText = target;
-                clearInterval(timer);
-              } else {
-                numEl.innerText = Math.floor(current);
-              }
-            }, 40);
+            function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+            function tick(now) {
+              const t = Math.min((now - start) / duration, 1);
+              numEl.innerText = Math.floor(easeOutQuart(t) * target);
+              if (t < 1) requestAnimationFrame(tick);
+              else numEl.innerText = target;
+            }
+            requestAnimationFrame(tick);
           }
         }
       });
     }, { threshold: 0.15 });
 
-    document.querySelectorAll('.reveal, .reveal-slide-right, .stat-box').forEach(el => observer.observe(el));
+    document.querySelectorAll('.reveal, .reveal-slide-right, .reveal-stagger, .stat-box').forEach(el => observer.observe(el));
 
     // Set Year
     document.getElementById('year').innerText = new Date().getFullYear();
