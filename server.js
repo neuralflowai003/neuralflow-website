@@ -15,9 +15,6 @@ const compression = require('compression');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Trust Railway's reverse proxy so req.ip + x-forwarded-for are reliable and not spoofable
-app.set('trust proxy', 1);
-
 function safeEqual(a, b) {
   if (!a || !b) return false;
   const ba = Buffer.from(a); const bb = Buffer.from(b);
@@ -269,7 +266,7 @@ setInterval(() => {
 
 const MAX_RATE_LIMIT_ENTRIES = 5000;
 function chatRateLimit(req, res, next) {
-  const ip = req.ip || (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
   const now = Date.now();
   const windowMs = 60 * 1000;
   const maxRequests = 30;
@@ -353,18 +350,11 @@ function flushBookingQueue() {
 }
 
 // ─── Telegram Alert Helper ────────────────────────────────────────────────────
-// Collapse runs of newlines from user input so a malicious field can't inject
-// fake "fields" into the alert. We keep single newlines (alerts use them as separators)
-// but cap total length to avoid blown-up messages.
-function sanitizeTelegramText(msg) {
-  if (typeof msg !== 'string') msg = String(msg);
-  return msg.replace(/\n{3,}/g, '\n\n').slice(0, 3500);
-}
 function sendTelegramAlert(msg, attempt = 0) {
   const tgToken = process.env.TELEGRAM_BOT_TOKEN;
   const tgChat = process.env.TELEGRAM_CHAT_ID;
   if (!tgToken || !tgChat) { console.error('⚠️ Telegram not configured — alert dropped:', msg); return; }
-  const payload = JSON.stringify({ chat_id: tgChat, text: sanitizeTelegramText(msg) });
+  const payload = JSON.stringify({ chat_id: tgChat, text: msg });
   const req = https.request(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
   }, (res) => {
@@ -1513,7 +1503,7 @@ app.get('/oauth/start', (req, res) => {
 app.get('/oauth/callback', async (req, res) => {
   try {
     const { tokens } = await oauth2Client.getToken(req.query.code);
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens), { mode: 0o600 });
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
     res.send('✅ Google Calendar connected!');
   } catch (e) {
     res.status(500).send('Auth failed');
@@ -1547,13 +1537,10 @@ app.get('/api/test-booking-email', async (req, res) => {
   if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
   const slotStart = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
   const slotEnd   = new Date(Date.now() + 49 * 60 * 60 * 1000).toISOString();
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000);
   try {
     const r = await fetch(`http://localhost:${process.env.PORT || 3000}/api/book`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
       body: JSON.stringify({
         name: 'Test Client',
         email: process.env.GMAIL_USER,
@@ -1579,9 +1566,7 @@ app.get('/api/test-booking-email', async (req, res) => {
     let data; try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 200) }; }
     res.json({ triggered: true, book_result: data });
   } catch (e) {
-    res.json({ triggered: false, error: e.name === 'AbortError' ? 'timeout' : e.message });
-  } finally {
-    clearTimeout(timeoutId);
+    res.json({ triggered: false, error: e.message });
   }
 });
 
@@ -1591,7 +1576,7 @@ app.get('/api/availability', chatRateLimit, async (req, res) => {
 
 app.post('/api/book', chatRateLimit, async (req, res) => {
   const { name, email, slotStart, slotEnd, slotLabel, company, phone, notes } = req.body;
-  if (!name || !email || !slotStart || typeof name !== 'string' || typeof email !== 'string' || typeof slotStart !== 'string') {
+  if (!name || !email || !slotStart) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -1609,14 +1594,14 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Book endpoint error:', err.message);
-    res.status(500).json({ success: false, error: 'Something went wrong booking your appointment. Please try again.' });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 app.post('/api/contact', chatRateLimit, async (req, res) => {
   const { name, email, scope } = req.body;
 
-  if (!name || !email || !scope || typeof name !== 'string' || typeof email !== 'string' || typeof scope !== 'string') {
+  if (!name || !email || !scope) {
     return res.json({ success: false, error: 'Please fill in all fields.' });
   }
   if (name.length > 200 || scope.length > 2000 || email.length > 254) {
@@ -2745,7 +2730,7 @@ setInterval(async () => { try {
 app.post('/api/roi-lead', chatRateLimit, (req, res) => {
   const { name, email, phone, roi, industry } = req.body || {};
 
-  if (!name || !email || !phone || typeof name !== 'string' || typeof email !== 'string' || typeof phone !== 'string') {
+  if (!name || !email || !phone) {
     return res.status(400).json({ error: 'Name, email, and phone are required.' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -2770,7 +2755,7 @@ app.post('/api/roi-lead', chatRateLimit, (req, res) => {
 app.post('/api/seo-audit', chatRateLimit, (req, res) => {
   const { website, name, email, phone } = req.body || {};
 
-  if (!website || !name || !email || typeof website !== 'string' || typeof name !== 'string' || typeof email !== 'string') {
+  if (!website || !name || !email) {
     return res.status(400).json({ error: 'Website, name, and email are required.' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

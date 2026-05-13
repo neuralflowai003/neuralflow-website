@@ -433,32 +433,6 @@
       line-height: 1;
       margin-bottom: 2rem;
       text-align: center;
-      position: relative;
-      display: inline-block;
-      width: 100%;
-    }
-    .section-title::after {
-      content: '';
-      display: block;
-      width: 0;
-      height: 3px;
-      margin: 20px auto 0;
-      background: linear-gradient(90deg, #FF6B2B, #7B61FF);
-      border-radius: 2px;
-      transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .section-title.visible::after,
-    .visible .section-title::after {
-      width: 120px;
-    }
-
-    .gradient-text {
-      background: linear-gradient(135deg, #FF6B2B, #FFA07A, #7B61FF);
-      background-size: 200% 200%;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 4s ease infinite;
     }
 
     .section-desc {
@@ -472,34 +446,6 @@
       margin-right: auto;
     }
 
-    /* Dot grid overlay for premium depth */
-    .dot-grid-bg {
-      position: relative;
-    }
-    .dot-grid-bg::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(rgba(255,107,43,0.07) 1px, transparent 1px);
-      background-size: 32px 32px;
-      mask-image: radial-gradient(ellipse 70% 50% at 50% 50%, black 20%, transparent 70%);
-      -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 50%, black 20%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-    .dot-grid-bg > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    .section-divider {
-      width: 100%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent 0%, rgba(255,107,43,0.15) 30%, rgba(123,97,255,0.15) 70%, transparent 100%);
-      border: none;
-      margin: 0;
-    }
-
     /* Reveal Animation Base */
     .reveal {
       opacity: 0;
@@ -511,24 +457,6 @@
       opacity: 1;
       transform: translateY(0);
     }
-
-    /* Stagger children inside reveal-stagger containers */
-    .reveal-stagger > * {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .reveal-stagger.visible > * {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .reveal-stagger.visible > *:nth-child(1) { transition-delay: 0s; }
-    .reveal-stagger.visible > *:nth-child(2) { transition-delay: 0.08s; }
-    .reveal-stagger.visible > *:nth-child(3) { transition-delay: 0.16s; }
-    .reveal-stagger.visible > *:nth-child(4) { transition-delay: 0.24s; }
-    .reveal-stagger.visible > *:nth-child(5) { transition-delay: 0.32s; }
-    .reveal-stagger.visible > *:nth-child(6) { transition-delay: 0.40s; }
-    .reveal-stagger.visible > *:nth-child(7) { transition-delay: 0.48s; }
 
     .reveal-slide-right {
       opacity: 0;
@@ -582,25 +510,6 @@
     .btn-solid {
       background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
       color: #fff;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .btn-solid::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 60%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-      animation: btnShimmer 3s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    @keyframes btnShimmer {
-      0%, 100% { left: -100%; }
-      50% { left: 150%; }
     }
 
     .btn-solid:hover {
@@ -614,16 +523,13 @@
     .btn-ghost {
       background: transparent;
       color: var(--text);
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid var(--border);
       backdrop-filter: blur(10px);
-      box-shadow: 0 0 20px rgba(255,255,255,0.02);
-      transition: border-color 0.3s, box-shadow 0.3s, color 0.3s;
     }
 
     .btn-ghost:hover {
       color: #000;
       border-color: #fff;
-      box-shadow: 0 0 30px rgba(255,255,255,0.08);
     }
 
     .btn-ghost::before {
@@ -884,16 +790,15 @@
       align-items: center;
       gap: 12px;
       padding: 10px 20px;
-      border: 1px solid rgba(255,107,43,0.15);
+      border: 1px solid var(--border);
       border-radius: 100px;
-      background: rgba(255, 107, 43, 0.04);
+      background: rgba(255, 255, 255, 0.03);
       backdrop-filter: blur(10px);
       font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 2px;
       margin-bottom: 40px;
       font-weight: 500;
-      box-shadow: 0 0 30px rgba(255,107,43,0.06), 0 0 60px rgba(255,107,43,0.03);
     }
 
     .badge-dot {
@@ -985,18 +890,10 @@
       display: block;
       overflow: hidden;
       padding-right: 10px;
-      background: linear-gradient(90deg, #FF6B2B, #FFA07A, #7B61FF, #FF6B2B);
-      background-size: 300% 100%;
+      background: linear-gradient(90deg, var(--accent) 0%, #FFA07A 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      animation: gradientShift 4s ease infinite;
-    }
-
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
     }
 
     .char {
@@ -1094,17 +991,17 @@
       background: var(--bg-alt);
       padding: 28px 28px 32px;
       border-radius: 16px;
-      border: 1px solid rgba(255,107,43,0.08);
+      border: 1px solid var(--border);
       position: relative;
       transform-style: preserve-3d;
-      transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+      transition: border-color var(--transition-fast);
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       overflow: visible;
     }
 
-    /* Always-on animated gradient border */
+    /* Glowing Animated Border */
     .tilt-card::before {
       content: '';
       position: absolute;
@@ -1112,16 +1009,15 @@
       left: 0;
       right: 0;
       bottom: 0;
-      border-radius: 16px;
-      padding: 1px;
-      background: linear-gradient(45deg, rgba(255,107,43,0.3), transparent 40%, transparent 60%, rgba(123,97,255,0.3));
+      border-radius: 12px;
+      padding: 2px;
+      background: linear-gradient(45deg, transparent, transparent, var(--accent), transparent, transparent);
       background-size: 400% 400%;
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
       mask-composite: exclude;
-      opacity: 0.5;
-      animation: borderGlow 6s linear infinite;
+      opacity: 0;
       transition: opacity 0.4s;
       z-index: 1;
       pointer-events: none;
@@ -1129,19 +1025,22 @@
 
     .tilt-card:hover::before {
       opacity: 1;
-      animation-duration: 2s;
+      animation: borderGlow 3s linear infinite;
     }
 
     @keyframes borderGlow {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 100% 50%; }
+      0% {
+        background-position: 0% 50%;
+      }
+
+      100% {
+        background-position: 100% 50%;
+      }
     }
 
     .tilt-card:hover {
       border-color: transparent;
       background: #0c0c14;
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 20px 60px rgba(255,107,43,0.1), 0 8px 24px rgba(123,97,255,0.06), 0 0 40px rgba(255,107,43,0.04);
     }
 
     /* Inner content parallax */
@@ -1365,13 +1264,11 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
-      background: rgba(255,107,43,0.03);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255,107,43,0.12);
+      background: rgba(255,107,43,0.04);
+      border: 1px solid rgba(255,107,43,0.1);
       border-radius: 20px;
       padding: 40px 32px;
-      transition: border-color 0.4s, box-shadow 0.4s, transform 0.4s ease;
+      transition: border-color 0.3s, box-shadow 0.3s;
       position: relative;
       overflow: hidden;
     }
@@ -1380,31 +1277,13 @@
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse at top left, rgba(255,107,43,0.08) 0%, transparent 50%),
-                  radial-gradient(ellipse at bottom right, rgba(123,97,255,0.05) 0%, transparent 50%);
+      background: radial-gradient(ellipse at top left, rgba(255,107,43,0.06) 0%, transparent 60%);
       pointer-events: none;
-    }
-
-    .stat-box::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: conic-gradient(from 0deg, transparent, rgba(255,107,43,0.06), transparent, rgba(123,97,255,0.04), transparent);
-      animation: statGlow 8s linear infinite;
-      pointer-events: none;
-    }
-
-    @keyframes statGlow {
-      to { transform: rotate(360deg); }
     }
 
     .stat-box:hover {
-      border-color: rgba(255,107,43,0.35);
-      box-shadow: 0 16px 60px rgba(255,107,43,0.12), 0 0 30px rgba(255,107,43,0.04);
-      transform: translateY(-6px);
+      border-color: rgba(255,107,43,0.3);
+      box-shadow: 0 8px 40px rgba(255,107,43,0.08);
     }
 
     .stat-number-wrap {
@@ -2713,7 +2592,7 @@
 
 <body data-cursor="default">
 
-<a href="#main-content" class="skip-link">Skip to main content</a>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
   <!-- Custom cursor glow -->
   <div id="cursor-glow" aria-hidden="true"></div>
@@ -3119,18 +2998,17 @@
     </div>
   </section>
 
-  <hr class="section-divider">
   <!-- SERVICES (3D Tilt) -->
-  <section class="section dot-grid-bg" id="services">
+  <section class="section" id="services">
     <div class="container">
-      <h2 class="section-title reveal">How We <span class="gradient-text">Grow</span> Your Business.</h2>
+      <h2 class="section-title reveal">How We Grow Your Business.</h2>
       <p class="section-desc reveal" style="transition-delay: 0.1s;">We assess your operations, identify what's costing you time and money,
         and implement AI, automation, and SEO to drive real growth.</p>
 
-      <div class="services-grid reveal reveal-stagger">
+      <div class="services-grid">
 
         <!-- AI Consulting -->
-        <div class="tilt-card trigger-hover" data-tilt>
+        <div class="tilt-card reveal trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-consulting">
@@ -3149,7 +3027,7 @@
         </div>
 
         <!-- Workflow Automation -->
-        <div class="tilt-card trigger-hover" data-tilt>
+        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.1s;" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-workflow">
@@ -3167,7 +3045,7 @@
         </div>
 
         <!-- Custom App Dev -->
-        <div class="tilt-card trigger-hover" data-tilt>
+        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.2s;" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-code">
@@ -3183,7 +3061,7 @@
         </div>
 
         <!-- Software Integration -->
-        <div class="tilt-card trigger-hover" data-tilt>
+        <div class="tilt-card reveal trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-integration">
@@ -3203,7 +3081,7 @@
         </div>
 
         <!-- AI Receptionists -->
-        <div class="tilt-card trigger-hover" data-tilt>
+        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.1s;" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-chat">
@@ -3219,7 +3097,7 @@
         </div>
 
         <!-- Process Optimization -->
-        <div class="tilt-card trigger-hover" data-tilt>
+        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.2s;" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-bars">
@@ -3243,7 +3121,7 @@
         </div>
 
         <!-- SEO & AI Search Optimization -->
-        <div class="tilt-card trigger-hover" data-tilt>
+        <div class="tilt-card reveal trigger-hover" data-tilt>
           <div class="card-inner">
             <div class="card-viz">
               <div class="viz-seo">
@@ -3679,7 +3557,7 @@
   <section class="seo-demo-section" id="seo">
     <div class="container" style="text-align:center;margin-bottom:40px;">
       <div class="reveal" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">SEO & AI Search</div>
-      <h2 class="section-title reveal">If They Can't <span class="gradient-text">Find</span> You,<br>They Can't <span class="gradient-text">Pay</span> You.</h2>
+      <h2 class="section-title reveal">If They Can't Find You,<br>They Can't Pay You.</h2>
       <p class="section-desc reveal" style="margin-bottom:0;">75% of people never scroll past page 1. If your business isn't ranking, your competitors are getting the calls, the leads, and the revenue that should be yours.</p>
     </div>
 
@@ -4561,7 +4439,7 @@
   <section class="showcase-section" id="work">
     <div class="container" style="text-align:center;">
       <div class="build-eyebrow reveal">What We Deliver</div>
-      <h2 class="section-title reveal">Tools That <span class="gradient-text">Grow</span> Your Business.</h2>
+      <h2 class="section-title reveal">Tools That Grow Your Business.</h2>
       <p class="section-desc reveal" style="transition-delay:0.1s;">Custom-built systems tailored to your industry, your workflow, and your growth goals.</p>
     </div>
     <div class="build-outer">
@@ -5375,13 +5253,12 @@
       100% { transform: scaleY(1) }
     }
   </style>
-  <hr class="section-divider">
-  <section class="hiw-section section dot-grid-bg" id="process">
+  <section class="hiw-section section" id="process">
     <div class="container">
       <div class="reveal" style="text-align:center;margin-bottom:12px;">
         <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;">How It Works</div>
       </div>
-      <h2 class="section-title reveal">The <span class="gradient-text">Methodology.</span></h2>
+      <h2 class="section-title reveal">The Methodology.</h2>
       <p class="section-desc reveal" style="text-align:center;margin:0 auto 0;">Three phases. Zero fluff. Real results.
       </p>
 
@@ -5972,7 +5849,6 @@
     </div>
   </section>
 
-  <hr class="section-divider">
   <!-- ABOUT -->
   <section class="about-section section" id="about">
     <div class="container">
@@ -6059,10 +5935,9 @@
           async function submitContactForm(e) {
             e.preventDefault();
             const btn = document.getElementById('contactSubmitBtn');
-            const name = document.getElementById('n_name').value.trim();
-            const email = document.getElementById('n_email').value.trim();
-            const scope = document.getElementById('n_scope').value.trim();
-            if (!name || !email || !scope) return;
+            const name = document.getElementById('n_name').value;
+            const email = document.getElementById('n_email').value;
+            const scope = document.getElementById('n_scope').value;
             btn.textContent = 'Sending...';
             btn.disabled = true;
             btn.setAttribute('aria-busy', 'true');
@@ -6072,7 +5947,6 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, scope })
               });
-              if (!res.ok) throw new Error('Server error');
               const data = await res.json();
               if (res.ok && data.success !== false) {
                 document.getElementById('contactSuccess').style.display = 'block';
@@ -6500,26 +6374,28 @@
             entry.target.dataset.counted = true;
             const numEl = entry.target.querySelector('.stat-number');
             const target = parseInt(numEl.getAttribute('data-target'));
-            const duration = 1600;
-            const start = performance.now();
+            let current = 0;
+            const steps = 40;
+            const inc = target / steps;
 
             const barId = numEl.id.replace('s', 'sb');
             document.getElementById(barId).style.width = '100%';
 
-            function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
-            function tick(now) {
-              const t = Math.min((now - start) / duration, 1);
-              numEl.innerText = Math.floor(easeOutQuart(t) * target);
-              if (t < 1) requestAnimationFrame(tick);
-              else numEl.innerText = target;
-            }
-            requestAnimationFrame(tick);
+            const timer = setInterval(() => {
+              current += inc;
+              if (current >= target) {
+                numEl.innerText = target;
+                clearInterval(timer);
+              } else {
+                numEl.innerText = Math.floor(current);
+              }
+            }, 40);
           }
         }
       });
     }, { threshold: 0.15 });
 
-    document.querySelectorAll('.reveal, .reveal-slide-right, .reveal-stagger, .stat-box').forEach(el => observer.observe(el));
+    document.querySelectorAll('.reveal, .reveal-slide-right, .stat-box').forEach(el => observer.observe(el));
 
     // Set Year
     document.getElementById('year').innerText = new Date().getFullYear();
