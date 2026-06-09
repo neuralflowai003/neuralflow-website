@@ -106,18 +106,25 @@ Danny receives Telegram alerts for:
 
 | Route | Method | Purpose |
 |-------|--------|---------|
+| `/` | GET | Serves index.html (main site) |
+| `/accept` | GET | Serves accept.html (proposal acceptance page) |
+| `/booked` | GET | Serves booked.html (post-booking confirmation) |
+| `/health` | GET | Health check endpoint (returns JSON status) |
 | `/api/chat` | POST | ARIA conversation (rate limited) |
 | `/api/book` | POST | Book appointment |
 | `/api/availability` | GET | Get available calendar slots |
 | `/api/contact` | POST | Contact form |
 | `/api/accept-proposal` | POST | Client proposal acceptance (requires PROPOSAL_SECRET token) |
 | `/api/roi-lead` | POST | ROI calculator lead capture |
+| `/api/seo-audit` | POST | SEO audit lead capture + confirmation email |
 | `/api/track` | POST | ROI calculator event tracking |
 | `/api/test` | GET | Full system health check (requires password) |
 | `/api/test-email` | GET | Test Resend email (requires password) |
+| `/api/test-booking-email` | GET | Test booking email templates (requires password) |
 | `/oauth/start` | GET | Google Calendar OAuth (requires password) |
 | `/oauth/callback` | GET | Google OAuth callback |
 | `/bookings` | GET | Bookings dashboard (requires password) |
+| `/telegram-webhook` | POST | Telegram bot commands (/test, /bookings, /leads, /help) |
 | `/robots.txt` | GET | SEO robots file |
 | `/sitemap.xml` | GET | SEO sitemap |
 
