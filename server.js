@@ -24,7 +24,7 @@ function safeEqual(a, b) {
 }
 
 // ─── Startup: Validate required env vars ──────────────────────────────────────
-const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'RESEND_API_KEY', 'GMAIL_USER', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', 'BOOKINGS_PASSWORD'];
+const REQUIRED_ENV = ['ANTHROPIC_API_KEY', 'RESEND_API_KEY', 'GMAIL_USER', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID', 'BOOKINGS_PASSWORD', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'PROPOSAL_SECRET'];
 const missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missingEnv.length > 0) {
   console.error(`❌ FATAL: Missing required environment variables: ${missingEnv.join(', ')}`);
