@@ -1550,7 +1550,7 @@ app.get('/api/test-booking-email', async (req, res) => {
   const slotStart = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
   const slotEnd   = new Date(Date.now() + 49 * 60 * 60 * 1000).toISOString();
   try {
-    const r = await fetch(`http://localhost:${process.env.PORT || 3000}/api/book`, {
+    const r = await fetch(`http://localhost:${port}/api/book`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
