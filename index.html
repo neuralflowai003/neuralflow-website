@@ -7826,36 +7826,6 @@
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reducedMotion) return;
 
-    // ── TEXT SCRAMBLE DECODE ON SECTION TITLES ──
-    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789#$%&';
-    document.querySelectorAll('.section-title').forEach(function(el) {
-      if (el.childElementCount > 0) return;
-      var original = el.textContent;
-      var done = false;
-      var obs = new IntersectionObserver(function(entries) {
-        entries.forEach(function(entry) {
-          if (entry.isIntersecting && !done) {
-            done = true;
-            obs.unobserve(el);
-            setTimeout(function() {
-              var iter = 0;
-              var total = Math.floor(original.length * 2.5);
-              var iv = setInterval(function() {
-                el.textContent = original.split('').map(function(c, i) {
-                  if (!/[a-zA-Z0-9]/.test(c)) return c;
-                  if (i < iter / 2.5) return original[i];
-                  return chars[Math.floor(Math.random() * chars.length)];
-                }).join('');
-                iter++;
-                if (iter >= total) { el.textContent = original; clearInterval(iv); }
-              }, 25);
-            }, 350);
-          }
-        });
-      }, { threshold: 0.2 });
-      obs.observe(el);
-    });
-
     // ── HERO PARALLAX DEPTH ──
     if (window.innerWidth >= 768) {
       var hc = document.querySelector('.hero-content');
