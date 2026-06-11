@@ -5978,6 +5978,136 @@
     </div>
   </section>
 
+  <!-- FREE CALL CTA BAND -->
+  <style>
+    .cta-band-section {
+      padding: 110px 24px;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-band {
+      max-width: 980px;
+      margin: 0 auto;
+      position: relative;
+      text-align: center;
+      padding: 72px 48px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(255,107,43,0.07) 0%, rgba(123,97,255,0.06) 100%);
+      border: 1px solid rgba(255,107,43,0.22);
+      box-shadow: 0 30px 90px rgba(0,0,0,0.45), inset 0 0 120px rgba(255,107,43,0.03);
+      overflow: hidden;
+    }
+    .cta-band::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #FF6B2B, #7B61FF, transparent);
+    }
+    .cta-band-glow {
+      position: absolute;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,107,43,0.12) 0%, transparent 70%);
+      top: -240px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      filter: blur(40px);
+    }
+    .cta-band-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      background: rgba(255,107,43,0.1);
+      border: 1px solid rgba(255,107,43,0.3);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #FF6B2B;
+      margin-bottom: 28px;
+    }
+    .cta-band-eyebrow::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #00E676;
+      box-shadow: 0 0 8px rgba(0,230,118,0.8);
+      animation: pulseGreen 2s infinite;
+    }
+    .cta-band h2 {
+      font-size: clamp(2rem, 4.5vw, 3.6rem);
+      font-weight: 700;
+      letter-spacing: -2px;
+      line-height: 1.08;
+      margin-bottom: 22px;
+    }
+    .cta-band h2 .cta-grad {
+      background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .cta-band p {
+      font-size: 1.15rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 620px;
+      margin: 0 auto 40px;
+    }
+    .cta-band p strong { color: #fff; font-weight: 600; }
+    .cta-band-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+    .cta-band-trust {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+    }
+    .cta-band-trust span { display: flex; align-items: center; gap: 6px; }
+    @media (max-width: 768px) {
+      .cta-band-section { padding: 70px 16px; }
+      .cta-band { padding: 52px 24px; }
+      .cta-band-actions .btn { width: 100%; max-width: 320px; justify-content: center; }
+    }
+  </style>
+  <section class="cta-band-section" id="free-call">
+    <div class="container">
+      <div class="cta-band reveal">
+        <div class="cta-band-glow" aria-hidden="true"></div>
+        <div class="cta-band-eyebrow">Free Strategy Call &middot; No Strings</div>
+        <h2>Not sure where AI fits your business?<br><span class="cta-grad">Let's find out — free.</span></h2>
+        <p>Book a <strong>free 15-minute call</strong>. We'll look at how you operate, pinpoint exactly where you're
+          losing time and money, and map out what AI can fix — <strong>whether you hire us or not</strong>.</p>
+        <div class="cta-band-actions">
+          <button onclick="if(typeof toggleChat==='function')toggleChat();" class="btn btn-solid magnetic" data-strength="50" style="cursor:pointer;border:none;">Book My Free Call →</button>
+          <a href="#contact" class="btn btn-ghost magnetic" data-strength="40">Send a Message Instead</a>
+        </div>
+        <div class="cta-band-trust">
+          <span>✓ 15 minutes, zero pressure</span>
+          <span>✓ Walk away with a real plan</span>
+          <span>✓ Books instantly — no back-and-forth</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ABOUT -->
   <section class="about-section section" id="about">
     <div class="container">
