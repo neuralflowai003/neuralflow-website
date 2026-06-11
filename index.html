@@ -929,10 +929,17 @@
       display: block;
       overflow: hidden;
       padding-right: 10px;
-      background: linear-gradient(90deg, var(--accent) 0%, #FFA07A 100%);
+      background: linear-gradient(90deg, var(--accent) 0%, #FFA07A 40%, #7B61FF 60%, var(--accent) 100%);
+      background-size: 200% 100%;
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: shimmerText 4s ease-in-out infinite;
+    }
+
+    @keyframes shimmerText {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
     }
 
     .char {
@@ -3162,6 +3169,133 @@
     </div>
     </div>
   </section>
+
+  <!-- INTEGRATIONS MARQUEE -->
+  <style>
+    .integrations-strip {
+      overflow: hidden;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 0;
+      background: rgba(0,0,0,0.2);
+      position: relative;
+    }
+    .integrations-strip::before, .integrations-strip::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 120px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .integrations-strip::before {
+      left: 0;
+      background: linear-gradient(90deg, #050508 0%, transparent 100%);
+    }
+    .integrations-strip::after {
+      right: 0;
+      background: linear-gradient(270deg, #050508 0%, transparent 100%);
+    }
+    .integrations-track {
+      display: flex;
+      align-items: center;
+      gap: 48px;
+      width: max-content;
+      animation: marqueeScroll 30s linear infinite;
+    }
+    .integrations-track:hover {
+      animation-play-state: paused;
+    }
+    .int-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      transition: color 0.3s;
+    }
+    .int-item:hover { color: rgba(255,255,255,0.6); }
+    .int-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+    .int-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(255,107,43,0.4);
+      flex-shrink: 0;
+    }
+    @keyframes marqueeScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+  </style>
+  <div class="integrations-strip" aria-hidden="true">
+    <div class="integrations-track">
+      <span class="int-item"><span class="int-icon">🤖</span>Claude AI</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">📅</span>Google Calendar</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">📧</span>Resend</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">📲</span>Telegram</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🔍</span>Google Search</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">⚡</span>Zapier</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">📊</span>Analytics</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🔗</span>HubSpot</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">💬</span>Slack</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🏗️</span>Railway</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🐙</span>GitHub</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🔒</span>OAuth 2.0</span>
+      <span class="int-dot"></span>
+      <!-- duplicate for seamless loop -->
+      <span class="int-item"><span class="int-icon">🤖</span>Claude AI</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">📅</span>Google Calendar</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">📧</span>Resend</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">📲</span>Telegram</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🔍</span>Google Search</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">⚡</span>Zapier</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">📊</span>Analytics</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🔗</span>HubSpot</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">💬</span>Slack</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🏗️</span>Railway</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🐙</span>GitHub</span>
+      <span class="int-dot"></span>
+      <span class="int-item"><span class="int-icon">🔒</span>OAuth 2.0</span>
+      <span class="int-dot"></span>
+    </div>
+  </div>
 
   <!-- SERVICES (3D Tilt) -->
   <section class="section" id="services">
@@ -5678,7 +5812,21 @@
       overflow: hidden;
       transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
       box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+      --glow-x: 50%;
+      --glow-y: 50%;
     }
+
+    .tcard-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: 24px;
+      background: radial-gradient(350px circle at var(--glow-x) var(--glow-y), rgba(255,107,43,0.08), transparent 60%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s;
+      z-index: 0;
+    }
+    .tcard:hover .tcard-glow { opacity: 1; }
 
     /* Giant faded quote mark in background */
     .tcard::before {
@@ -5974,7 +6122,8 @@
       <h2 class="section-title reveal" style="margin-bottom:60px;">What Clients Say.</h2>
 
       <div class="testimonials-grid">
-        <div class="tcard reveal">
+        <div class="tcard reveal" onmousemove="this.style.setProperty('--glow-x',event.offsetX+'px');this.style.setProperty('--glow-y',event.offsetY+'px')">
+          <div class="tcard-glow"></div>
           <div class="tcard-quote">Game Changer</div>
           <div class="tcard-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
           <div class="tcard-body">NeuralFlow automated our entire lead qualification process. What used to take our team
@@ -5987,7 +6136,8 @@
             </div>
           </div>
         </div>
-        <div class="tcard reveal" style="transition-delay:0.1s;">
+        <div class="tcard reveal" style="transition-delay:0.1s;" onmousemove="this.style.setProperty('--glow-x',event.offsetX+'px');this.style.setProperty('--glow-y',event.offsetY+'px')">
+          <div class="tcard-glow"></div>
           <div class="tcard-quote">Incredible ROI</div>
           <div class="tcard-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
           <div class="tcard-body">The AI receptionist they built handles 300+ inbound inquiries a week. Our team went
@@ -6000,7 +6150,8 @@
             </div>
           </div>
         </div>
-        <div class="tcard reveal" style="transition-delay:0.2s;">
+        <div class="tcard reveal" style="transition-delay:0.2s;" onmousemove="this.style.setProperty('--glow-x',event.offsetX+'px');this.style.setProperty('--glow-y',event.offsetY+'px')">
+          <div class="tcard-glow"></div>
           <div class="tcard-quote">Absolutely Worth It</div>
           <div class="tcard-stars"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></div>
           <div class="tcard-body">We replaced 4 different SaaS tools with one custom dashboard NeuralFlow built us.
@@ -6033,12 +6184,37 @@
       padding: 72px 48px;
       border-radius: 28px;
       background: linear-gradient(180deg, rgba(255,107,43,0.07) 0%, rgba(123,97,255,0.06) 100%);
-      border: 1px solid rgba(255,107,43,0.22);
+      border: none;
       box-shadow: 0 30px 90px rgba(0,0,0,0.45), inset 0 0 120px rgba(255,107,43,0.03);
-      overflow: hidden;
+      overflow: visible;
     }
     .cta-band::before {
       content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 30px;
+      background: conic-gradient(from var(--cta-angle, 0deg), #FF6B2B, #7B61FF, transparent 40%, transparent 60%, #FF6B2B);
+      z-index: -1;
+      animation: rotateBorder 4s linear infinite;
+      opacity: 0.7;
+    }
+    .cta-band::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(8,10,20,0.97) 0%, rgba(5,5,8,0.98) 100%);
+      z-index: -1;
+    }
+    @keyframes rotateBorder {
+      to { --cta-angle: 360deg; }
+    }
+    @property --cta-angle {
+      syntax: '<angle>';
+      initial-value: 0deg;
+      inherits: false;
+    }
+    .cta-band-topline {
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 2px;
