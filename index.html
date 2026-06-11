@@ -6280,6 +6280,7 @@
       </div>
 
       <a href="#contact" class="modal-cta-btn" id="smCta" onclick="closeServiceModal()">Book a Free Consultation →</a>
+      <a href="#" id="smDeepLink" style="display:none;margin-top:12px;text-align:center;font-size:0.85rem;color:var(--accent);letter-spacing:0.5px;text-transform:uppercase;font-weight:600;font-family:'Space Grotesk',sans-serif;">View Full Service Page →</a>
     </div>
   </div>
 
@@ -7307,6 +7308,13 @@
       }
     });
 
+    var SERVICE_PAGE_MAP = {
+      'ai-consulting': '/services/ai-consulting',
+      'workflow-automation': '/services/workflow-automation',
+      'ai-receptionists': '/services/ai-receptionist',
+      'custom-app-dev': '/services/custom-development',
+      'seo-optimization': '/services/seo-optimization'
+    };
     function openServiceModal(el) {
       const modalId = el.getAttribute('data-modal');
       if (!modalId || !modalData[modalId]) return;
@@ -7324,6 +7332,15 @@
       document.getElementById('smWho').textContent = data.who;
       const ctaEl = document.getElementById('smCta');
       if (ctaEl) { ctaEl.textContent = data.cta; }
+      var deepLink = document.getElementById('smDeepLink');
+      if (deepLink) {
+        if (SERVICE_PAGE_MAP[modalId]) {
+          deepLink.href = SERVICE_PAGE_MAP[modalId];
+          deepLink.style.display = 'inline-block';
+        } else {
+          deepLink.style.display = 'none';
+        }
+      }
       document.getElementById('serviceModalOverlay').classList.add('active');
     }
 

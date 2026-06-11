@@ -179,6 +179,36 @@ app.get('/sitemap.xml', (req, res) => {
     `    <priority>0.8</priority>\n` +
     `  </url>\n` +
     `  <url>\n` +
+    `    <loc>https://neuralflowai.io/services/ai-consulting</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.9</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/services/ai-receptionist</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.9</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/services/workflow-automation</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.9</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/services/seo-optimization</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.9</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
+    `    <loc>https://neuralflowai.io/services/custom-development</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.9</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
     `    <loc>https://roi.neuralflowai.io/roi-calculator</loc>\n` +
     `    <lastmod>${now}</lastmod>\n` +
     `    <changefreq>monthly</changefreq>\n` +
@@ -1524,6 +1554,15 @@ app.get('/oauth/callback', async (req, res) => {
 
 app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html')));
 app.get('/booked', (req, res) => res.sendFile(path.join(__dirname, 'booked.html')));
+
+// Service landing pages
+const SERVICE_PAGES = ['ai-consulting', 'ai-receptionist', 'workflow-automation', 'seo-optimization', 'custom-development'];
+SERVICE_PAGES.forEach(slug => {
+  app.get(`/services/${slug}`, (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+    res.sendFile(path.join(__dirname, 'services', `${slug}.html`));
+  });
+});
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
