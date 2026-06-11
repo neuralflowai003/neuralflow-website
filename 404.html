@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Not Found | NeuralFlow AI</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#050508;color:#fff;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;position:relative;overflow:hidden;-webkit-font-smoothing:antialiased}
+    body::before{content:'404';position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);font-family:'Space Grotesk',sans-serif;font-size:clamp(20rem,40vw,45rem);font-weight:800;color:rgba(255,255,255,0.015);pointer-events:none;line-height:1;white-space:nowrap}
+    .glow{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(255,107,43,0.08),transparent 70%);top:20%;left:50%;transform:translateX(-50%);filter:blur(60px);pointer-events:none}
+    .content{position:relative;z-index:2;max-width:540px}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.25);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:28px}
+    h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2rem,5vw,3.2rem);font-weight:700;letter-spacing:-2px;line-height:1.1;margin-bottom:18px}
+    h1 span{background:linear-gradient(135deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    p{font-size:1.05rem;color:#888899;line-height:1.7;margin-bottom:36px}
+    .btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;justify-content:center;padding:14px 32px;font-family:'Space Grotesk',sans-serif;font-size:0.9rem;font-weight:700;border-radius:100px;transition:transform 0.2s,box-shadow 0.2s;text-decoration:none}
+    .btn-solid{background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;border:none}
+    .btn-solid:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(255,107,43,0.3)}
+    .btn-ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.1)}
+    .btn-ghost:hover{border-color:rgba(255,255,255,0.3)}
+    .footer{position:absolute;bottom:24px;font-size:0.75rem;color:rgba(255,255,255,0.2);font-family:'Space Grotesk',sans-serif;letter-spacing:1px;text-transform:uppercase}
+  </style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <div class="content">
+    <div class="eyebrow">404 &middot; Page Not Found</div>
+    <h1>This page doesn't exist.<br><span>But we do.</span></h1>
+    <p>The page you're looking for has moved or never existed. Let's get you back on track — or let ARIA help you find what you need.</p>
+    <div class="btns">
+      <a href="/" class="btn btn-solid">Back to Home</a>
+      <a href="/services" class="btn btn-ghost">View Services</a>
+    </div>
+  </div>
+  <div class="footer">NeuralFlow AI</div>
+</body>
+</html>

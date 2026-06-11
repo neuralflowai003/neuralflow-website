@@ -3029,6 +3029,10 @@ process.on('unhandledRejection', (reason) => {
   sendTelegramAlert('🚨 SERVER ERROR\nunhandledRejection: ' + String(reason));
 });
 
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, '404.html'));
+});
+
 app.listen(port, () => {
   console.log(`Server running on ${port}`);
   // Self-ping every 4 minutes to prevent Railway cold starts
