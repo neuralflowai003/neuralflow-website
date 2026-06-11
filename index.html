@@ -2749,6 +2749,100 @@
       .back-to-top { bottom: 20px; left: 16px; width: 42px; height: 42px; }
     }
 
+    /* ── AURORA GRADIENT DIVIDERS ── */
+    .aurora-divider {
+      position: relative;
+      height: 160px;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .aurora-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+    }
+    .ab-1 {
+      width: 500px; height: 250px;
+      background: #FF6B2B;
+      top: 10%; left: 5%;
+      animation: auroraA 10s ease-in-out infinite alternate;
+    }
+    .ab-2 {
+      width: 400px; height: 200px;
+      background: #7B61FF;
+      top: 20%; right: 10%;
+      animation: auroraB 12s ease-in-out infinite alternate;
+    }
+    .ab-3 {
+      width: 300px; height: 160px;
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      bottom: 5%; left: 30%;
+      animation: auroraC 8s ease-in-out infinite alternate;
+    }
+    @keyframes auroraA {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.06; }
+      50% { transform: translate(80px, -20px) scale(1.2); opacity: 0.12; }
+      100% { transform: translate(-40px, 10px) scale(0.9); opacity: 0.04; }
+    }
+    @keyframes auroraB {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.08; }
+      50% { transform: translate(-60px, 25px) scale(1.15); opacity: 0.14; }
+      100% { transform: translate(50px, -15px) scale(0.95); opacity: 0.05; }
+    }
+    @keyframes auroraC {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.05; }
+      50% { transform: translate(40px, -30px) scale(1.3); opacity: 0.1; }
+      100% { transform: translate(-30px, 20px) scale(1); opacity: 0.03; }
+    }
+    @media (max-width: 768px) {
+      .aurora-divider { height: 80px; }
+    }
+
+    /* ── HOLOGRAPHIC LIGHT SWEEP — CREDENTIAL CARDS ── */
+    .cred-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        105deg,
+        transparent 20%,
+        rgba(255,107,43,0.04) 35%,
+        rgba(255,255,255,0.07) 50%,
+        rgba(123,97,255,0.04) 65%,
+        transparent 80%
+      );
+      z-index: 2;
+      pointer-events: none;
+    }
+    .cred-card:hover::before {
+      animation: holoSweep 0.7s ease-out forwards;
+    }
+    @keyframes holoSweep {
+      0% { left: -100%; }
+      100% { left: 200%; }
+    }
+
+    /* ── STAGGERED WORD REVEAL ── */
+    .word-reveal.reveal {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .word-reveal .wr-word {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(14px);
+      filter: blur(4px);
+      transition: opacity 0.4s ease, transform 0.4s ease, filter 0.4s ease;
+    }
+    .word-reveal.visible .wr-word {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
     /* Honor reduced-motion preferences */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -3295,6 +3389,13 @@
       <span class="int-item"><span class="int-icon">🔒</span>OAuth 2.0</span>
       <span class="int-dot"></span>
     </div>
+  </div>
+
+  <!-- AURORA DIVIDER -->
+  <div class="aurora-divider" aria-hidden="true">
+    <div class="aurora-blob ab-1"></div>
+    <div class="aurora-blob ab-2"></div>
+    <div class="aurora-blob ab-3"></div>
   </div>
 
   <!-- SERVICES (3D Tilt) -->
@@ -6357,6 +6458,13 @@
     </div>
   </section>
 
+  <!-- AURORA DIVIDER -->
+  <div class="aurora-divider" aria-hidden="true">
+    <div class="aurora-blob ab-1"></div>
+    <div class="aurora-blob ab-2"></div>
+    <div class="aurora-blob ab-3"></div>
+  </div>
+
   <!-- FAQ ACCORDION -->
   <style>
     .faq-section { padding: 120px 0; background: var(--bg); border-top: 1px solid var(--border); }
@@ -7710,6 +7818,75 @@
     }
     document.getElementById('hamburger').addEventListener('click', openMobileMenu);
     document.getElementById('mobile-menu-overlay').addEventListener('click', closeMobileMenu);
+  </script>
+
+  <!-- VISUAL ENHANCEMENTS — scramble, parallax, word reveal -->
+  <script>
+  (function() {
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) return;
+
+    // ── TEXT SCRAMBLE DECODE ON SECTION TITLES ──
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789#$%&';
+    document.querySelectorAll('.section-title').forEach(function(el) {
+      if (el.childElementCount > 0) return;
+      var original = el.textContent;
+      var done = false;
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting && !done) {
+            done = true;
+            obs.unobserve(el);
+            setTimeout(function() {
+              var iter = 0;
+              var total = Math.floor(original.length * 2.5);
+              var iv = setInterval(function() {
+                el.textContent = original.split('').map(function(c, i) {
+                  if (!/[a-zA-Z0-9]/.test(c)) return c;
+                  if (i < iter / 2.5) return original[i];
+                  return chars[Math.floor(Math.random() * chars.length)];
+                }).join('');
+                iter++;
+                if (iter >= total) { el.textContent = original; clearInterval(iv); }
+              }, 25);
+            }, 350);
+          }
+        });
+      }, { threshold: 0.2 });
+      obs.observe(el);
+    });
+
+    // ── HERO PARALLAX DEPTH ──
+    if (window.innerWidth >= 768) {
+      var hc = document.querySelector('.hero-content');
+      var si = document.querySelector('.scroll-indicator');
+      var ticking = false;
+      window.addEventListener('scroll', function() {
+        if (!ticking) {
+          requestAnimationFrame(function() {
+            var y = window.scrollY;
+            if (y < window.innerHeight * 1.2) {
+              if (hc) hc.style.transform = 'translateY(' + (y * 0.12) + 'px)';
+              if (si) si.style.opacity = String(Math.max(0, 1 - y / 350));
+            }
+            ticking = false;
+          });
+          ticking = true;
+        }
+      }, { passive: true });
+    }
+
+    // ── STAGGERED WORD REVEAL ON SECTION DESCRIPTIONS ──
+    document.querySelectorAll('.section-desc.reveal').forEach(function(el) {
+      if (el.childElementCount > 0) return;
+      var text = el.textContent.trim();
+      var words = text.split(/\s+/);
+      el.innerHTML = words.map(function(w, i) {
+        return '<span class="wr-word" style="transition-delay:' + (i * 0.035) + 's">' + w + '</span>';
+      }).join(' ');
+      el.classList.add('word-reveal');
+    });
+  })();
   </script>
 
   <!-- ============================================================
