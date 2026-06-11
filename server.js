@@ -179,6 +179,12 @@ app.get('/sitemap.xml', (req, res) => {
     `    <priority>0.8</priority>\n` +
     `  </url>\n` +
     `  <url>\n` +
+    `    <loc>https://neuralflowai.io/services</loc>\n` +
+    `    <lastmod>${now}</lastmod>\n` +
+    `    <changefreq>monthly</changefreq>\n` +
+    `    <priority>0.9</priority>\n` +
+    `  </url>\n` +
+    `  <url>\n` +
     `    <loc>https://neuralflowai.io/services/ai-consulting</loc>\n` +
     `    <lastmod>${now}</lastmod>\n` +
     `    <changefreq>monthly</changefreq>\n` +
@@ -1557,6 +1563,10 @@ app.get('/booked', (req, res) => res.sendFile(path.join(__dirname, 'booked.html'
 
 // Service landing pages
 const SERVICE_PAGES = ['ai-consulting', 'ai-receptionist', 'workflow-automation', 'seo-optimization', 'custom-development'];
+app.get('/services', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+  res.sendFile(path.join(__dirname, 'services', 'index.html'));
+});
 SERVICE_PAGES.forEach(slug => {
   app.get(`/services/${slug}`, (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
