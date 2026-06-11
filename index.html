@@ -214,6 +214,43 @@
   }
   </script>
 
+  <!-- Structured Data — Reviews (rich snippets) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "NeuralFlow AI",
+    "url": "https://neuralflowai.io",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5",
+      "bestRating": "5",
+      "ratingCount": "3",
+      "reviewCount": "3"
+    },
+    "review": [
+      {
+        "@type": "Review",
+        "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"},
+        "author": {"@type": "Person", "name": "Marcus T."},
+        "reviewBody": "NeuralFlow automated our entire lead qualification process. What used to take our team 3 hours a day now runs itself overnight. We closed 40% more deals in the first month."
+      },
+      {
+        "@type": "Review",
+        "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"},
+        "author": {"@type": "Person", "name": "Sarah K."},
+        "reviewBody": "The AI receptionist they built handles 300+ inbound inquiries a week. Our team went from drowning in admin work to focusing purely on high-value clients."
+      },
+      {
+        "@type": "Review",
+        "reviewRating": {"@type": "Rating", "ratingValue": "5", "bestRating": "5"},
+        "author": {"@type": "Person", "name": "James R."},
+        "reviewBody": "We replaced 4 different SaaS tools with one custom dashboard NeuralFlow built us. Saves us $2,400/month in subscriptions and our data is actually accurate now."
+      }
+    ]
+  }
+  </script>
+
   <!-- Google Analytics GA4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGWCHZ95J9"></script>
   <script>
@@ -225,6 +262,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
     rel="stylesheet">
@@ -6138,6 +6176,136 @@
           <span class="cred-icon">🚀</span>
           <h4>End-to-End Execution</h4>
           <p>From the initial strategy audit to final server deployment — we own the entire lifecycle and stay on as your long-term AI partner.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ ACCORDION -->
+  <style>
+    .faq-section { padding: 120px 0; background: var(--bg); border-top: 1px solid var(--border); }
+    .faq-grid { max-width: 800px; margin: 0 auto; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      text-align: left;
+      padding: 28px 0;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      transition: color 0.2s;
+    }
+    .faq-question:hover { color: var(--accent); }
+    .faq-icon {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: var(--accent);
+      transition: transform 0.3s, background 0.3s, border-color 0.3s;
+    }
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+      background: rgba(255,107,43,0.1);
+      border-color: rgba(255,107,43,0.3);
+    }
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s;
+      padding: 0 0 0 0;
+    }
+    .faq-item.open .faq-answer {
+      max-height: 300px;
+      padding: 0 0 28px 0;
+    }
+    .faq-answer p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      max-width: 680px;
+    }
+    .faq-answer p strong { color: #fff; font-weight: 600; }
+    @media (max-width: 768px) {
+      .faq-question { font-size: 1rem; padding: 22px 0; }
+    }
+  </style>
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <div class="reveal" style="text-align:center;">
+        <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">FAQ</div>
+      </div>
+      <h2 class="section-title reveal" style="margin-bottom:60px;">Questions We Get Asked.</h2>
+      <div class="faq-grid">
+        <div class="faq-item reveal">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            What does NeuralFlow AI do?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>We're an AI growth partner. We look at how your business operates, find where you're losing time and money, and build AI systems that fix it — <strong>automation, chatbots, SEO, custom software</strong>. We don't just consult; we build, deploy, and stay on as your partner.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" style="transition-delay:0.05s;">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            How much does this cost?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>Every project is different. We offer a <strong>free initial consultation</strong> where we assess your business and give you a custom quote. Most clients see a <strong>10x return on investment</strong>. The first call is always free — you walk away with a real plan even if we never work together.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" style="transition-delay:0.1s;">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            How fast do I see results?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>AI automation projects typically deploy in <strong>2-4 weeks</strong>. SEO results show meaningful improvement in <strong>60-90 days</strong>. We prioritize quick wins — most clients see ROI within the first month of working together.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" style="transition-delay:0.15s;">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            What is an AI receptionist?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>An AI receptionist lives on your website and handles visitors <strong>24/7</strong> — answering questions, qualifying leads, and booking appointments directly into your calendar. It works while you sleep, never misses a lead, and costs a fraction of a human receptionist. <strong>ARIA on this site is a live example.</strong></p>
+          </div>
+        </div>
+        <div class="faq-item reveal" style="transition-delay:0.2s;">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            Do you help with SEO?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p>Yes — full SEO including <strong>technical audits, local SEO, Google Business Profile, content strategy, and AI search optimization</strong> for ChatGPT and Perplexity. We offer free SEO audits so you can see exactly where you stand before committing to anything.</p>
+          </div>
+        </div>
+        <div class="faq-item reveal" style="transition-delay:0.25s;">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            I'm not technical — can you still help me?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-answer">
+            <p><strong>Absolutely.</strong> Most of our clients aren't technical. We handle everything end-to-end — strategy, development, deployment, and ongoing support. You tell us what's not working, we fix it. No jargon, no complexity on your end.</p>
+          </div>
         </div>
       </div>
     </div>

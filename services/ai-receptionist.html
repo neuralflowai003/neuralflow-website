@@ -40,6 +40,18 @@
   }
   </script>
 
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://neuralflowai.io"},
+      {"@type": "ListItem", "position": 2, "name": "Services", "item": "https://neuralflowai.io/services"},
+      {"@type": "ListItem", "position": 3, "name": "AI Receptionist", "item": "https://neuralflowai.io/services/ai-receptionist"}
+    ]
+  }
+  </script>
+
   <!-- GA4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGWCHZ95J9"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-PGWCHZ95J9');</script>
@@ -139,6 +151,16 @@
       </div>
     </div>
   </nav>
+
+  <div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);background:rgba(5,5,8,0.5);">
+    <div class="container" style="font-size:0.78rem;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:6px;">
+      <a href="/" style="color:rgba(255,255,255,0.45);transition:color 0.2s;" onmouseover="this.style.color='#FF6B2B'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">Home</a>
+      <span style="color:rgba(255,255,255,0.2);">/</span>
+      <a href="/services" style="color:rgba(255,255,255,0.45);transition:color 0.2s;" onmouseover="this.style.color='#FF6B2B'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">Services</a>
+      <span style="color:rgba(255,255,255,0.2);">/</span>
+      <span>AI Receptionist</span>
+    </div>
+  </div>
 
   <main>
     <section class="lp-hero">
