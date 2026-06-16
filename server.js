@@ -63,10 +63,27 @@ const allowedOrigins = [
   'https://neuralflowai.io',
   'https://www.neuralflowai.io',
   'https://roi.neuralflowai.io',
-  'http://localhost:3000',
-  'http://localhost:8080',
 ];
-app.use(helmet({ contentSecurityPolicy: false })); // CSP off — we serve inline scripts in index.html
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:3000', 'http://localhost:8080');
+}
+app.use(helmet({
+  contentSecurityPolicy: {
+    reportOnly: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://www.google-analytics.com"],
+      connectSrc: ["'self'", "https://www.google-analytics.com", "https://roi.neuralflowai.io"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+  },
+}));
 app.use(compression()); // Gzip compress all responses
 
 // HSTS + Cache headers
@@ -98,12 +115,15 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 
+// Serve only explicitly allowed static assets (allowlist, not blocklist).
+// This prevents accidental exposure of server.js, CLAUDE.md, sales/, package.json, etc.
+const ALLOWED_STATIC_FILES = new Set(['/favicon.svg', '/og-image.png']);
 app.use((req, res, next) => {
-  const blocked = ['/google-token.json', '/pending-leads.json', '/bookings.json', '/.env', '/BUSINESS_INFO.txt'];
-  if (blocked.includes(req.path)) return res.status(403).send('Forbidden');
+  if (req.method === 'GET' && ALLOWED_STATIC_FILES.has(req.path.split('?')[0])) {
+    return express.static(path.join(__dirname, ''))(req, res, next);
+  }
   next();
 });
-app.use(express.static(path.join(__dirname, '')));
 
 function escapeHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -224,7 +244,7 @@ app.get('/sitemap.xml', (req, res) => {
   );
 });
 
-app.get('/bookings', (req, res) => {
+app.get('/bookings', adminRateLimit, (req, res) => {
   const pass = process.env.BOOKINGS_PASSWORD;
   if (!safeEqual(pass, req.query.p)) {
     return res.send(`<!DOCTYPE html><html><head><title>NeuralFlow Bookings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#06060b;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}form{background:#13131a;padding:40px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);text-align:center}h2{color:#fff;margin:0 0 20px;font-size:20px}input{width:100%;padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#0a0a0f;color:#fff;font-size:14px;margin-bottom:12px}button{width:100%;padding:12px;background:#FF6B2B;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}</style></head><body><form method="GET"><h2>NeuralFlow Bookings</h2><input type="password" name="p" placeholder="Password" autofocus><button type="submit">View Bookings</button></form></body></html>`);
@@ -253,7 +273,7 @@ app.get('/bookings', (req, res) => {
     </body></html>`);
 });
 
-app.get('/api/test', async (req, res) => {
+app.get('/api/test', adminRateLimit, async (req, res) => {
   if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
 
   const results = {};
@@ -330,6 +350,30 @@ function chatRateLimit(req, res, next) {
   }
   if (entry.count >= maxRequests) {
     return res.status(429).json({ error: 'Too many requests. Please wait a moment before trying again.' });
+  }
+  entry.count++;
+  next();
+}
+
+// Stricter rate limit for admin/auth endpoints — 10 attempts per 15 minutes per IP
+const adminRateLimits = new Map();
+function adminRateLimit(req, res, next) {
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const maxAttempts = 10;
+  const entry = adminRateLimits.get(ip);
+  if (!entry || now > entry.resetAt) {
+    if (adminRateLimits.size >= 2000) {
+      for (const [key, val] of adminRateLimits.entries()) {
+        if (now > val.resetAt) { adminRateLimits.delete(key); break; }
+      }
+    }
+    adminRateLimits.set(ip, { count: 1, resetAt: now + windowMs });
+    return next();
+  }
+  if (entry.count >= maxAttempts) {
+    return res.status(429).json({ error: 'Too many attempts. Try again later.' });
   }
   entry.count++;
   next();
@@ -1543,7 +1587,7 @@ function scheduleNoShowRecovery({ name, email, slotStart, slotLabel }) {
 }
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
-app.get('/oauth/start', (req, res) => {
+app.get('/oauth/start', adminRateLimit, (req, res) => {
   if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).send('Unauthorized');
   res.redirect(oauth2Client.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar'] }));
 });
@@ -1560,6 +1604,7 @@ app.get('/oauth/callback', async (req, res) => {
 
 app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html')));
 app.get('/booked', (req, res) => res.sendFile(path.join(__dirname, 'booked.html')));
+app.get('/book', (req, res) => res.sendFile(path.join(__dirname, 'book.html')));
 
 // Service landing pages
 const SERVICE_PAGES = ['ai-consulting', 'ai-receptionist', 'workflow-automation', 'seo-optimization', 'custom-development'];
@@ -1594,7 +1639,7 @@ app.get('/api/test-email', chatRateLimit, async (req, res) => {
 });
 
 // ── Test booking emails (fires real email templates with dummy data) ───────────
-app.get('/api/test-booking-email', async (req, res) => {
+app.get('/api/test-booking-email', adminRateLimit, async (req, res) => {
   if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
   const slotStart = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
   const slotEnd   = new Date(Date.now() + 49 * 60 * 60 * 1000).toISOString();
@@ -1632,7 +1677,11 @@ app.get('/api/test-booking-email', async (req, res) => {
 });
 
 app.get('/api/availability', chatRateLimit, async (req, res) => {
-  res.json({ slots: await getAvailableSlots(90, req.query.date || null) });
+  const date = req.query.date || null;
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+  }
+  res.json({ slots: await getAvailableSlots(90, date) });
 });
 
 app.post('/api/book', chatRateLimit, async (req, res) => {
@@ -2873,6 +2922,9 @@ app.post('/api/seo-audit', chatRateLimit, (req, res) => {
 app.post('/api/track', chatRateLimit, (req, res) => {
   const { event, data } = req.body || {};
   if (typeof event !== 'string' || event.length > 100) return res.status(400).json({ error: 'Invalid event.' });
+  const ALLOWED_EVENTS = ['roi_calculated', 'aria_handoff', 'roi_form_started', 'roi_form_step'];
+  if (!ALLOWED_EVENTS.includes(event)) return res.status(400).json({ error: 'Unknown event.' });
+  if (data && (typeof data !== 'object' || Array.isArray(data))) return res.status(400).json({ error: 'Invalid data.' });
   res.json({ ok: true });
 
   if (event === 'roi_calculated') {
@@ -2953,7 +3005,7 @@ async function runHealthCheck() {
 }
 
 // ─── Telegram Bot Webhook (text /test or /status to get a health check) ───────
-app.post('/telegram-webhook', async (req, res) => {
+app.post('/telegram-webhook', chatRateLimit, async (req, res) => {
   res.json({ ok: true }); // respond immediately — Telegram requires fast ACK
 
   const message = req.body?.message;
