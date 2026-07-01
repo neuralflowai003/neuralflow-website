@@ -954,7 +954,7 @@
       font-size: clamp(1.2rem, 2vw, 1.8rem);
       color: var(--muted);
       margin-bottom: 60px;
-      font-family: 'Space Grotesk';
+      font-family: 'Space Grotesk', sans-serif;
       font-weight: 400;
       height: 30px;
       display: flex;
@@ -1351,7 +1351,7 @@
     }
 
     .stat-suffix {
-      font-family: 'Space Grotesk';
+      font-family: 'Space Grotesk', sans-serif;
       font-size: clamp(2rem, 4vw, 4rem);
       font-weight: 700;
       background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
@@ -1411,7 +1411,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-family: 'Space Grotesk';
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 30vw;
       font-weight: 800;
       color: rgba(255, 255, 255, 0.02);
@@ -1657,7 +1657,7 @@
       font-size: 2rem;
       border-bottom: 2px solid var(--accent);
       margin-bottom: 40px;
-      font-family: 'Space Grotesk';
+      font-family: 'Space Grotesk', sans-serif;
       transition: color 0.3s;
     }
 
@@ -1727,7 +1727,7 @@
       padding: 10px 0;
       font-size: 1.1rem;
       color: var(--text);
-      font-family: 'Inter';
+      font-family: 'Inter', sans-serif;
       outline: none;
       transition: border-color 0.3s;
     }
@@ -1787,7 +1787,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-family: 'Space Grotesk';
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 20vw;
       font-weight: 800;
       color: rgba(255, 255, 255, 0.02);
@@ -1811,7 +1811,7 @@
     }
 
     .footer-tagline {
-      font-family: 'Space Grotesk';
+      font-family: 'Space Grotesk', sans-serif;
       font-size: 1.5rem;
       color: #fff;
     }
@@ -2747,6 +2747,14 @@
     }
     @media (max-width: 768px) {
       .back-to-top { bottom: 20px; left: 16px; width: 42px; height: 42px; }
+    }
+
+    /* Balanced multi-line headline wrapping — no orphan words */
+    .section-title, .cta-band h2, .about-top h2, .faq-question {
+      text-wrap: balance;
+    }
+    .section-desc {
+      text-wrap: pretty;
     }
 
     /* ── AURORA GRADIENT DIVIDERS ── */
@@ -4391,7 +4399,7 @@
         <div style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#FF6B2B;border:1px solid rgba(255,107,43,0.35);padding:4px 14px;border-radius:999px;margin-bottom:24px;box-shadow:0 0 12px rgba(255,107,43,0.3);">Free ROI Calculator</div>
 
         <!-- Headline -->
-        <h2 style="font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:#fff;margin:0 0 18px;letter-spacing:-1.5px;line-height:1.1;font-family:'Space Grotesk';">Find out exactly what<br>your manual work is <span style="background:linear-gradient(90deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">costing you.</span></h2>
+        <h2 style="font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:#fff;margin:0 0 18px;letter-spacing:-1.5px;line-height:1.1;font-family:'Space Grotesk',sans-serif;">Find out exactly what<br>your manual work is <span style="background:linear-gradient(90deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">costing you.</span></h2>
 
         <p style="font-size:1.05rem;color:rgba(255,255,255,0.5);margin:0 auto 56px;max-width:520px;line-height:1.7;">Describe any repetitive task your team handles. Our AI analyzes it in seconds and returns a real dollar figure — labor savings, error reduction, 3-year projection, and a custom implementation roadmap.</p>
       </div>
@@ -6400,7 +6408,8 @@
     @media (max-width: 768px) {
       .cta-band-section { padding: 70px 16px; }
       .cta-band { padding: 52px 24px; }
-      .cta-band-actions .btn { width: 100%; max-width: 320px; justify-content: center; }
+      .cta-band-actions .btn { width: 100%; max-width: 320px; justify-content: center; font-size: 0.85rem; padding: 16px 24px; }
+      .cta-band-eyebrow { font-size: 10px; white-space: nowrap; }
     }
   </style>
   <section class="cta-band-section" id="free-call">
@@ -6412,7 +6421,7 @@
         <p>Book a <strong>free 15-minute call</strong>. We'll look at how you operate, pinpoint exactly where you're
           losing time and money, and map out what AI can fix — <strong>whether you hire us or not</strong>.</p>
         <div class="cta-band-actions">
-          <button onclick="if(typeof toggleChat==='function')toggleChat();" class="btn btn-solid magnetic" data-strength="50" style="cursor:pointer;border:none;">Book My Free Call →</button>
+          <button onclick="if(typeof toggleChat==='function')toggleChat();" class="btn btn-solid magnetic" data-strength="50" style="cursor:pointer;border:none;white-space:nowrap;">Book My Free&nbsp;Call&nbsp;→</button>
           <a href="#contact" class="btn btn-ghost magnetic" data-strength="40">Send a Message Instead</a>
         </div>
         <div class="cta-band-trust">
