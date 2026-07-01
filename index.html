@@ -264,7 +264,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://www.googletagmanager.com">
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
     rel="stylesheet">
 
   <style>
@@ -2926,6 +2926,8 @@
   <main id="main-content">
   <header class="hero" id="home">
     <div class="hero-bg-base"></div>
+    <div class="hero-rays" aria-hidden="true"></div>
+    <div class="hero-grid-lines" aria-hidden="true"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
@@ -2961,6 +2963,20 @@
     <!-- Bottom fade — dissolves canvas into the next section -->
     <div style="position:absolute;bottom:0;left:0;right:0;height:220px;background:linear-gradient(to bottom,transparent 0%,rgba(5,5,8,0.6) 50%,var(--bg) 100%);pointer-events:none;z-index:3;"></div>
   </header>
+
+  <!-- GIANT OUTLINED MARQUEE -->
+  <div class="mega-marquee" aria-hidden="true">
+    <div class="mega-track">
+      <span>Automate</span><em>✦</em>
+      <span class="mm-fill">Scale</span><em>✦</em>
+      <span>Grow</span><em>✦</em>
+      <span>Repeat</span><em>✦</em>
+      <span>Automate</span><em>✦</em>
+      <span class="mm-fill">Scale</span><em>✦</em>
+      <span>Grow</span><em>✦</em>
+      <span>Repeat</span><em>✦</em>
+    </div>
+  </div>
 
   <!-- CURSOR GLOW + ARIA DEMO STYLES -->
   <style>
@@ -6604,6 +6620,20 @@
     </div>
   </section>
 
+  <!-- GIANT OUTLINED MARQUEE — CONTACT LEAD-IN -->
+  <div class="mega-marquee mm-reverse" aria-hidden="true">
+    <div class="mega-track">
+      <span class="mm-fill">Ready</span><em>✦</em>
+      <span>When</span><em>✦</em>
+      <span>You</span><em>✦</em>
+      <span>Are</span><em>✦</em>
+      <span class="mm-fill">Ready</span><em>✦</em>
+      <span>When</span><em>✦</em>
+      <span>You</span><em>✦</em>
+      <span>Are</span><em>✦</em>
+    </div>
+  </div>
+
   <!-- CONTACT -->
   <section class="contact-section" id="contact">
     <div class="container contact-layout">
@@ -6916,15 +6946,10 @@
         el.appendChild(span);
       });
     }
-    splitText('kin-2', 0.8);
-
-    setTimeout(() => {
-      document.querySelectorAll('.char').forEach(c => {
-        c.style.opacity = '1';
-        c.style.transform = 'translateY(0) rotate(0)';
-        c.style.filter = 'blur(0)';
-      });
-    }, 100);
+    // NOTE: splitText is intentionally NOT applied to #kin-2 — per-char spans
+    // with inline transform/filter get their own compositing layers, which
+    // breaks the parent's background-clip:text gradient in Chromium and made
+    // the line render invisible. The line now animates in whole via CSS.
 
     // ── Rotating hero headline ──
     (function() {
@@ -8034,6 +8059,181 @@
 
     /* ── FAQ REFINEMENT ───────────────────────────────────────── */
     .faq-item.open .faq-question { color: var(--accent); }
+  </style>
+
+  <!-- ============================================================
+       EDITORIAL DRAMA — serif accents, god rays, mega marquees, bento
+       ============================================================ -->
+  <style>
+    /* ── SERIF ITALIC ACCENT TYPE — the editorial signature ───── */
+    .line-2 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 1.16em;
+      letter-spacing: -1px;
+      line-height: 1.05;
+      padding-right: 22px;
+      padding-bottom: 0.08em;
+      opacity: 0;
+      transform: translateY(28px);
+      animation:
+        line2In 1s cubic-bezier(0.16, 1, 0.3, 1) 0.75s forwards,
+        shimmerText 4s ease-in-out 1.8s infinite;
+    }
+    @keyframes line2In {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .cta-grad,
+    .about-bold-gradient {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      letter-spacing: 0;
+    }
+    .hero-headline .line-1 {
+      font-size: clamp(2.8rem, 5.4vw, 6.4rem);
+    }
+
+    /* ── GOD RAYS — light beams falling through the hero ──────── */
+    .hero-rays {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .hero-rays::before,
+    .hero-rays::after {
+      content: '';
+      position: absolute;
+      top: -60%;
+      left: 50%;
+      width: 240vmax;
+      height: 240vmax;
+      background: conic-gradient(from 0deg at 50% 0%,
+        transparent 0deg,
+        rgba(255, 107, 43, 0.055) 5deg,
+        transparent 11deg,
+        transparent 17deg,
+        rgba(123, 97, 255, 0.05) 22deg,
+        transparent 29deg,
+        transparent 38deg,
+        rgba(255, 107, 43, 0.04) 43deg,
+        transparent 50deg);
+      filter: blur(16px);
+      animation: raysPulse 9s ease-in-out infinite alternate;
+    }
+    .hero-rays::before { transform: translateX(-50%) rotate(-17deg); }
+    .hero-rays::after {
+      transform: translateX(-50%) rotate(13deg);
+      animation-duration: 13s;
+      animation-delay: -4s;
+    }
+    @keyframes raysPulse {
+      from { opacity: 0.45; }
+      to   { opacity: 1; }
+    }
+
+    /* ── BLUEPRINT GRID LINES ──────────────────────────────────── */
+    .hero-grid-lines {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: linear-gradient(to right, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+      background-size: 16.666% 100%;
+      -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 70%, transparent);
+      mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 70%, transparent);
+    }
+    @media (max-width: 768px) {
+      .hero-grid-lines { display: none; }
+      .hero-rays::before, .hero-rays::after { filter: blur(10px); }
+    }
+
+    /* ── MEGA MARQUEE — giant outlined scrolling words ─────────── */
+    .mega-marquee {
+      overflow: hidden;
+      padding: 64px 0 22px;
+      position: relative;
+      background: var(--bg);
+    }
+    .mega-track {
+      display: inline-flex;
+      align-items: center;
+      gap: 56px;
+      white-space: nowrap;
+      will-change: transform;
+      animation: megaScroll 44s linear infinite;
+      padding-right: 56px;
+    }
+    .mega-track span {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(3.2rem, 9vw, 8.5rem);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -3px;
+      line-height: 1;
+      color: transparent;
+      -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.13);
+      transition: -webkit-text-stroke-color 0.4s;
+    }
+    .mega-track span.mm-fill {
+      -webkit-text-stroke: 0px transparent;
+      background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: -1px;
+      padding-right: 14px;
+    }
+    .mega-track em {
+      font-style: normal;
+      font-size: clamp(1.4rem, 3vw, 2.6rem);
+      color: rgba(255, 107, 43, 0.45);
+    }
+    .mega-marquee.mm-reverse .mega-track { animation-direction: reverse; }
+    @keyframes megaScroll {
+      to { transform: translateX(-50%); }
+    }
+
+    /* ── BENTO STATS GRID ──────────────────────────────────────── */
+    @media (min-width: 1000px) {
+      .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+        align-items: stretch;
+      }
+      .stat-box:nth-child(1) {
+        grid-column: 1 / 3;
+        grid-row: 1 / 3;
+        justify-content: center;
+      }
+      .stat-box:nth-child(1) .stat-number {
+        font-size: clamp(7rem, 10.5vw, 11.5rem);
+        letter-spacing: -6px;
+      }
+      .stat-box:nth-child(1) .stat-suffix { font-size: clamp(3rem, 5vw, 5.5rem); }
+      .stat-box:nth-child(1) .stat-text {
+        font-size: 1rem;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+      }
+      .stat-box:nth-child(1)::before {
+        background: radial-gradient(ellipse at 30% 20%, rgba(255, 107, 43, 0.1) 0%, transparent 55%);
+      }
+      .stat-box:nth-child(4) {
+        grid-column: 3 / 5;
+        flex-direction: row;
+        gap: 32px;
+        align-items: center;
+        justify-content: center;
+      }
+      .stat-box:nth-child(4) .stat-number-wrap { margin-bottom: 0; }
+      .stat-box:nth-child(4) .stat-bar-bg { width: 150px; margin-bottom: 0; }
+    }
   </style>
 
   <!-- ============================================================
