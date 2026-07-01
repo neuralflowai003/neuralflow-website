@@ -299,5 +299,41 @@
       <a href="/#contact">Contact</a>
     </div>
   </footer>
+
+  <style>
+    /* ===== Premium skin (appended) ===== */
+    /* Glass nav */
+    .lp-nav{
+      background:rgba(8,8,14,0.55);
+      border-bottom:1px solid rgba(255,255,255,0.07);
+      -webkit-backdrop-filter:blur(24px) saturate(160%);
+      backdrop-filter:blur(24px) saturate(160%);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 12px 40px -12px rgba(0,0,0,0.55);
+    }
+    /* Premium cards */
+    .feature-card,.for-item{
+      background:linear-gradient(180deg,rgba(255,255,255,0.045) 0%,rgba(255,255,255,0.012) 45%,rgba(255,255,255,0.022) 100%),#0a0a12;
+      border:1px solid rgba(255,255,255,0.09);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.07),0 24px 48px -20px rgba(0,0,0,0.6);
+    }
+    .feature-card:hover,.for-item:hover{
+      border-color:rgba(255,107,43,0.32);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.07),0 24px 48px -20px rgba(0,0,0,0.6),0 0 48px -12px rgba(255,107,43,0.18);
+    }
+    /* Gradient sheen headlines */
+    .lp-h1,.lp-section-title,.lp-bottom-cta h2{
+      background:linear-gradient(180deg,#ffffff 0%,#eeeef4 55%,#a9a9bd 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+    /* Premium buttons */
+    .btn-solid,.lp-nav-cta{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.28),0 10px 28px -10px rgba(255,107,43,0.55),0 4px 12px rgba(0,0,0,0.35);
+    }
+    .btn-solid:hover,.lp-nav-cta:hover{
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.32),0 14px 36px -10px rgba(255,107,43,0.7),0 6px 16px rgba(0,0,0,0.4);
+    }
+  </style>
 </body>
 </html>

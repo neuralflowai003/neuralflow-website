@@ -851,5 +851,63 @@
     });
   </script>
 
+  <style>
+    /* ── Premium skin ── */
+
+    /* Premium cards / panels */
+    .benefit-card,
+    .proof-card,
+    .form-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.012) 45%, rgba(255,255,255,0.022) 100%), #0a0a12;
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -20px rgba(0,0,0,0.6);
+    }
+
+    .benefit-card:hover,
+    .proof-card:hover,
+    .form-card:hover {
+      border-color: rgba(255,107,43,0.32);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -20px rgba(0,0,0,0.6), 0 0 48px -12px rgba(255,107,43,0.18);
+    }
+
+    /* Gradient sheen headlines */
+    .hero h1,
+    .expect-title {
+      background: linear-gradient(180deg, #ffffff 0%, #eeeef4 55%, #a9a9bd 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Keep the accent word branded (child background wins over parent sheen) */
+    .hero h1 .accent {
+      background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Premium primary CTA */
+    .btn-submit {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 28px -10px rgba(255,107,43,0.55), 0 4px 12px rgba(0,0,0,0.35);
+    }
+
+    .btn-submit:hover {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 14px 34px -10px rgba(255,107,43,0.68), 0 6px 16px rgba(0,0,0,0.4);
+    }
+
+    .btn-submit:disabled {
+      box-shadow: none;
+    }
+
+    /* Form input focus glow */
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255,107,43,0.12);
+    }
+  </style>
+
 </body>
 </html>

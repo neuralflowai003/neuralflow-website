@@ -7869,6 +7869,174 @@
   </script>
 
   <!-- ============================================================
+       PREMIUM SKIN — unified luxury design language
+       ============================================================ -->
+  <style>
+    /* ── FLOATING GLASS NAV (desktop) ─────────────────────────── */
+    @media (min-width: 769px) {
+      #nav {
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(1280px, calc(100% - 40px));
+        border-radius: 18px;
+        padding: 13px 0;
+        background: rgba(8, 8, 14, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 40px -12px rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(24px) saturate(160%);
+        -webkit-backdrop-filter: blur(24px) saturate(160%);
+      }
+      #nav.scrolled {
+        padding: 10px 0;
+        background: rgba(6, 6, 11, 0.72);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 16px 48px -12px rgba(0, 0, 0, 0.7);
+      }
+      #nav .container { padding: 0 28px; }
+    }
+
+    /* ── CINEMATIC HERO SPOTLIGHT ─────────────────────────────── */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -18%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1200px;
+      max-width: 140vw;
+      height: 720px;
+      background: radial-gradient(ellipse at center,
+        rgba(255, 107, 43, 0.09) 0%,
+        rgba(123, 97, 255, 0.05) 42%,
+        transparent 70%);
+      filter: blur(40px);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, rgba(3, 3, 6, 0.5) 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .hero .badge {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ── GRADIENT SHEEN ON HEADLINES ──────────────────────────── */
+    .section-title,
+    .about-top h2 {
+      background: linear-gradient(180deg, #ffffff 0%, #eeeef4 55%, #a9a9bd 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ── UNIFIED PREMIUM CARD SYSTEM ──────────────────────────── */
+    .tilt-card,
+    .stat-box,
+    .cred-card {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.012) 45%, rgba(255, 255, 255, 0.022) 100%),
+        #0a0a12;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.07),
+        0 24px 48px -20px rgba(0, 0, 0, 0.6);
+    }
+    .tilt-card:hover,
+    .stat-box:hover,
+    .cred-card:hover {
+      border-color: rgba(255, 107, 43, 0.32);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.09),
+        0 28px 64px -20px rgba(0, 0, 0, 0.7),
+        0 0 48px -12px rgba(255, 107, 43, 0.18);
+    }
+    .tcard {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 50%, rgba(255, 255, 255, 0.02) 100%),
+        #090e18;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 20px 48px -16px rgba(0, 0, 0, 0.55);
+    }
+    .tcard:hover {
+      border-color: rgba(255, 107, 43, 0.3);
+      transform: translateY(-4px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 32px 64px -20px rgba(0, 0, 0, 0.7),
+        0 0 40px -10px rgba(255, 107, 43, 0.15);
+    }
+    .form-box {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.008) 50%, rgba(255, 255, 255, 0.018) 100%),
+        #070b16;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 24px 64px -16px rgba(0, 0, 0, 0.5);
+    }
+    .form-box:hover {
+      border-color: rgba(255, 107, 43, 0.3);
+    }
+
+    /* ── PREMIUM BUTTONS ──────────────────────────────────────── */
+    .btn-solid {
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 10px 28px -10px rgba(255, 107, 43, 0.55),
+        0 4px 12px rgba(0, 0, 0, 0.35);
+    }
+    .btn-solid:hover {
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.32),
+        0 14px 36px -10px rgba(255, 107, 43, 0.65),
+        0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(255, 255, 255, 0.13);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    /* ── REFINED FORM FOCUS STATES ────────────────────────────── */
+    .form-group-float input:focus,
+    .form-group-float textarea:focus {
+      border-bottom-color: var(--accent);
+      box-shadow: 0 1px 0 0 var(--accent);
+    }
+
+    /* ── CHAT WIDGET POLISH ───────────────────────────────────── */
+    .chat-widget-btn {
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 12px 36px -8px rgba(255, 107, 43, 0.5);
+    }
+
+    /* ── FOOTER REFINEMENT ────────────────────────────────────── */
+    .footer-watermark {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.005) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    /* ── FAQ REFINEMENT ───────────────────────────────────────── */
+    .faq-item.open .faq-question { color: var(--accent); }
+  </style>
+
+  <!-- ============================================================
        COMPREHENSIVE MOBILE OVERRIDES — loaded last to win cascade
        ============================================================ -->
   <style>
