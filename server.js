@@ -71,6 +71,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     reportOnly: true,
     directives: {
+      // upgrade-insecure-requests is meaningless in report-only mode and logs a
+      // browser console warning — explicitly disable it
+      upgradeInsecureRequests: null,
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
