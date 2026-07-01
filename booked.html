@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap">
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
 
   <!-- Google Analytics GA4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGWCHZ95J9"></script>
@@ -138,7 +138,7 @@
         <polyline points="20 6 9 17 4 12" />
       </svg>
     </div>
-    <h1>You're all set!</h1>
+    <h1>You're <span class="accent-serif">all set!</span></h1>
     <p class="subtext">Aria has confirmed your appointment. Check your calendar for the details.</p>
     <a href="/" class="btn">Back to Home</a>
   </div>
@@ -184,6 +184,14 @@
         padding: 2.5rem 1.5rem;
         margin: 16px;
       }
+    }
+  
+    /* ── Editorial serif accent ── */
+    h1 .accent-serif {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      letter-spacing: 0;
     }
   </style>
 </body>
