@@ -439,7 +439,14 @@ function flushBookingQueue() {
   if (bookingWriteQueue.length === 0) { bookingWriteLock = false; return; }
   bookingWriteLock = true;
   const { entries, resolve } = bookingWriteQueue.shift();
-  try { fs.writeFileSync(BOOKINGS_LOG, JSON.stringify(entries, null, 2)); } catch (e) { console.error('⚠️ Booking write error:', e.message); }
+  // Write to a temp file then rename — a crash mid-write would otherwise leave
+  // truncated JSON, which readBookings() swallows as [] and the next logBooking
+  // permanently wipes the whole history.
+  try {
+    const tmp = BOOKINGS_LOG + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(entries, null, 2));
+    fs.renameSync(tmp, BOOKINGS_LOG);
+  } catch (e) { console.error('⚠️ Booking write error:', e.message); }
   resolve();
   setImmediate(flushBookingQueue);
 }
@@ -489,6 +496,25 @@ async function ensureFreshToken() {
     } finally { tokenRefreshPromise = null; }
   })();
   return tokenRefreshPromise;
+}
+
+// Direct freebusy check for a single time range. Returns true (free), false
+// (busy), or null (couldn't verify). Needed because getAvailableSlots only
+// generates on-the-hour starts — a confirmed 2:30 slot can never match the
+// grid and would be falsely rejected as "just booked by someone else".
+async function isTimeRangeFree(startISO, endISO) {
+  try {
+    await ensureFreshToken();
+    const cal = google.calendar({ version: 'v3', auth: oauth2Client });
+    const fb = await Promise.race([
+      cal.freebusy.query({ requestBody: { timeMin: startISO, timeMax: endISO, items: [{ id: 'primary' }] } }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('freebusy timeout')), 8000))
+    ]);
+    return (fb.data.calendars.primary.busy || []).length === 0;
+  } catch (e) {
+    console.error('isTimeRangeFree failed:', e.message);
+    return null;
+  }
 }
 
 async function refreshGlobalSlotCache() {
@@ -593,11 +619,12 @@ function extractDateFromText(text) {
   const monthAbbrs = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
   const mi = monthAbbrs.findIndex(m => match[2].toLowerCase().startsWith(m));
   if (mi < 0) return null;
-  const d = getNYDateObj();
-  d.setUTCMonth(mi);
-  d.setUTCDate(parseInt(match[3]));
-  if (d < getNYDateObj()) d.setUTCFullYear(d.getUTCFullYear() + 1);
-  return d.toISOString().split('T')[0];
+  // Construct with Date.UTC — mutating with setUTCMonth-then-setUTCDate rolls
+  // over on month-end days (Jan 31 + setUTCMonth(1) = "Feb 31" = Mar 3)
+  const { year } = getNYToday();
+  let cand = new Date(Date.UTC(year, mi, parseInt(match[3])));
+  if (cand < getNYDateObj()) cand = new Date(Date.UTC(year + 1, mi, parseInt(match[3])));
+  return cand.toISOString().split('T')[0];
 }
 
 // ─── Pick one morning / afternoon / evening slot per day ─────────────────────
@@ -736,6 +763,11 @@ async function getAvailableSlots(daysWindow = 14, startFromDate = null, allHours
 async function bookAppointment({ name, email, company, phone, slotStart, slotEnd, slotLabel, notes }) {
   // Always regenerate the label from the ISO timestamp — ARIA's slotLabel text can be wrong
   slotLabel = labelFromSlotStart(slotStart);
+  // slotEnd can arrive undefined from /api/book — the insert would then create
+  // an event with end: undefined and fail every retry
+  if (!slotEnd || isNaN(Date.parse(slotEnd))) {
+    slotEnd = new Date(new Date(slotStart).getTime() + 3600000).toISOString();
+  }
 
   // ── Duplicate booking check ───────────────────────────────────────────────
   const existingBookings = readBookings();
@@ -747,11 +779,37 @@ async function bookAppointment({ name, email, company, phone, slotStart, slotEnd
   if (duplicate) {
     console.warn(`⚠️ Duplicate booking detected for ${email} at ${slotLabel} — skipping`);
     sendTelegramAlert(`⚠️ DUPLICATE BOOKING BLOCKED\nClient: ${sanitizeTg(name)} (${sanitizeTg(email)})\nSlot: ${slotLabel}\nAlready booked at this time.`);
-    return;
+    return { duplicate: true };
   }
 
-  await logBooking({ name, email, phone: phone || '', company, slotLabel, slotStart, notes });
-  scheduleNoShowRecovery({ name, email, slotStart, slotLabel });
+  // ── Conflict check — last line of defense against double-booking ──────────
+  // Callers pre-verify with getAvailableSlots, but the gap between that check
+  // and the insert below contains an AI sales-brief call that can take seconds.
+  // This check runs here, as close to the insert as practical, so two visitors
+  // confirming the same slot can no longer both get calendar events.
+  if (process.env.GOOGLE_REFRESH_TOKEN || fs.existsSync(TOKEN_PATH)) {
+    try {
+      await ensureFreshToken();
+      const conflictCal = google.calendar({ version: 'v3', auth: oauth2Client });
+      const fb = await Promise.race([
+        conflictCal.freebusy.query({
+          requestBody: { timeMin: slotStart, timeMax: slotEnd, items: [{ id: 'primary' }] }
+        }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('freebusy timeout')), 8000))
+      ]);
+      if ((fb.data.calendars.primary.busy || []).length > 0) {
+        sendTelegramAlert(`⚠️ SLOT CONFLICT BLOCKED\nClient: ${sanitizeTg(name)} (${sanitizeTg(email)})\nSlot: ${slotLabel}\nCalendar shows this time is already taken.`);
+        const conflictErr = new Error('That time slot is no longer available.');
+        conflictErr.code = 'SLOT_CONFLICT';
+        throw conflictErr;
+      }
+    } catch (e) {
+      if (e.code === 'SLOT_CONFLICT') throw e;
+      // API hiccup — don't block the booking on a failed pre-check; callers already verified
+      console.error('⚠️ Pre-insert conflict check failed (continuing):', e.message);
+    }
+  }
+
   let meetLink = null;
   let eventHtmlLink = null;
 
@@ -888,6 +946,11 @@ Industry: [their likely industry]
 
     if (!tokenRefreshOk && (!cachedAccessToken || Date.now() > tokenExpiresAt - 60000)) {
       console.error('⚠️ Skipping calendar insert — no valid token available');
+      // Fail loudly — proceeding would email the client a confirmation for a
+      // meeting that exists nowhere
+      const authErr = new Error('Calendar authorization expired.');
+      authErr.code = 'CALENDAR_FAILED';
+      throw authErr;
     } else {
 
     const structuredDesc = [
@@ -1010,9 +1073,19 @@ Industry: [their likely industry]
     }
     if (!eventData) {
       sendTelegramAlert(`🚨 ARIA CALENDAR FAILED\nNo calendar event created for booking.\nClient: ${name} (${email})\nSlot: ${slotLabel}`);
+      // Fail loudly instead of emailing a confirmation for a nonexistent meeting —
+      // callers reply "there was a problem, try again" and the retry can succeed
+      const calErr = new Error('Calendar event could not be created.');
+      calErr.code = 'CALENDAR_FAILED';
+      throw calErr;
     }
     } // end else (token available)
   }
+
+  // Log only after the calendar event actually exists — logging earlier left a
+  // phantom entry when the insert failed, which then blocked the client's retry
+  // as a "duplicate" while no event or invite existed
+  await logBooking({ name, email, phone: phone || '', company, slotLabel, slotStart, notes });
 
   const calEventUrl = eventHtmlLink || `https://calendar.google.com/calendar/r/search?q=${encodeURIComponent(name)}`;
 
@@ -1514,13 +1587,11 @@ Industry: [their likely industry]
 }
 
 // ─── No-show Recovery ─────────────────────────────────────────────────────────
-function scheduleNoShowRecovery({ name, email, slotStart, slotLabel }) {
-  const slotTime = new Date(slotStart).getTime();
-  const fireAt = slotTime + 2 * 60 * 60 * 1000; // 2h after slot starts
-  const delay = fireAt - Date.now();
-  if (delay < 0) return; // slot already passed
-
-  setTimeout(async () => {
+// Sends the "missed you — reschedule" email to a client. Only called when Danny
+// confirms a no-show via the /noshow Telegram command — the old design fired this
+// automatically 2h after EVERY booking, so clients who attended their call still
+// got "It looks like we missed each other today".
+async function sendNoShowRecoveryEmail({ name, email, slotLabel }) {
     try {
       // Fetch 3 fresh slots to offer as reschedule options
       const freshSlots = await getAvailableSlots(7, null);
@@ -1575,19 +1646,44 @@ function scheduleNoShowRecovery({ name, email, slotStart, slotLabel }) {
       });
       if (r.ok) {
         console.log(`📬 No-show recovery email sent to ${email}`);
-        sendTelegramAlert(`⚠️ NO-SHOW\n${name} (${email}) missed their ${slotLabel} call.\nRecovery email sent with 3 new slots.`);
-      } else {
-        let d;
-        try { d = await r.json(); } catch (_) { d = {}; }
-        console.error('⚠️ No-show recovery email failed:', d.message || JSON.stringify(d));
+        sendTelegramAlert(`⚠️ NO-SHOW\n${sanitizeTg(name)} (${sanitizeTg(email)}) — ${slotLabel}\nRecovery email sent with 3 new slots.`);
+        return true;
       }
+      let d;
+      try { d = await r.json(); } catch (_) { d = {}; }
+      console.error('⚠️ No-show recovery email failed:', d.message || JSON.stringify(d));
+      return false;
     } catch (e) {
       console.error('⚠️ No-show recovery error (non-fatal):', e.message);
+      return false;
     }
-  }, delay);
-
-  console.log(`⏰ No-show recovery scheduled for ${name} — fires ${new Date(fireAt).toISOString()}`);
 }
+
+// Post-call check prompt — scan-based so it survives Railway redeploys (the old
+// setTimeout version silently died on every git push). 2h after each booking's
+// start time, Danny gets a Telegram prompt; replying "/noshow <email>" sends the
+// recovery email. Nothing is ever auto-sent to the client.
+setInterval(async () => { try {
+  const bookings = readBookings();
+  const now = Date.now();
+  const due = bookings.filter(b =>
+    b.email && b.slotStart && !b.noShowPromptSent &&
+    now > new Date(b.slotStart).getTime() + 2 * 3600000 &&
+    now < new Date(b.slotStart).getTime() + 26 * 3600000 // don't prompt for ancient history
+  );
+  if (due.length === 0) return;
+  // Mark flags with a fresh read-modify-write (no awaits in between) so we don't
+  // clobber bookings logged while this tick runs
+  const current = readBookings();
+  for (const b of current) {
+    if (due.some(d => d.email === b.email && d.slotStart === b.slotStart)) b.noShowPromptSent = true;
+  }
+  await writeBookingsSafe(current);
+  for (const b of due) {
+    sendTelegramAlert(`❓ POST-CALL CHECK\n${sanitizeTg(b.name)} (${sanitizeTg(b.email)}) — ${b.slotLabel}\n\nDid they show up? If they missed it, reply:\n/noshow ${b.email}\nand I'll email them reschedule options.`);
+  }
+} catch (e) { console.error('⚠️ No-show prompt scanner error:', e.message); }
+}, 15 * 60 * 1000);
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.get('/oauth/start', adminRateLimit, (req, res) => {
@@ -1702,12 +1798,34 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
   if (name.length > 200 || email.length > 254 || (notes && notes.length > 2000)) {
     return res.status(400).json({ success: false, error: 'Input too long.' });
   }
+  // Enforce the same scheduling rules ARIA follows — without these, a direct
+  // POST could book 3 AM, weekends, or times already in the past
+  const st = new Date(slotStart);
+  if (st.getTime() < Date.now() + 4 * 3600000) {
+    return res.status(400).json({ success: false, error: 'Bookings need at least 4 hours notice.' });
+  }
+  const { hours: bookOffset } = getNYOffset(st);
+  const etTime = new Date(st.getTime() - bookOffset * 3600000);
+  const etDow = new Date(Date.UTC(etTime.getUTCFullYear(), etTime.getUTCMonth(), etTime.getUTCDate(), 12)).getUTCDay();
+  if (etDow === 0 || etDow === 6) {
+    return res.status(400).json({ success: false, error: 'Bookings are Monday through Friday only.' });
+  }
+  const etHr = etTime.getUTCHours();
+  if (etHr < 9 || etHr > 17) {
+    return res.status(400).json({ success: false, error: 'Bookings are between 9 AM and 5 PM Eastern.' });
+  }
   try {
-    await bookAppointment({ name, email, slotStart, slotEnd, slotLabel, company: company || '', phone: phone || '', notes: notes || '' });
+    const result = await bookAppointment({ name, email, slotStart, slotEnd, slotLabel, company: company || '', phone: phone || '', notes: notes || '' });
+    if (result?.duplicate) {
+      return res.json({ success: true, duplicate: true, message: 'You already have a booking at this time — check your inbox for the original invite.' });
+    }
     res.json({ success: true });
   } catch (err) {
     console.error('Book endpoint error:', err.message);
-    res.status(500).json({ success: false, error: 'Failed to complete booking. Please try again.' });
+    const msg = err.code === 'SLOT_CONFLICT'
+      ? 'That time slot is no longer available. Please pick another time.'
+      : 'Failed to complete booking. Please try again.';
+    res.status(err.code === 'SLOT_CONFLICT' ? 409 : 500).json({ success: false, error: msg });
   }
 });
 
@@ -1862,11 +1980,17 @@ app.post('/api/accept-proposal', chatRateLimit, async (req, res) => {
 app.post('/api/chat', chatRateLimit, async (req, res) => {
   try {
     const { messages, conversationId, clientTimezone } = req.body;
-    if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'Messages required' });
+    if (!messages || !Array.isArray(messages) || messages.length === 0) return res.status(400).json({ error: 'Messages required' });
     if (messages.length > 60) return res.status(400).json({ error: 'Conversation too long' });
     for (const m of messages) {
       if (!m || typeof m.content !== 'string' || m.content.length > 4000) {
         return res.status(400).json({ error: 'Invalid message format' });
+      }
+      // Only user/assistant roles — an injected "system" role would be rejected by
+      // Anthropic but silently accepted by the OpenRouter fallback, letting a
+      // crafted request override ARIA's entire system prompt.
+      if (m.role !== 'user' && m.role !== 'assistant') {
+        return res.status(400).json({ error: 'Invalid message role' });
       }
     }
     const convId = (typeof conversationId === 'string' ? conversationId : 'default').slice(0, 100);
@@ -1880,21 +2004,74 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const YES_REGEX = /^\s*(yes|yep|yup|yeah|sure|ok|okay|correct|perfect|great|absolutely|definitely|for sure|sounds good|that works|looks good|go ahead|book it|do it|lock it in|lock that in|confirmed|please|yes please|please do|please book|book that|let'?s do it|make it happen|i confirm|confirmed|book me in|set it up|done|go for it|100|👍|yeah do it|yep do it|yes do it|yeah book it|yep book it|yeah go ahead|yeah let'?s do it|yes let'?s do it|yeah let'?s go|sure do it|ok do it|ok book it|yeah please|yep please|sure thing|bet|yessir|yes sir)\s*(?:\w+)?\s*[.!?]*\s*$/i;
     const agreedEntry = agreedSlots.get(convId);
 
-    // If the user said "yes" but the slot window expired, tell them instead of silently passing to Claude
-    if (agreedEntry?.slot && YES_REGEX.test(lastUserMsgRaw.trim()) && Date.now() - agreedEntry.storedAt >= 15 * 60 * 1000) {
+    // A bare affirmation that ALSO contains hesitation/negation is not a confirmation —
+    // YES_REGEX allows one trailing word, so "ok wait", "yes no", "okay stop" would
+    // otherwise book. Those must fall through to Claude (or the stale-slot clearing below).
+    const HESITATION_REGEX = /\b(wait|hold|stop|no|not|cancel|nevermind|never\s+mind|actually|change|different|instead|but|question|hmm|maybe)\b/i;
+    const MENTIONS_TIME_REGEX = /\b\d{1,2}(?::\d{2})?\s*(am|pm)\b|\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow)\b/i;
+    const isCleanYes = YES_REGEX.test(lastUserMsgRaw.trim())
+      && !HESITATION_REGEX.test(lastUserMsgRaw)
+      && !MENTIONS_TIME_REGEX.test(lastUserMsgRaw);
+
+    // If the user said "yes" but the slot window expired, tell them and show fresh options
+    if (agreedEntry?.slot && isCleanYes && Date.now() - agreedEntry.storedAt >= 15 * 60 * 1000) {
       agreedSlots.delete(convId);
-      return res.json({ reply: "I'm sorry, that booking window has expired! Let me pull up fresh availability for you.", booked: false });
+      const freshOpts = (globalSlotCache || []).filter(s => new Date(s.start) > new Date()).slice(0, 3);
+      let reply = "I'm sorry, that booking window has expired!";
+      if (freshOpts.length > 0) {
+        reply += ` Here are some fresh times that are open:\n\n${freshOpts.map(s => s.label).join('\n')}\n\nWhich works best for you?`;
+      } else {
+        reply += " What day or time works best for you and I'll check the calendar?";
+      }
+      return res.json({ reply, booked: false });
     }
 
-    if (agreedEntry?.slot && agreedEntry?.email && YES_REGEX.test(lastUserMsgRaw.trim()) && Date.now() - agreedEntry.storedAt < 15 * 60 * 1000) {
+    if (agreedEntry?.slot && agreedEntry?.email && isCleanYes && Date.now() - agreedEntry.storedAt < 15 * 60 * 1000) {
       const { slot, name, email, company, notes } = agreedEntry;
       console.log(`🔒 Direct booking — bypassing Claude for ${convId}: ${slot.label} | ${name} | ${email}`);
-      bookAppointment({ name, email, phone: agreedEntry.phone || '', company: company || '', notes: notes || '', slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label })
-        .catch(err => console.error('Direct booking error:', err.message));
+
+      // Re-verify the slot is still free before booking — same safety as the BOOK
+      // command path. bookAppointment does NOT check freebusy itself, so skipping
+      // this would double-book Danny's calendar if the slot was taken meanwhile.
+      const exactDate = slot.start.split('T')[0];
+      const freshSlots = await getAvailableSlots(1, exactDate, true);
+      if (freshSlots === null) {
+        return res.json({ reply: "I'm having trouble verifying that time slot right now. Could you try again in a moment?", booked: false });
+      }
+      const normTZLabel = l => l.replace(/\b(EDT|EST)\b/, 'ET');
+      let freshSlot = freshSlots.find(s => s.start === slot.start || normTZLabel(s.label) === normTZLabel(slot.label));
+      // Off-hour slots (e.g. 2:30) never appear in the on-the-hour grid — verify
+      // them directly via freebusy instead of falsely reporting them taken
+      if (!freshSlot && new Date(slot.start).getUTCMinutes() !== 0) {
+        if (await isTimeRangeFree(slot.start, slot.end) === true) freshSlot = slot;
+      }
+      if (!freshSlot) {
+        agreedSlots.delete(convId);
+        if (freshSlots.length > 0) {
+          conversationSlots.set(convId, { slots: freshSlots, fetchedAt: Date.now() });
+          const alts = freshSlots.slice(0, 3).map(s => s.label).join('\n');
+          return res.json({ reply: `I'm sorry, that specific time was just booked by someone else! But here are some other times that day:\n\n${alts}\n\nWhich of those works best for you?`, booked: false });
+        }
+        conversationSlots.delete(convId);
+        return res.json({ reply: "I'm sorry, that specific time was just booked by someone else! What other day or time works for you?", booked: false });
+      }
+
+      // Await the booking so we never tell the client "all set" when it failed
+      let bookResult;
+      try {
+        bookResult = await bookAppointment({ name, email, phone: agreedEntry.phone || '', company: company || '', notes: notes || '', slotStart: freshSlot.start, slotEnd: freshSlot.end, slotLabel: freshSlot.label });
+      } catch (err) {
+        console.error('Direct booking error:', err.message);
+        sendTelegramAlert(`🚨 BOOKING FAILED (direct yes)\n${sanitizeTg(name)} (${sanitizeTg(email)}) — ${freshSlot.label}\nError: ${err.message}`);
+        return res.json({ reply: "I'm sorry, there was a problem completing your booking. Could you try again in a moment?", booked: false });
+      }
       conversationSlots.delete(convId);
       agreedSlots.delete(convId);
-      pendingLeads.delete(convId);
-      const confirmLabel = labelFromSlotStart(slot.start);
+      pendingLeads.delete(convId); savePendingLeads();
+      if (bookResult?.duplicate) {
+        return res.json({ reply: `Good news — you're already booked for that time! Your original calendar invite was sent to ${email}. Check your inbox (and spam folder). See you then!`, booked: true });
+      }
+      const confirmLabel = labelFromSlotStart(freshSlot.start);
       return res.json({ reply: `You're all set! A calendar invite will be sent to ${email} shortly. We're looking forward to speaking with you on ${confirmLabel}. See you then!`, booked: true });
     }
 
@@ -1999,10 +2176,10 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       const d = getNYDateObj(); d.setUTCDate(d.getUTCDate() + parseInt(wMatch[1]) * 7);
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7;
     } else if (lastUserMsg.match(/\bnext month\b/)) {
-      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(1);
+      const { year: nmY, month: nmM } = getNYToday(); const d = new Date(Date.UTC(nmY, nmM + 1, 1));
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 30; isMonthRange = true;
     } else if (lastUserMsg.match(/\bearly next month\b|\bbeginning of next month\b|\bstart of next month\b/)) {
-      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(1);
+      const { year: nmY, month: nmM } = getNYToday(); const d = new Date(Date.UTC(nmY, nmM + 1, 1));
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
     } else if (lastUserMsg.match(/\b(first|1st)\s+week\b/)) {
       // "first week" — look at conversation context to determine which month they mean
@@ -2012,16 +2189,16 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       // If prior slots are in the future (different month), use that month; else next month
       const refMonth = refDate > today && refDate.getUTCMonth() !== today.getUTCMonth()
         ? new Date(Date.UTC(refDate.getUTCFullYear(), refDate.getUTCMonth(), 1))
-        : (() => { const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(1); return d; })();
+        : (() => { const { year: nmY, month: nmM } = getNYToday(); const d = new Date(Date.UTC(nmY, nmM + 1, 1)); return d; })();
       searchFromDate = refMonth.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\b(second|2nd)\s+week\b/)) {
-      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(8);
+      const { year: nmY, month: nmM } = getNYToday(); const d = new Date(Date.UTC(nmY, nmM + 1, 8));
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\b(third|3rd)\s+week\b/)) {
-      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(15);
+      const { year: nmY, month: nmM } = getNYToday(); const d = new Date(Date.UTC(nmY, nmM + 1, 15));
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\b(last|final|fourth|4th)\s+week\b/)) {
-      const d = getNYDateObj(); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(22);
+      const { year: nmY, month: nmM } = getNYToday(); const d = new Date(Date.UTC(nmY, nmM + 1, 22));
       searchFromDate = d.toISOString().split('T')[0]; daysWindow = 7; isMonthRange = true;
     } else if (lastUserMsg.match(/\bin a few months?\b|\ba couple months?\b|\bin 2 months?\b/)) {
       const d = getNYDateObj(); d.setUTCDate(d.getUTCDate() + 60);
@@ -2039,20 +2216,32 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         const monthStr = dateMatch[1];
         const dayNum = parseInt(dateMatch[2] || dateMatch[3] || dateMatch[4]);
         if (dayNum >= 1 && dayNum <= 31) {
-          const d = getNYDateObj();
+          // Construct dates with Date.UTC — mutating with setUTCMonth then
+          // setUTCDate corrupts month-end days (Jan 31 → "Feb 31" → Mar 3)
+          const { year: ty, month: tm } = getNYToday();
+          const nyToday = getNYDateObj();
+          let cand = null;
           if (monthStr) {
-            d.setUTCMonth(monthNames.indexOf(monthStr));
+            // Explicit month: this year, else next year
+            const mi = monthNames.indexOf(monthStr);
+            cand = new Date(Date.UTC(ty, mi, dayNum));
+            if (cand < nyToday) cand = new Date(Date.UTC(ty + 1, mi, dayNum));
           } else {
+            // Bare day number ("the 15th"): try the month from conversation
+            // context, else this month, else NEXT MONTH — never jump a year
+            // (today July 20, "the 15th" means Aug 15, not July 15 next year)
             const prior = conversationSlots.get(convId);
             if (prior?.slots?.length > 0) {
               const ref = new Date(prior.slots[0].start);
-              const candidate = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), dayNum));
-              if (candidate > getNYDateObj()) { d.setUTCFullYear(ref.getUTCFullYear()); d.setUTCMonth(ref.getUTCMonth()); }
+              const c = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), dayNum));
+              if (c >= nyToday) cand = c;
+            }
+            if (!cand) {
+              const c = new Date(Date.UTC(ty, tm, dayNum));
+              cand = c >= nyToday ? c : new Date(Date.UTC(ty, tm + 1, dayNum));
             }
           }
-          d.setUTCDate(dayNum);
-          if (d < getNYDateObj()) d.setUTCFullYear(d.getUTCFullYear() + 1);
-          searchFromDate = d.toISOString().split('T')[0]; daysWindow = 3;
+          searchFromDate = cand.toISOString().split('T')[0]; daysWindow = 3;
         }
       } else {
         // Day of week: "monday", "tuesday", etc.
@@ -2071,9 +2260,11 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
           // Month only: "in March", "March"
           for (const [i, month] of monthNames.entries()) {
             if (lastUserMsg.includes(month)) {
-              const d = getNYDateObj(); d.setUTCMonth(i);
-              if (d < getNYDateObj()) d.setUTCFullYear(d.getUTCFullYear() + 1);
-              d.setUTCDate(1);
+              const { year: moY, month: moM, date: moD } = getNYToday();
+              let d;
+              if (i === moM) d = new Date(Date.UTC(moY, i, moD + 1));      // current month → from tomorrow
+              else if (i < moM) d = new Date(Date.UTC(moY + 1, i, 1));     // past month → next year
+              else d = new Date(Date.UTC(moY, i, 1));                      // future month this year
               searchFromDate = d.toISOString().split('T')[0]; daysWindow = 14; isMonthRange = true;
               break;
             }
@@ -2190,15 +2381,35 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       const ampm   = requestedTime.hr >= 12 ? 'PM' : 'AM';
       const minStr = String(requestedTime.min).padStart(2, '0');
 
-      if (dateToCheck) {
+      // Business hours guard: Danny takes calls 9 AM – 5 PM ET starts, Mon–Fri.
+      // Without this, "7pm" gets freebusy-confirmed (calendar is merely not busy)
+      // and — worse — 19:00+5h = 24 used to roll % 24 back to midnight of the SAME
+      // date string, checking (and booking) the wrong day entirely.
+      const outsideHours = requestedTime.hr < 9 || requestedTime.hr > 17;
+      const reqDow = dateToCheck ? new Date(dateToCheck + 'T12:00:00').getDay() : -1;
+      const onWeekend = reqDow === 0 || reqDow === 6;
+
+      if (outsideHours || onWeekend) {
+        freebusyNote = `The client asked for ${hour12}:${minStr} ${ampm}${onWeekend ? ' on a weekend' : ''} — that is OUTSIDE business hours. Danny takes calls Monday–Friday, 9 AM to 5 PM Eastern. Politely tell them that and offer 2-3 alternatives from the slot list below. Do NOT confirm the requested time.`;
+        console.log('⛔ Requested time outside business hours:', requestedTime.hr, dateToCheck);
+      } else if (dateToCheck) {
+        const { hours: offsetHours, abbr } = getNYOffset(new Date(dateToCheck + 'T12:00:00'));
+        // Add the offset in milliseconds so late-evening ET times roll into the
+        // next UTC day correctly instead of wrapping back to the same date's midnight
+        const slotStart = new Date(Date.parse(dateToCheck + 'T00:00:00.000Z')
+          + (requestedTime.hr + offsetHours) * 3600000 + requestedTime.min * 60000);
+        const slotEnd   = new Date(slotStart.getTime() + 3600000);
+
+        // Enforce the same 4-hour notice rule the slot generator uses —
+        // today's date passes date validation, so "2pm" said at 1pm would
+        // otherwise get confirmed and booked with an hour's notice (or in the past)
+        if (slotStart.getTime() < Date.now() + 4 * 3600000) {
+          freebusyNote = `The client asked for ${hour12}:${minStr} ${ampm}, but that time is in the past or less than 4 hours away. Bookings need at least 4 hours notice. Tell them that time is too soon and offer 2-3 alternatives from the slot list below.`;
+          console.log('⛔ Requested time too soon:', slotStart.toISOString());
+        } else {
         try {
           // Always refresh token before freebusy — stored-slot path skips getAvailableSlots
           await ensureFreshToken();
-
-          const { hours: offsetHours, abbr } = getNYOffset(new Date(dateToCheck + 'T12:00:00'));
-          const utcHr = requestedTime.hr + offsetHours;
-          const slotStart = new Date(`${dateToCheck}T${String(utcHr % 24).padStart(2,'0')}:${minStr}:00.000Z`);
-          const slotEnd   = new Date(slotStart.getTime() + 3600000);
 
           const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
           const fbRes = await calendar.freebusy.query({
@@ -2225,6 +2436,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
           console.error('Freebusy check failed:', e.message);
           // Don't let ARIA say "not available" on an API error — stay neutral
           freebusyNote = `The client requested ${hour12}:${minStr} ${ampm}. The calendar check had a momentary issue. Tell them: "I want to make sure that time works — could you also confirm which date you had in mind so I can lock it in?" Do NOT say the time is unavailable.`;
+        }
         }
       }
     }
@@ -2465,9 +2677,15 @@ ${slotsText}`;
     aiReplyText = aiReplyText.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1')
       .replace(/^#{1,6}\s+/gm, '').replace(/^\*\s+/gm, '- ');
 
-    // Track confirmation phrase — store slot + full booking data so server can book directly on yes
+    // Track confirmation phrase — store slot + full booking data so server can book directly on yes.
+    // Require the actual booking-confirmation template, not just "just to confirm" — ARIA also says
+    // "Just to confirm — is that 3pm Eastern Time...?" for timezone questions, and arming on that
+    // made a bare "yes" answer book a slot the user never agreed to.
     const lowerReply = aiReplyText.toLowerCase();
-    if (lowerReply.includes('just to confirm') || lowerReply.includes("i'm booking")) {
+    const isBookingConfirmation = lowerReply.includes("i'm booking")
+      || lowerReply.includes('i am booking')
+      || (lowerReply.includes('just to confirm') && lowerReply.includes('shall i go ahead'));
+    if (isBookingConfirmation) {
       const activeSlots = conversationSlots.get(convId)?.slots || slots || [];
       // Normalize timezone abbreviations so EDT/EST/ET all match
       const normTZ = s => s.replace(/\b(EDT|EST|ET)\b/gi, 'ET');
@@ -2559,6 +2777,14 @@ ${slotsText}`;
         if (agreedSlots.size >= 500) { const oldest = [...agreedSlots.entries()].sort((a,b) => a[1].storedAt - b[1].storedAt)[0]; if (oldest) agreedSlots.delete(oldest[0]); }
         agreedSlots.set(convId, { slot: matchedSlot, storedAt: Date.now(), name: confirmedName, email: confirmedEmail, phone: confirmedPhone, company: confirmedCompany, notes: userMsgs });
         console.log(`📌 Agreed slot stored: ${matchedSlot.label} | name="${confirmedName}" email="${confirmedEmail}" company="${confirmedCompany}"`);
+
+        // Copy the extracted name onto the pending lead — without it the
+        // abandoned-chat follow-up greets "Hey there," and /leads shows "Unknown"
+        const lead = pendingLeads.get(convId);
+        if (lead && confirmedName && !lead.name) {
+          pendingLeads.set(convId, { ...lead, name: confirmedName });
+          savePendingLeads();
+        }
       }
     }
 
@@ -2588,9 +2814,14 @@ ${slotsText}`;
       let slot = null;
       let matchMethod = '';
 
-      // Priority 1: agreed slot stored at confirmation step
+      // Priority 1: agreed slot stored at confirmation step — but only when it
+      // agrees with (or Claude omitted) the BOOK command's slotStart, and only
+      // within the same 15-min window the direct-yes path enforces. A stale
+      // agreedSlot must not silently override the slot the user just confirmed.
       const agreedEntry = agreedSlots.get(convId);
-      if (agreedEntry?.slot) {
+      if (agreedEntry?.slot
+          && Date.now() - agreedEntry.storedAt < 15 * 60 * 1000
+          && (!bookData.slotStart || agreedEntry.slot.start === bookData.slotStart)) {
         slot = agreedEntry.slot;
         matchMethod = 'Agreed Slot Map';
         console.log(`📌 Using agreedSlot: ${slot.label}`);
@@ -2628,11 +2859,17 @@ ${slotsText}`;
         const exactDate = slot.start.split('T')[0];
         const freshSlots = await getAvailableSlots(1, exactDate, true);
         const normalizeLabel = l => l.replace(/\b(EDT|EST)\b/, 'ET');
-        const freshSlot = freshSlots ? freshSlots.find(s => s.start === slot.start || normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
+        let freshSlot = freshSlots ? freshSlots.find(s => s.start === slot.start || normalizeLabel(s.label) === normalizeLabel(slot.label)) : null;
 
         // Block if calendar API failed — can't verify, fail safe
         if (freshSlots === null) {
           return res.json({ reply: "I'm having trouble verifying that time slot right now. Could you try again in a moment?", booked: false });
+        }
+
+        // Off-hour slots (e.g. 2:30) never appear in the on-the-hour grid —
+        // verify them directly via freebusy instead of falsely reporting taken
+        if (!freshSlot && new Date(slot.start).getUTCMinutes() !== 0) {
+          if (await isTimeRangeFree(slot.start, slot.end) === true) freshSlot = slot;
         }
 
         // Block if slot not found in fresh data — taken or no longer available (applies to all match methods including direct fallback)
@@ -2659,8 +2896,9 @@ ${slotsText}`;
 
         console.log(`📌 Booking confirmed: ${slot.label} | method: ${matchMethod} (Fresh Confirmed)`);
         // Await booking so we know it succeeded before telling the client
+        let bookResult;
         try {
-          await bookAppointment({
+          bookResult = await bookAppointment({
             name: bookData.name, email: bookData.email, company: bookData.company,
             phone: bookData.phone || '', notes: bookData.notes, slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label
           });
@@ -2675,6 +2913,9 @@ ${slotsText}`;
       }
 
       aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
+      if (bookResult?.duplicate) {
+        return res.json({ reply: `Good news — you're already booked for that time! Your original calendar invite was sent to ${bookData.email}. Check your inbox (and spam folder). See you then!`, booked: true });
+      }
       return res.json({ reply: aiReplyText, booked: true });
     }
 
@@ -2766,6 +3007,7 @@ setInterval(async () => { try {
   const WINDOW = 6 * 60 * 1000; // ±6 min window
   let updated = false;
 
+  const sentFlags = []; // { email, slotStart, field }
   for (const booking of bookings) {
     if (!booking.email || !booking.slotStart) continue;
     const timeUntil = new Date(booking.slotStart).getTime() - now;
@@ -2773,15 +3015,26 @@ setInterval(async () => { try {
 
     if (!booking.reminded24h && Math.abs(timeUntil - 24 * 3600000) < WINDOW) {
       await sendReminderEmail(booking, '24h');
-      booking.reminded24h = true; updated = true;
+      sentFlags.push({ email: booking.email, slotStart: booking.slotStart, field: 'reminded24h' });
+      updated = true;
     }
     if (!booking.reminded1h && Math.abs(timeUntil - 3600000) < WINDOW) {
       await sendReminderEmail(booking, '1h');
-      booking.reminded1h = true; updated = true;
+      sentFlags.push({ email: booking.email, slotStart: booking.slotStart, field: 'reminded1h' });
+      updated = true;
     }
   }
   if (updated) {
-    try { await writeBookingsSafe(bookings); } catch (e) {
+    // Re-read before writing — the email sends above take seconds, and writing
+    // the stale snapshot would erase any booking logged in the meantime
+    try {
+      const current = readBookings();
+      for (const f of sentFlags) {
+        const match = current.find(b => b.email === f.email && b.slotStart === f.slotStart);
+        if (match) match[f.field] = true;
+      }
+      await writeBookingsSafe(current);
+    } catch (e) {
       console.error('⚠️ Failed to update bookings log after reminder:', e.message);
     }
   }
@@ -3053,8 +3306,27 @@ app.post('/telegram-webhook', chatRateLimit, async (req, res) => {
     const lines = leads.slice(0, 5).map(l => `• ${l.name || 'Unknown'} — ${l.email}`).join('\n') || 'None';
     await reply(`👀 ACTIVE LEADS (not yet booked)\n\n${lines}`);
 
+  } else if (text.startsWith('/noshow')) {
+    const targetEmail = text.replace('/noshow', '').trim();
+    if (!targetEmail || !targetEmail.includes('@')) {
+      await reply('Usage: /noshow client@email.com\n(the email from the post-call check message)');
+      return;
+    }
+    const bookings = readBookings();
+    const past = bookings
+      .filter(b => b.email?.toLowerCase() === targetEmail && new Date(b.slotStart) < new Date())
+      .sort((a, b) => new Date(b.slotStart) - new Date(a.slotStart));
+    if (past.length === 0) {
+      await reply(`No past booking found for ${targetEmail}.`);
+      return;
+    }
+    const booking = past[0];
+    await reply(`📬 Sending reschedule email to ${booking.name} (${booking.email}) for the missed ${booking.slotLabel} call...`);
+    const sent = await sendNoShowRecoveryEmail(booking);
+    if (!sent) await reply('❌ Recovery email failed to send — check the logs.');
+
   } else if (text === '/help') {
-    await reply('ARIA Bot Commands:\n\n/test — full system health check\n/bookings — upcoming bookings\n/leads — active unconverted leads\n/help — this message');
+    await reply('ARIA Bot Commands:\n\n/test — full system health check\n/bookings — upcoming bookings\n/leads — active unconverted leads\n/noshow <email> — send reschedule email to a no-show\n/help — this message');
   }
 });
 

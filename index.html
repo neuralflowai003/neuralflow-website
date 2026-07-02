@@ -7381,10 +7381,13 @@
       chatWindow.style.bottom = '';
     });
 
+    let chatPending = false; // serialize sends — a 2nd message mid-flight would interleave history
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (chatPending) return;
       const text = chatInput.value.trim();
       if (!text) return;
+      chatPending = true;
 
       appendMessage('user', text);
       conversationHistory.push({ role: 'user', content: text });
@@ -7423,7 +7426,11 @@
           appendMessage('aria', "Sorry, I'm having a brief technical issue. Please try again in a moment, or email danny@neuralflowai.io and we'll get back to you shortly!");
         }
       };
-      await sendMessage();
+      try {
+        await sendMessage();
+      } finally {
+        chatPending = false;
+      }
     });
 
     // ------------------- ARIA nudge (5s, once per session) -------------------
