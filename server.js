@@ -1868,6 +1868,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
       if (!m || typeof m.content !== 'string' || m.content.length > 4000) {
         return res.status(400).json({ error: 'Invalid message format' });
       }
+      // Only user/assistant roles — an injected "system" role would be rejected by
+      // Anthropic but silently accepted by the OpenRouter fallback, letting a
+      // crafted request override ARIA's entire system prompt.
+      if (m.role !== 'user' && m.role !== 'assistant') {
+        return res.status(400).json({ error: 'Invalid message role' });
+      }
     }
     const convId = (typeof conversationId === 'string' ? conversationId : 'default').slice(0, 100);
 
@@ -1880,21 +1886,65 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
     const YES_REGEX = /^\s*(yes|yep|yup|yeah|sure|ok|okay|correct|perfect|great|absolutely|definitely|for sure|sounds good|that works|looks good|go ahead|book it|do it|lock it in|lock that in|confirmed|please|yes please|please do|please book|book that|let'?s do it|make it happen|i confirm|confirmed|book me in|set it up|done|go for it|100|👍|yeah do it|yep do it|yes do it|yeah book it|yep book it|yeah go ahead|yeah let'?s do it|yes let'?s do it|yeah let'?s go|sure do it|ok do it|ok book it|yeah please|yep please|sure thing|bet|yessir|yes sir)\s*(?:\w+)?\s*[.!?]*\s*$/i;
     const agreedEntry = agreedSlots.get(convId);
 
-    // If the user said "yes" but the slot window expired, tell them instead of silently passing to Claude
-    if (agreedEntry?.slot && YES_REGEX.test(lastUserMsgRaw.trim()) && Date.now() - agreedEntry.storedAt >= 15 * 60 * 1000) {
+    // A bare affirmation that ALSO contains hesitation/negation is not a confirmation —
+    // YES_REGEX allows one trailing word, so "ok wait", "yes no", "okay stop" would
+    // otherwise book. Those must fall through to Claude (or the stale-slot clearing below).
+    const HESITATION_REGEX = /\b(wait|hold|stop|no|not|cancel|nevermind|never\s+mind|actually|change|different|instead|but|question|hmm|maybe)\b/i;
+    const MENTIONS_TIME_REGEX = /\b\d{1,2}(?::\d{2})?\s*(am|pm)\b|\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow)\b/i;
+    const isCleanYes = YES_REGEX.test(lastUserMsgRaw.trim())
+      && !HESITATION_REGEX.test(lastUserMsgRaw)
+      && !MENTIONS_TIME_REGEX.test(lastUserMsgRaw);
+
+    // If the user said "yes" but the slot window expired, tell them and show fresh options
+    if (agreedEntry?.slot && isCleanYes && Date.now() - agreedEntry.storedAt >= 15 * 60 * 1000) {
       agreedSlots.delete(convId);
-      return res.json({ reply: "I'm sorry, that booking window has expired! Let me pull up fresh availability for you.", booked: false });
+      const freshOpts = (globalSlotCache || []).filter(s => new Date(s.start) > new Date()).slice(0, 3);
+      let reply = "I'm sorry, that booking window has expired!";
+      if (freshOpts.length > 0) {
+        reply += ` Here are some fresh times that are open:\n\n${freshOpts.map(s => s.label).join('\n')}\n\nWhich works best for you?`;
+      } else {
+        reply += " What day or time works best for you and I'll check the calendar?";
+      }
+      return res.json({ reply, booked: false });
     }
 
-    if (agreedEntry?.slot && agreedEntry?.email && YES_REGEX.test(lastUserMsgRaw.trim()) && Date.now() - agreedEntry.storedAt < 15 * 60 * 1000) {
+    if (agreedEntry?.slot && agreedEntry?.email && isCleanYes && Date.now() - agreedEntry.storedAt < 15 * 60 * 1000) {
       const { slot, name, email, company, notes } = agreedEntry;
       console.log(`🔒 Direct booking — bypassing Claude for ${convId}: ${slot.label} | ${name} | ${email}`);
-      bookAppointment({ name, email, phone: agreedEntry.phone || '', company: company || '', notes: notes || '', slotStart: slot.start, slotEnd: slot.end, slotLabel: slot.label })
-        .catch(err => console.error('Direct booking error:', err.message));
+
+      // Re-verify the slot is still free before booking — same safety as the BOOK
+      // command path. bookAppointment does NOT check freebusy itself, so skipping
+      // this would double-book Danny's calendar if the slot was taken meanwhile.
+      const exactDate = slot.start.split('T')[0];
+      const freshSlots = await getAvailableSlots(1, exactDate, true);
+      if (freshSlots === null) {
+        return res.json({ reply: "I'm having trouble verifying that time slot right now. Could you try again in a moment?", booked: false });
+      }
+      const normTZLabel = l => l.replace(/\b(EDT|EST)\b/, 'ET');
+      const freshSlot = freshSlots.find(s => s.start === slot.start || normTZLabel(s.label) === normTZLabel(slot.label));
+      if (!freshSlot) {
+        agreedSlots.delete(convId);
+        if (freshSlots.length > 0) {
+          conversationSlots.set(convId, { slots: freshSlots, fetchedAt: Date.now() });
+          const alts = freshSlots.slice(0, 3).map(s => s.label).join('\n');
+          return res.json({ reply: `I'm sorry, that specific time was just booked by someone else! But here are some other times that day:\n\n${alts}\n\nWhich of those works best for you?`, booked: false });
+        }
+        conversationSlots.delete(convId);
+        return res.json({ reply: "I'm sorry, that specific time was just booked by someone else! What other day or time works for you?", booked: false });
+      }
+
+      // Await the booking so we never tell the client "all set" when it failed
+      try {
+        await bookAppointment({ name, email, phone: agreedEntry.phone || '', company: company || '', notes: notes || '', slotStart: freshSlot.start, slotEnd: freshSlot.end, slotLabel: freshSlot.label });
+      } catch (err) {
+        console.error('Direct booking error:', err.message);
+        sendTelegramAlert(`🚨 BOOKING FAILED (direct yes)\n${sanitizeTg(name)} (${sanitizeTg(email)}) — ${freshSlot.label}\nError: ${err.message}`);
+        return res.json({ reply: "I'm sorry, there was a problem completing your booking. Could you try again in a moment?", booked: false });
+      }
       conversationSlots.delete(convId);
       agreedSlots.delete(convId);
-      pendingLeads.delete(convId);
-      const confirmLabel = labelFromSlotStart(slot.start);
+      pendingLeads.delete(convId); savePendingLeads();
+      const confirmLabel = labelFromSlotStart(freshSlot.start);
       return res.json({ reply: `You're all set! A calendar invite will be sent to ${email} shortly. We're looking forward to speaking with you on ${confirmLabel}. See you then!`, booked: true });
     }
 
