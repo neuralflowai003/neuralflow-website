@@ -264,7 +264,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://www.googletagmanager.com">
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet">
 
   <style>
@@ -2934,24 +2934,56 @@
     <canvas id="neuralCanvas" aria-hidden="true"></canvas>
 
     <div class="container hero-content">
-      <div class="badge reveal">
-        <div class="badge-dot"></div>
-        Available For New Clients
+      <div class="hero-copy">
+        <div class="badge reveal">
+          <div class="badge-dot"></div>
+          Available For New Clients
+        </div>
+
+        <h1 class="hero-headline">
+          <span class="line-1" id="kin-1">More Leads. Less Work.</span>
+          <span class="line-2" id="kin-2">Powered by AI.</span>
+        </h1>
+
+        <div class="typewriter-wrap reveal" style="transition-delay: 0.4s;">
+          We drive revenue with <span id="tw-text" class="typewriter-text">AI Automation</span>
+          <noscript>, SEO &amp; Search, Workflow Optimization, Lead Generation, and AI Agents</noscript>
+        </div>
+
+        <div class="hero-ctas reveal" style="transition-delay: 0.6s;">
+          <button onclick="if(typeof toggleChat==='function')toggleChat();" class="btn btn-solid magnetic" data-strength="50" style="cursor:pointer;border:none;">Get Your Free Growth Plan</button>
+          <a href="#seo" class="btn btn-ghost magnetic" data-strength="40">See How We Rank You #1</a>
+        </div>
+
+        <div class="hero-term reveal" style="transition-delay: 0.85s;" aria-hidden="true">
+          <span class="term-prompt">$</span>
+          <span>aria --status</span>
+          <span class="term-prompt">→</span>
+          <span class="term-value" id="heroTermValue">online · booking calls 24/7</span>
+          <span class="term-cursor"></span>
+          <span style="margin-left:14px;">press <kbd class="keycap">A</kbd> to chat</span>
+        </div>
       </div>
 
-      <h1 class="hero-headline">
-        <span class="line-1" id="kin-1">More Leads. Less Work.</span>
-        <span class="line-2" id="kin-2">Powered by AI.</span>
-      </h1>
-
-      <div class="typewriter-wrap reveal" style="transition-delay: 0.4s;">
-        We drive revenue with <span id="tw-text" class="typewriter-text">AI Automation</span>
-        <noscript>, SEO &amp; Search, Workflow Optimization, Lead Generation, and AI Agents</noscript>
-      </div>
-
-      <div class="hero-ctas reveal" style="transition-delay: 0.6s;">
-        <button onclick="if(typeof toggleChat==='function')toggleChat();" class="btn btn-solid magnetic" data-strength="50" style="cursor:pointer;border:none;">Get Your Free Growth Plan</button>
-        <a href="#seo" class="btn btn-ghost magnetic" data-strength="40">See How We Rank You #1</a>
+      <!-- LIVE PRODUCT CARD — ARIA in the hero -->
+      <div class="hero-aria-card reveal" style="transition-delay: 0.5s;" onclick="if(typeof toggleChat==='function'&&!isChatOpen)toggleChat();" role="button" tabindex="0" aria-label="Open a live chat with ARIA, our AI receptionist"
+           onkeydown="if(event.key==='Enter'&&typeof toggleChat==='function'&&!isChatOpen)toggleChat();">
+        <div class="hac-glow" aria-hidden="true"></div>
+        <div class="hac-window">
+          <div class="hac-header">
+            <div class="hac-avatar">A</div>
+            <div>
+              <div class="hac-name">ARIA</div>
+              <div class="hac-role">AI Receptionist — this is the product</div>
+            </div>
+            <span class="live-chip" style="margin-left:auto;">Live</span>
+          </div>
+          <div class="hac-messages" id="hacMessages" aria-hidden="true"></div>
+          <div class="hac-input">
+            <span>Click to ask ARIA anything…</span>
+            <div class="hac-send">→</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -3236,7 +3268,7 @@
   <section class="stats-section">
     <div class="container">
       <div class="reveal" style="text-align:center;margin-bottom:64px;">
-        <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">By the Numbers</div>
+        <div class="eyebrow-mono" data-num="01">By the Numbers</div>
         <h2 class="section-title" style="margin:0 auto 16px;">Proof over promises.</h2>
         <p class="section-desc" style="margin:0 auto;">Real outcomes from real businesses we've helped grow.</p>
       </div>
@@ -3426,7 +3458,7 @@
   <section class="section" id="services">
     <div class="container">
       <div class="reveal" style="text-align:center;">
-        <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">What We Do</div>
+        <div class="eyebrow-mono" data-num="02">What We Do</div>
       </div>
       <h2 class="section-title reveal">How We Grow Your Business.</h2>
       <p class="section-desc reveal" style="transition-delay: 0.1s;">We assess your operations, identify what's costing you time and money,
@@ -3621,7 +3653,7 @@
 
       <!-- Left: copy -->
       <div class="reveal">
-        <div class="aria-demo-eyebrow">Live Demo</div>
+        <div class="eyebrow-mono" data-num="03">ARIA<span class="live-chip">Live</span></div>
         <h2 class="aria-demo-headline">Books appointments.<br>Qualifies leads.<br>Never sleeps.</h2>
         <p class="aria-demo-sub">ARIA handles your inbound calls, texts, and web chats around the clock — booking real appointments straight into your calendar without you lifting a finger. Watch a real conversation.</p>
         <button class="aria-demo-cta" onclick="if(typeof toggleChat==='function')toggleChat();">Talk to the Real ARIA →</button>
@@ -3983,7 +4015,7 @@
 
   <section class="seo-demo-section" id="seo">
     <div class="container" style="text-align:center;margin-bottom:40px;">
-      <div class="reveal" style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">SEO & AI Search</div>
+      <div class="reveal eyebrow-mono" data-num="04">SEO &amp; AI Search</div>
       <h2 class="section-title reveal">If They Can't Find You,<br>They Can't Pay You.</h2>
       <p class="section-desc reveal" style="margin-bottom:0;">75% of people never scroll past page 1. If your business isn't ranking, your competitors are getting the calls, the leads, and the revenue that should be yours.</p>
     </div>
@@ -4865,7 +4897,7 @@
   </style>
   <section class="showcase-section" id="work">
     <div class="container" style="text-align:center;">
-      <div class="build-eyebrow reveal">What We Deliver</div>
+      <div class="eyebrow-mono reveal" data-num="05">What We Deliver</div>
       <h2 class="section-title reveal">Tools That Grow Your Business.</h2>
       <p class="section-desc reveal" style="transition-delay:0.1s;">Custom-built systems tailored to your industry, your workflow, and your growth goals.</p>
     </div>
@@ -5683,7 +5715,7 @@
   <section class="hiw-section section" id="process">
     <div class="container">
       <div class="reveal" style="text-align:center;margin-bottom:12px;">
-        <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;">How It Works</div>
+        <div class="eyebrow-mono" data-num="06">How It Works</div>
       </div>
       <h2 class="section-title reveal">The Methodology.</h2>
       <p class="section-desc reveal" style="text-align:center;margin:0 auto 0;">Three phases. Zero fluff. Real results.
@@ -6205,7 +6237,7 @@
   </style>
   <section class="proof-section">
     <div class="container">
-      <div class="proof-label reveal">⭐ What Clients Are Saying</div>
+      <div class="eyebrow-mono reveal" data-num="07">What Clients Are Saying</div>
       <div class="quotes-ticker-wrap reveal">
         <div class="quotes-ticker-track">
           <span class="qtick">"ROI in 3 weeks."</span>
@@ -6453,7 +6485,7 @@
   <section class="about-section section" id="about">
     <div class="container">
       <div class="about-top reveal">
-        <div class="about-eyebrow">Our Story</div>
+        <div class="eyebrow-mono" data-num="08">Our Story</div>
         <h2>Your AI<br><span class="about-bold-gradient">Growth Partner.</span></h2>
         <div class="about-divider"></div>
         <p>NeuralFlow was founded by <strong>Danny Boehmer</strong> with one mission: help businesses make more money.
@@ -6558,7 +6590,7 @@
   <section class="faq-section" id="faq">
     <div class="container">
       <div class="reveal" style="text-align:center;">
-        <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:rgba(255,107,43,0.08);border:1px solid rgba(255,107,43,0.2);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#FF6B2B;margin-bottom:20px;">FAQ</div>
+        <div class="eyebrow-mono" data-num="09">FAQ</div>
       </div>
       <h2 class="section-title reveal" style="margin-bottom:60px;">Questions We Get Asked.</h2>
       <div class="faq-grid">
@@ -6728,6 +6760,13 @@
   <footer>
     <div class="footer-glow-line" aria-hidden="true"></div>
     <div class="footer-watermark">NEURALFLOW</div>
+
+    <!-- Mega CTA -->
+    <div class="footer-mega">
+      <a href="#contact">Let's build <em>something.</em> <span class="mega-arrow">→</span></a>
+      <div class="footer-mega-sub">Free strategy call · Response within 24 hours</div>
+    </div>
+
     <div class="container footer-content">
       <div class="footer-brand">
         <div class="logo">Neural<span>Flow</span></div>
@@ -6746,6 +6785,13 @@
           <a href="tel:+18627019030" style="font-size:0.78rem;letter-spacing:0.08em;color:#888899;text-decoration:none;" onmouseover="this.style.color='#FF6B2B'" onmouseout="this.style.color='#888899'">📞 Call or Text &middot; (862) 701-9030</a>
         </div>
       </div>
+    </div>
+    <div class="footer-meta">
+      <span class="meta-dot-green">All systems operational</span>
+      <span class="meta-sep">/</span>
+      <span id="footerClock">Bayonne, NJ</span>
+      <span class="meta-sep">/</span>
+      <span>ARIA answering 24/7</span>
     </div>
     <div class="container footer-bottom">
       <div>&copy; <span id="year"></span> NeuralFlow.</div>
@@ -8241,6 +8287,519 @@
       .stat-box:nth-child(4) .stat-number-wrap { margin-bottom: 0; }
       .stat-box:nth-child(4) .stat-bar-bg { width: 150px; margin-bottom: 0; }
     }
+  </style>
+
+  <!-- KEYBOARD UX + LIVE STATUS -->
+  <script>
+  (function() {
+    // ── Press "A" to open ARIA, Escape to close ──
+    document.addEventListener('keydown', function(e) {
+      var tag = (document.activeElement?.tagName || '').toLowerCase();
+      var typing = tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable;
+      if (e.key === 'Escape' && typeof isChatOpen !== 'undefined' && isChatOpen && typeof toggleChat === 'function') {
+        toggleChat();
+        return;
+      }
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if ((e.key === 'a' || e.key === 'A') && typeof isChatOpen !== 'undefined' && !isChatOpen && typeof toggleChat === 'function') {
+        e.preventDefault();
+        toggleChat();
+      }
+    });
+
+    // ── Footer clock: live local time in Bayonne, NJ (ET) ──
+    var clockEl = document.getElementById('footerClock');
+    function tickClock() {
+      if (!clockEl) return;
+      try {
+        var t = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date());
+        clockEl.textContent = 'Bayonne, NJ — ' + t + ' ET';
+      } catch (e) {}
+    }
+    tickClock();
+    setInterval(tickClock, 30000);
+
+    // ── Hero ARIA product card — auto-playing conversation loop ──
+    (function() {
+      var box = document.getElementById('hacMessages');
+      if (!box) return;
+      var SCRIPT = [
+        { from: 'aria', text: "Hi! I'm ARIA 👋 I answer every visitor on this site — 24/7." },
+        { from: 'user', text: 'Can you book me a call with Danny?' },
+        { from: 'aria', text: 'Of course. Tomorrow at 2:00 PM, or Thursday at 10:30 AM?' },
+        { from: 'user', text: 'Tomorrow at 2 works.' },
+        { from: 'aria', text: '✓ Booked! Calendar invite is on its way to your inbox.' }
+      ];
+      var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced) {
+        // Static render for reduced motion
+        SCRIPT.slice(0, 3).forEach(function(m) {
+          var el = document.createElement('div');
+          el.className = 'hac-msg from-' + m.from;
+          el.textContent = m.text;
+          box.appendChild(el);
+        });
+        return;
+      }
+      var i = 0;
+      var typingEl = null;
+      function showTyping() {
+        typingEl = document.createElement('div');
+        typingEl.className = 'hac-typing';
+        typingEl.innerHTML = '<i></i><i></i><i></i>';
+        box.appendChild(typingEl);
+        trim();
+      }
+      function hideTyping() {
+        if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+        typingEl = null;
+      }
+      function trim() {
+        while (box.children.length > 4) box.removeChild(box.firstChild);
+      }
+      function step() {
+        if (i >= SCRIPT.length) {
+          // Hold the booked state, then clear and restart
+          setTimeout(function() {
+            box.innerHTML = '';
+            i = 0;
+            setTimeout(step, 600);
+          }, 3800);
+          return;
+        }
+        var m = SCRIPT[i];
+        var typeDelay = m.from === 'aria' ? 900 : 650;
+        if (m.from === 'aria') showTyping();
+        setTimeout(function() {
+          hideTyping();
+          var el = document.createElement('div');
+          el.className = 'hac-msg from-' + m.from;
+          el.textContent = m.text;
+          box.appendChild(el);
+          trim();
+          i++;
+          setTimeout(step, m.from === 'user' ? 500 : 1300);
+        }, typeDelay);
+      }
+      // Start once the card scrolls into view (it's in the hero, so ~immediately)
+      setTimeout(step, 1400);
+    })();
+
+    // ── Hero terminal status rotation ──
+    var termEl = document.getElementById('heroTermValue');
+    if (termEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      var statuses = [
+        'online · booking calls 24/7',
+        'qualifying leads while you sleep',
+        'synced with google calendar',
+        'avg response time: 1.2s'
+      ];
+      var si = 0;
+      setInterval(function() {
+        si = (si + 1) % statuses.length;
+        termEl.style.opacity = '0';
+        setTimeout(function() { termEl.textContent = statuses[si]; termEl.style.opacity = '1'; }, 300);
+      }, 5000);
+      termEl.style.transition = 'opacity 0.3s';
+    }
+  })();
+  </script>
+
+  <!-- ============================================================
+       DESIGN SYSTEM COHESION LAYER — terminal labels, keyboard UX,
+       live status, agency footer
+       ============================================================ -->
+  <style>
+    /* ── PRODUCT-FIRST SPLIT HERO ─────────────────────────────── */
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+    }
+    .hero-aria-card { display: none; }
+
+    @media (min-width: 1100px) {
+      .hero-content {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 56px;
+        align-items: center;
+        text-align: left;
+      }
+      .hero-copy { align-items: flex-start; text-align: left; }
+      .hero-headline {
+        text-align: left;
+        white-space: normal;
+        font-size: clamp(2.6rem, 3.6vw, 4.4rem);
+      }
+      .hero-headline .line-1 { font-size: clamp(2.6rem, 3.9vw, 4.8rem); letter-spacing: -3px; }
+      .typewriter-wrap { justify-content: flex-start; }
+      .hero-ctas { justify-content: flex-start; }
+      .hero-term { justify-content: flex-start; }
+
+      /* Calm the atmosphere so the type and product own the frame */
+      #neuralCanvas { opacity: 0.55; }
+      .hero-grid-lines { opacity: 0.55; }
+      .orb-1 { opacity: 0.055; }
+
+      .hero-aria-card {
+        display: block;
+        position: relative;
+        cursor: pointer;
+        perspective: 1400px;
+        outline: none;
+      }
+      .hac-glow {
+        position: absolute;
+        inset: 8% -6% -12% -6%;
+        background: radial-gradient(ellipse at 50% 60%, rgba(255, 107, 43, 0.16) 0%, rgba(123, 97, 255, 0.09) 45%, transparent 72%);
+        filter: blur(36px);
+        pointer-events: none;
+        z-index: 0;
+      }
+      .hac-window {
+        position: relative;
+        z-index: 1;
+        border-radius: 22px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 45%, rgba(255, 255, 255, 0.03) 100%),
+          rgba(9, 11, 19, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          0 40px 80px -24px rgba(0, 0, 0, 0.7),
+          0 0 64px -18px rgba(255, 107, 43, 0.22);
+        backdrop-filter: blur(18px);
+        transform: rotateY(-7deg) rotateX(1.5deg);
+        transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s;
+        overflow: hidden;
+      }
+      .hero-aria-card:hover .hac-window,
+      .hero-aria-card:focus-visible .hac-window {
+        transform: rotateY(0deg) rotateX(0deg) translateY(-4px);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.12),
+          0 48px 96px -24px rgba(0, 0, 0, 0.75),
+          0 0 80px -16px rgba(255, 107, 43, 0.32);
+      }
+      .hac-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .hac-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 17px;
+        color: #fff;
+        box-shadow: 0 4px 14px -4px rgba(255, 107, 43, 0.6);
+      }
+      .hac-name {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: #fff;
+        letter-spacing: 0.02em;
+      }
+      .hac-role {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.42);
+        margin-top: 1px;
+      }
+      .hac-messages {
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 248px;
+        justify-content: flex-end;
+      }
+      .hac-msg {
+        max-width: 82%;
+        padding: 10px 14px;
+        border-radius: 14px;
+        font-size: 13.5px;
+        line-height: 1.5;
+        animation: hacIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+      }
+      .hac-msg.from-aria {
+        align-self: flex-start;
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: rgba(255, 255, 255, 0.88);
+        border-bottom-left-radius: 4px;
+      }
+      .hac-msg.from-user {
+        align-self: flex-end;
+        background: linear-gradient(135deg, rgba(255, 107, 43, 0.92), rgba(123, 97, 255, 0.92));
+        color: #fff;
+        border-bottom-right-radius: 4px;
+      }
+      .hac-typing {
+        align-self: flex-start;
+        display: inline-flex;
+        gap: 5px;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.055);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        border-bottom-left-radius: 4px;
+        animation: hacIn 0.3s ease both;
+      }
+      .hac-typing i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        animation: hacDot 1.1s ease-in-out infinite;
+      }
+      .hac-typing i:nth-child(2) { animation-delay: 0.15s; }
+      .hac-typing i:nth-child(3) { animation-delay: 0.3s; }
+      @keyframes hacDot {
+        0%, 100% { transform: translateY(0); opacity: 0.45; }
+        50% { transform: translateY(-4px); opacity: 1; }
+      }
+      @keyframes hacIn {
+        from { opacity: 0; transform: translateY(12px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .hac-input {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 18px 18px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.4);
+        transition: border-color 0.3s;
+      }
+      .hero-aria-card:hover .hac-input { border-color: rgba(255, 107, 43, 0.4); }
+      .hac-send {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        flex-shrink: 0;
+      }
+    }
+
+    /* ── TERMINAL MONO SECTION LABELS ─────────────────────────── */
+    .eyebrow-mono {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      padding: 8px 16px;
+      border: 1px solid rgba(255, 107, 43, 0.22);
+      border-radius: 8px;
+      background: rgba(255, 107, 43, 0.05);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      margin-bottom: 22px;
+    }
+    .eyebrow-mono::before {
+      content: attr(data-num) ' /';
+      color: rgba(255, 255, 255, 0.35);
+      font-weight: 400;
+      letter-spacing: 0.1em;
+    }
+    .eyebrow-mono::after {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(255, 107, 43, 0.8);
+      animation: eyebrowPulse 2.2s ease-in-out infinite;
+    }
+    @keyframes eyebrowPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── HERO TERMINAL STATUS LINE ────────────────────────────── */
+    .hero-term {
+      margin-top: 34px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      letter-spacing: 0.04em;
+      color: rgba(255, 255, 255, 0.38);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .hero-term .term-prompt { color: var(--accent); }
+    .hero-term .term-value { color: rgba(255, 255, 255, 0.65); }
+    .hero-term .term-cursor {
+      display: inline-block;
+      width: 7px;
+      height: 14px;
+      background: var(--accent);
+      animation: termBlink 1.1s steps(1) infinite;
+      vertical-align: middle;
+    }
+    @keyframes termBlink { 50% { opacity: 0; } }
+    kbd.keycap {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-bottom-width: 2px;
+      border-radius: 5px;
+      padding: 2px 7px;
+      margin: 0 2px;
+    }
+    @media (max-width: 768px) {
+      .hero-term { display: none; } /* keyboard hint is meaningless on touch */
+    }
+
+    /* ── LIVE CHIP (ARIA demo) ────────────────────────────────── */
+    .live-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: #00E676;
+      border: 1px solid rgba(0, 230, 118, 0.35);
+      background: rgba(0, 230, 118, 0.07);
+      border-radius: 6px;
+      padding: 4px 10px;
+      margin-left: 12px;
+      vertical-align: middle;
+    }
+    .live-chip::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00E676;
+      box-shadow: 0 0 8px rgba(0, 230, 118, 0.9);
+      animation: eyebrowPulse 1.6s ease-in-out infinite;
+    }
+
+    /* ── AGENCY FOOTER: MEGA CTA + META BAR ───────────────────── */
+    .footer-mega {
+      display: block;
+      text-align: center;
+      padding: 96px 24px 64px;
+      position: relative;
+      z-index: 2;
+    }
+    .footer-mega a {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2.8rem, 8vw, 7rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: #fff;
+      display: inline-block;
+      position: relative;
+      transition: color 0.3s;
+    }
+    .footer-mega a em {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      padding-right: 0.12em;
+    }
+    .footer-mega a .mega-arrow {
+      display: inline-block;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .footer-mega a:hover .mega-arrow { transform: translateX(16px); }
+    .footer-mega a::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -10px;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, #FF6B2B, #7B61FF);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .footer-mega a:hover::after { transform: scaleX(1); }
+    .footer-mega .footer-mega-sub {
+      margin-top: 22px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .footer-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      flex-wrap: wrap;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.35);
+      padding: 18px 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+      z-index: 2;
+    }
+    .footer-meta .meta-dot-green {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: #00E676;
+    }
+    .footer-meta .meta-dot-green::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00E676;
+      box-shadow: 0 0 8px rgba(0, 230, 118, 0.9);
+      animation: eyebrowPulse 2s ease-in-out infinite;
+    }
+    .footer-meta .meta-sep { color: rgba(255, 255, 255, 0.12); }
   </style>
 
   <!-- ============================================================
