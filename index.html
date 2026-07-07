@@ -3647,13 +3647,484 @@
   })();
   </script>
 
+  <!-- LIVE CAPABILITY DEMOS -->
+  <style>
+    .demos-section {
+      padding: 130px 0;
+      background: var(--bg);
+      position: relative;
+    }
+    .demos-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 22px;
+      margin-top: 10px;
+    }
+    .demo-panel {
+      border-radius: 20px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(255, 255, 255, 0.012) 45%, rgba(255, 255, 255, 0.022) 100%),
+        #0a0a12;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 24px 48px -20px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .demo-panel:hover {
+      border-color: rgba(255, 107, 43, 0.3);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 28px 60px -20px rgba(0, 0, 0, 0.7), 0 0 44px -12px rgba(255, 107, 43, 0.16);
+    }
+    .demo-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(255, 255, 255, 0.02);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.5);
+    }
+    .demo-head .dh-dots { display: inline-flex; gap: 5px; }
+    .demo-head .dh-dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.12); }
+    .demo-head .dh-dots i:first-child { background: rgba(255, 95, 86, 0.7); }
+    .demo-head .dh-dots i:nth-child(2) { background: rgba(255, 189, 46, 0.7); }
+    .demo-head .dh-dots i:nth-child(3) { background: rgba(39, 201, 63, 0.7); }
+    .demo-head .dh-tag {
+      margin-left: auto;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: var(--accent);
+      border: 1px solid rgba(255, 107, 43, 0.3);
+      border-radius: 5px;
+      padding: 2.5px 8px;
+    }
+    .demo-body { padding: 20px; }
+
+    /* — Workflow pipeline — */
+    .wf-nodes { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+    .wf-node {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 8px 12px;
+      transition: all 0.35s;
+    }
+    .wf-node.active {
+      color: #fff;
+      border-color: rgba(255, 107, 43, 0.55);
+      background: rgba(255, 107, 43, 0.1);
+      box-shadow: 0 0 18px -4px rgba(255, 107, 43, 0.5);
+    }
+    .wf-node.done { color: #00E676; border-color: rgba(0, 230, 118, 0.35); }
+    .wf-arrow { color: rgba(255, 255, 255, 0.18); font-size: 12px; }
+    .wf-log {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      line-height: 1.9;
+      color: rgba(255, 255, 255, 0.5);
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 14px 16px;
+      min-height: 132px;
+      overflow: hidden;
+    }
+    .wf-log div { animation: demoFadeIn 0.3s ease both; }
+    .wf-log .lg-time { color: rgba(255, 255, 255, 0.25); margin-right: 8px; }
+    .wf-log .lg-ok { color: #00E676; }
+    .wf-log .lg-accent { color: var(--accent); }
+    @keyframes demoFadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    /* — Lead score — */
+    .ls-rows { display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px; }
+    .ls-row {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: rgba(255, 255, 255, 0.4);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.4s, transform 0.4s;
+    }
+    .ls-row.show { opacity: 1; transform: none; }
+    .ls-row b { color: rgba(255, 255, 255, 0.85); font-weight: 500; }
+    .ls-gauge-wrap { display: flex; align-items: center; gap: 18px; }
+    .ls-gauge { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
+    .ls-gauge svg { transform: rotate(-90deg); }
+    .ls-gauge .lsg-bg { stroke: rgba(255, 255, 255, 0.07); }
+    .ls-gauge .lsg-fill {
+      stroke: url(#lsGrad);
+      stroke-linecap: round;
+      stroke-dasharray: 226;
+      stroke-dashoffset: 226;
+      transition: stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ls-gauge .lsg-num {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .ls-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+    .ls-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 5px;
+      padding: 4px 9px;
+      opacity: 0;
+      transform: scale(0.9);
+      transition: opacity 0.35s, transform 0.35s;
+    }
+    .ls-tag.show { opacity: 1; transform: none; }
+    .ls-tag.hot { color: #FF6B2B; border-color: rgba(255, 107, 43, 0.45); background: rgba(255, 107, 43, 0.08); font-weight: 700; }
+
+    /* — Follow-up writer — */
+    .fw-field {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: rgba(255, 255, 255, 0.45);
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .fw-field b { color: rgba(255, 255, 255, 0.8); font-weight: 500; }
+    .fw-body {
+      font-size: 13px;
+      line-height: 1.65;
+      color: rgba(255, 255, 255, 0.75);
+      padding: 14px 0;
+      min-height: 96px;
+    }
+    .fw-caret {
+      display: inline-block;
+      width: 7px;
+      height: 13px;
+      background: var(--accent);
+      vertical-align: middle;
+      animation: termBlink 1s steps(1) infinite;
+    }
+    .fw-send {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #fff;
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      border-radius: 8px;
+      padding: 8px 16px;
+      opacity: 0.45;
+      transition: opacity 0.3s;
+    }
+    .fw-send.sent { opacity: 1; }
+
+    /* — Rank tracker — */
+    .rk-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12.5px;
+    }
+    .rk-row:last-child { border-bottom: none; }
+    .rk-kw { color: rgba(255, 255, 255, 0.75); flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+    .rk-pos {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      min-width: 44px;
+      text-align: right;
+      color: #ff5f57;
+      transition: color 0.4s;
+    }
+    .rk-pos.good { color: #00E676; }
+    .rk-delta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: #00E676;
+      min-width: 34px;
+      text-align: right;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .rk-delta.show { opacity: 1; }
+
+    .demos-cta {
+      margin-top: 26px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.38);
+    }
+    .demos-cta a { color: var(--accent); border-bottom: 1px solid rgba(255, 107, 43, 0.4); padding-bottom: 1px; }
+
+    @media (max-width: 980px) {
+      .demos-grid { grid-template-columns: 1fr; }
+      .demos-section { padding: 70px 0; }
+    }
+  </style>
+  <section class="demos-section" id="demos">
+    <div class="container">
+      <div class="reveal" style="text-align:center;">
+        <div class="eyebrow-mono" data-num="03">Watch It Work</div>
+      </div>
+      <h2 class="section-title reveal">Real systems. Running live.</h2>
+      <p class="section-desc reveal" style="transition-delay:0.1s;">These aren't mockups — they're miniature versions of the automations we deploy for clients. Watch them run.</p>
+
+      <div class="demos-grid">
+        <!-- Workflow pipeline -->
+        <div class="demo-panel reveal" id="wfDemo">
+          <div class="demo-head"><span class="dh-dots"><i></i><i></i><i></i></span>workflow — lead-intake.flow<span class="dh-tag">AUTO-RUN</span></div>
+          <div class="demo-body">
+            <div class="wf-nodes">
+              <span class="wf-node" data-step="0">⚡ Webhook</span><span class="wf-arrow">→</span>
+              <span class="wf-node" data-step="1">🔍 Enrich</span><span class="wf-arrow">→</span>
+              <span class="wf-node" data-step="2">🗄 CRM</span><span class="wf-arrow">→</span>
+              <span class="wf-node" data-step="3">✉️ Follow-up</span>
+            </div>
+            <div class="wf-log" id="wfLog"></div>
+          </div>
+        </div>
+
+        <!-- Lead scoring -->
+        <div class="demo-panel reveal" id="lsDemo" style="transition-delay:0.08s;">
+          <div class="demo-head"><span class="dh-dots"><i></i><i></i><i></i></span>aria — lead-score<span class="dh-tag">AI</span></div>
+          <div class="demo-body">
+            <div class="ls-rows">
+              <div class="ls-row"><span>name</span><b>Sarah K.</b></div>
+              <div class="ls-row"><span>company</span><b>Meridian Legal</b></div>
+              <div class="ls-row"><span>team_size</span><b>12</b></div>
+              <div class="ls-row"><span>intent</span><b>"drowning in intake calls"</b></div>
+            </div>
+            <div class="ls-gauge-wrap">
+              <div class="ls-gauge">
+                <svg width="88" height="88" viewBox="0 0 88 88">
+                  <defs>
+                    <linearGradient id="lsGrad" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#FF6B2B"/><stop offset="100%" stop-color="#7B61FF"/>
+                    </linearGradient>
+                  </defs>
+                  <circle class="lsg-bg" cx="44" cy="44" r="36" fill="none" stroke-width="7"/>
+                  <circle class="lsg-fill" id="lsFill" cx="44" cy="44" r="36" fill="none" stroke-width="7"/>
+                </svg>
+                <div class="lsg-num" id="lsNum">0</div>
+              </div>
+              <div class="ls-tags">
+                <span class="ls-tag hot">🔥 HOT LEAD</span>
+                <span class="ls-tag">budget ✓</span>
+                <span class="ls-tag">decision maker ✓</span>
+                <span class="ls-tag">books call → danny</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Follow-up writer -->
+        <div class="demo-panel reveal" id="fwDemo" style="transition-delay:0.12s;">
+          <div class="demo-head"><span class="dh-dots"><i></i><i></i><i></i></span>aria — follow-up.draft<span class="dh-tag">AI WRITE</span></div>
+          <div class="demo-body">
+            <div class="fw-field">to: <b>sarah@meridianlegal.com</b></div>
+            <div class="fw-field">subject: <b id="fwSubject"></b></div>
+            <div class="fw-body"><span id="fwBody"></span><span class="fw-caret" id="fwCaret"></span></div>
+            <div class="fw-send" id="fwSend">SEND</div>
+          </div>
+        </div>
+
+        <!-- Rank tracker -->
+        <div class="demo-panel reveal" id="rkDemo" style="transition-delay:0.16s;">
+          <div class="demo-head"><span class="dh-dots"><i></i><i></i><i></i></span>seo — rank-tracker<span class="dh-tag">90 DAYS</span></div>
+          <div class="demo-body">
+            <div class="rk-row"><span class="rk-kw">ai consulting new jersey</span><span class="rk-delta">▲38</span><span class="rk-pos" data-from="41" data-to="3">#41</span></div>
+            <div class="rk-row"><span class="rk-kw">ai receptionist for law firms</span><span class="rk-delta">▲27</span><span class="rk-pos" data-from="28" data-to="1">#28</span></div>
+            <div class="rk-row"><span class="rk-kw">workflow automation agency</span><span class="rk-delta">▲31</span><span class="rk-pos" data-from="36" data-to="5">#36</span></div>
+            <div class="rk-row"><span class="rk-kw">seo for local business nj</span><span class="rk-delta">▲19</span><span class="rk-pos" data-from="21" data-to="2">#21</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demos-cta reveal">these run on autopilot for our clients — <a href="#" onclick="if(typeof toggleChat==='function')toggleChat();return false;">want one? ask ARIA →</a></div>
+    </div>
+  </section>
+
+  <script>
+  (function() {
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ── Workflow pipeline loop ──
+    var wfLog = document.getElementById('wfLog');
+    var wfNodes = document.querySelectorAll('#wfDemo .wf-node');
+    var WF_STEPS = [
+      { node: 0, line: '<span class="lg-time">00:00.12</span>new lead captured — <span class="lg-accent">sarah@meridianlegal.com</span>' },
+      { node: 1, line: '<span class="lg-time">00:00.87</span>enriched: 12-person law firm, Newark NJ' },
+      { node: 2, line: '<span class="lg-time">00:01.42</span>CRM record created · pipeline: <span class="lg-accent">Hot</span>' },
+      { node: 3, line: '<span class="lg-time">00:02.15</span>personalized follow-up queued' },
+      { node: -1, line: '<span class="lg-ok">✓ run complete — 2.4s · zero humans involved</span>' }
+    ];
+    function wfRun() {
+      if (!wfLog) return;
+      wfLog.innerHTML = '';
+      wfNodes.forEach(function(n) { n.classList.remove('active', 'done'); });
+      var i = 0;
+      (function step() {
+        if (i >= WF_STEPS.length) { setTimeout(wfRun, 4200); return; }
+        var s = WF_STEPS[i];
+        wfNodes.forEach(function(n, idx) {
+          n.classList.toggle('active', idx === s.node);
+          if (idx < s.node || s.node === -1) { n.classList.remove('active'); n.classList.add('done'); }
+        });
+        var div = document.createElement('div');
+        div.innerHTML = s.line;
+        wfLog.appendChild(div);
+        while (wfLog.children.length > 5) wfLog.removeChild(wfLog.firstChild);
+        i++;
+        setTimeout(step, 1050);
+      })();
+    }
+
+    // ── Lead score loop ──
+    var lsRows = document.querySelectorAll('#lsDemo .ls-row');
+    var lsTags = document.querySelectorAll('#lsDemo .ls-tag');
+    var lsFill = document.getElementById('lsFill');
+    var lsNum = document.getElementById('lsNum');
+    function lsRun() {
+      if (!lsFill) return;
+      lsRows.forEach(function(r) { r.classList.remove('show'); });
+      lsTags.forEach(function(t) { t.classList.remove('show'); });
+      lsFill.style.strokeDashoffset = '226';
+      lsNum.textContent = '0';
+      lsRows.forEach(function(r, i) { setTimeout(function() { r.classList.add('show'); }, 350 + i * 420); });
+      setTimeout(function() {
+        lsFill.style.strokeDashoffset = String(226 - 226 * 0.92);
+        var start = Date.now();
+        var iv = setInterval(function() {
+          var p = Math.min(1, (Date.now() - start) / 1400);
+          lsNum.textContent = String(Math.round(92 * (1 - Math.pow(1 - p, 3))));
+          if (p >= 1) clearInterval(iv);
+        }, 40);
+        lsTags.forEach(function(t, i) { setTimeout(function() { t.classList.add('show'); }, 700 + i * 260); });
+      }, 350 + lsRows.length * 420 + 200);
+      setTimeout(lsRun, 9500);
+    }
+
+    // ── Follow-up writer loop ──
+    var fwSubject = document.getElementById('fwSubject');
+    var fwBody = document.getElementById('fwBody');
+    var fwSend = document.getElementById('fwSend');
+    var FW_SUBJECT = 'Your intake calls, handled';
+    var FW_BODY = "Hi Sarah — great chatting. Based on your 12-person team, ARIA could recover ~15 missed consults/week. Grabbed you two slot options for Thursday — pick whichever suits.";
+    function fwRun() {
+      if (!fwSubject) return;
+      fwSubject.textContent = '';
+      fwBody.textContent = '';
+      fwSend.classList.remove('sent');
+      fwSend.textContent = 'SEND';
+      var si = 0, bi = 0;
+      var siv = setInterval(function() {
+        fwSubject.textContent = FW_SUBJECT.slice(0, ++si);
+        if (si >= FW_SUBJECT.length) {
+          clearInterval(siv);
+          var biv = setInterval(function() {
+            bi += 2;
+            fwBody.textContent = FW_BODY.slice(0, bi);
+            if (bi >= FW_BODY.length) {
+              clearInterval(biv);
+              setTimeout(function() { fwSend.classList.add('sent'); fwSend.textContent = 'SENT ✓'; }, 500);
+              setTimeout(fwRun, 5200);
+            }
+          }, 28);
+        }
+      }, 55);
+    }
+
+    // ── Rank tracker loop ──
+    var rkRows = document.querySelectorAll('#rkDemo .rk-row');
+    function rkRun() {
+      rkRows.forEach(function(row, i) {
+        var pos = row.querySelector('.rk-pos');
+        var delta = row.querySelector('.rk-delta');
+        var from = parseInt(pos.dataset.from), to = parseInt(pos.dataset.to);
+        pos.classList.remove('good');
+        delta.classList.remove('show');
+        pos.textContent = '#' + from;
+        setTimeout(function() {
+          var start = Date.now();
+          var iv = setInterval(function() {
+            var p = Math.min(1, (Date.now() - start) / 1600);
+            var cur = Math.round(from - (from - to) * (1 - Math.pow(1 - p, 3)));
+            pos.textContent = '#' + cur;
+            if (cur <= 10) pos.classList.add('good');
+            if (p >= 1) { clearInterval(iv); delta.classList.add('show'); }
+          }, 50);
+        }, 400 + i * 350);
+      });
+      setTimeout(rkRun, 8800);
+    }
+
+    if (reduced) {
+      // Static final states
+      if (wfLog) { WF_STEPS.forEach(function(s) { var d = document.createElement('div'); d.innerHTML = s.line; wfLog.appendChild(d); }); wfNodes.forEach(function(n) { n.classList.add('done'); }); }
+      lsRows.forEach(function(r) { r.classList.add('show'); });
+      lsTags.forEach(function(t) { t.classList.add('show'); });
+      if (lsFill) { lsFill.style.transition = 'none'; lsFill.style.strokeDashoffset = String(226 - 226 * 0.92); lsNum.textContent = '92'; }
+      if (fwSubject) { fwSubject.textContent = FW_SUBJECT; fwBody.textContent = FW_BODY; fwSend.classList.add('sent'); fwSend.textContent = 'SENT ✓'; }
+      rkRows.forEach(function(row) {
+        var pos = row.querySelector('.rk-pos');
+        pos.textContent = '#' + pos.dataset.to;
+        pos.classList.add('good');
+        row.querySelector('.rk-delta').classList.add('show');
+      });
+    } else {
+      // Start each demo when it first scrolls into view
+      var started = {};
+      var starters = { wfDemo: wfRun, lsDemo: lsRun, fwDemo: fwRun, rkDemo: rkRun };
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting && !started[entry.target.id]) {
+            started[entry.target.id] = true;
+            starters[entry.target.id]();
+            obs.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.3 });
+      Object.keys(starters).forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) obs.observe(el);
+      });
+    }
+  })();
+  </script>
+
   <!-- ARIA LIVE DEMO -->
   <section class="aria-demo-section">
     <div class="aria-demo-grid">
 
       <!-- Left: copy -->
       <div class="reveal">
-        <div class="eyebrow-mono" data-num="03">ARIA<span class="live-chip">Live</span></div>
+        <div class="eyebrow-mono" data-num="04">ARIA<span class="live-chip">Live</span></div>
         <h2 class="aria-demo-headline">Books appointments.<br>Qualifies leads.<br>Never sleeps.</h2>
         <p class="aria-demo-sub">ARIA handles your inbound calls, texts, and web chats around the clock — booking real appointments straight into your calendar without you lifting a finger. Watch a real conversation.</p>
         <button class="aria-demo-cta" onclick="if(typeof toggleChat==='function')toggleChat();">Talk to the Real ARIA →</button>
@@ -4015,7 +4486,7 @@
 
   <section class="seo-demo-section" id="seo">
     <div class="container" style="text-align:center;margin-bottom:40px;">
-      <div class="reveal eyebrow-mono" data-num="04">SEO &amp; AI Search</div>
+      <div class="reveal eyebrow-mono" data-num="05">SEO &amp; AI Search</div>
       <h2 class="section-title reveal">If They Can't Find You,<br>They Can't Pay You.</h2>
       <p class="section-desc reveal" style="margin-bottom:0;">75% of people never scroll past page 1. If your business isn't ranking, your competitors are getting the calls, the leads, and the revenue that should be yours.</p>
     </div>
@@ -4897,7 +5368,7 @@
   </style>
   <section class="showcase-section" id="work">
     <div class="container" style="text-align:center;">
-      <div class="eyebrow-mono reveal" data-num="05">What We Deliver</div>
+      <div class="eyebrow-mono reveal" data-num="06">What We Deliver</div>
       <h2 class="section-title reveal">Tools That Grow Your Business.</h2>
       <p class="section-desc reveal" style="transition-delay:0.1s;">Custom-built systems tailored to your industry, your workflow, and your growth goals.</p>
     </div>
@@ -5715,7 +6186,7 @@
   <section class="hiw-section section" id="process">
     <div class="container">
       <div class="reveal" style="text-align:center;margin-bottom:12px;">
-        <div class="eyebrow-mono" data-num="06">How It Works</div>
+        <div class="eyebrow-mono" data-num="07">How It Works</div>
       </div>
       <h2 class="section-title reveal">The Methodology.</h2>
       <p class="section-desc reveal" style="text-align:center;margin:0 auto 0;">Three phases. Zero fluff. Real results.
@@ -6237,7 +6708,7 @@
   </style>
   <section class="proof-section">
     <div class="container">
-      <div class="eyebrow-mono reveal" data-num="07">What Clients Are Saying</div>
+      <div class="eyebrow-mono reveal" data-num="08">What Clients Are Saying</div>
       <div class="quotes-ticker-wrap reveal">
         <div class="quotes-ticker-track">
           <span class="qtick">"ROI in 3 weeks."</span>
@@ -6485,7 +6956,7 @@
   <section class="about-section section" id="about">
     <div class="container">
       <div class="about-top reveal">
-        <div class="eyebrow-mono" data-num="08">Our Story</div>
+        <div class="eyebrow-mono" data-num="09">Our Story</div>
         <h2>Your AI<br><span class="about-bold-gradient">Growth Partner.</span></h2>
         <div class="about-divider"></div>
         <p>NeuralFlow was founded by <strong>Danny Boehmer</strong> with one mission: help businesses make more money.
@@ -6590,7 +7061,7 @@
   <section class="faq-section" id="faq">
     <div class="container">
       <div class="reveal" style="text-align:center;">
-        <div class="eyebrow-mono" data-num="09">FAQ</div>
+        <div class="eyebrow-mono" data-num="10">FAQ</div>
       </div>
       <h2 class="section-title reveal" style="margin-bottom:60px;">Questions We Get Asked.</h2>
       <div class="faq-grid">
