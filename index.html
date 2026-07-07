@@ -8307,6 +8307,32 @@
       }
     });
 
+    // ── Scrollspy: highlight the nav link for the section in view ──
+    (function() {
+      var map = [['#seo', 'seo'], ['#work', 'work'], ['#process', 'process'], ['#about', 'about']];
+      var links = {};
+      map.forEach(function(pair) {
+        var link = document.querySelector('.nav-links a[href="' + pair[0] + '"]');
+        var section = document.getElementById(pair[1]);
+        if (link && section) links[pair[1]] = { link: link, section: section };
+      });
+      var keys = Object.keys(links);
+      if (keys.length === 0) return;
+      var spy = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          var id = entry.target.id;
+          if (!links[id]) return;
+          if (entry.isIntersecting) {
+            keys.forEach(function(k) { links[k].link.classList.remove('nav-active'); });
+            links[id].link.classList.add('nav-active');
+          } else if (links[id].link.classList.contains('nav-active') && !entry.isIntersecting) {
+            links[id].link.classList.remove('nav-active');
+          }
+        });
+      }, { rootMargin: '-25% 0px -55% 0px' });
+      keys.forEach(function(k) { spy.observe(links[k].section); });
+    })();
+
     // ── Footer clock: live local time in Bayonne, NJ (ET) ──
     var clockEl = document.getElementById('footerClock');
     function tickClock() {
@@ -8602,6 +8628,39 @@
         font-size: 15px;
         flex-shrink: 0;
       }
+    }
+
+    /* ── CROSS-PAGE VIEW TRANSITIONS (Chrome 126+, no-op elsewhere) ── */
+    @view-transition { navigation: auto; }
+
+    /* ── SCROLLSPY NAV — active section highlighting ──────────── */
+    .nav-link.nav-active {
+      color: #fff;
+    }
+    .nav-link.nav-active::before {
+      left: 0;
+      background: linear-gradient(90deg, #FF6B2B, #7B61FF);
+    }
+
+    /* ── NUMBERED SERVICE CARDS — mono index watermarks ───────── */
+    .services-grid { counter-reset: svc; }
+    .services-grid .tilt-card { counter-increment: svc; }
+    .services-grid .tilt-card .card-inner::before {
+      content: '0' counter(svc);
+      position: absolute;
+      top: 0;
+      right: 2px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      color: rgba(255, 255, 255, 0.22);
+      transition: color 0.3s;
+    }
+    .services-grid .tilt-card { position: relative; }
+    .services-grid .tilt-card .card-inner { position: relative; }
+    .services-grid .tilt-card:hover .card-inner::before {
+      color: rgba(255, 107, 43, 0.7);
     }
 
     /* ── TERMINAL MONO SECTION LABELS ─────────────────────────── */
