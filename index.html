@@ -3596,9 +3596,92 @@
           </div>
         </div>
 
+        <!-- AI Voice Agents -->
+        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.1s;" data-tilt>
+          <div class="card-inner">
+            <div class="card-viz">
+              <div class="viz-voice">
+                <div class="viz-voice-status"><span class="viz-voice-dot"></span>Answering call…</div>
+                <div class="viz-voice-wave" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                </div>
+                <div class="viz-voice-caption">"Thanks for calling! Thursday at 2 PM is open — want it?"</div>
+              </div>
+            </div>
+            <h3>AI Voice Agents</h3>
+            <p>An AI that answers your phone in a natural voice — books appointments and handles questions while you work.</p>
+            <button class="learn-more" type="button" data-modal="ai-voice-agents" onclick="openServiceModal(this)">Learn More</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
+
+  <style>
+    /* — AI Voice Agents card viz — */
+    .viz-voice { width: 100%; text-align: left; }
+    .viz-voice-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #00E676;
+      margin-bottom: 10px;
+    }
+    .viz-voice-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #00E676;
+      box-shadow: 0 0 8px rgba(0, 230, 118, 0.9);
+      animation: eyebrowPulse 1.4s ease-in-out infinite;
+    }
+    .viz-voice-wave {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 34px;
+      margin-bottom: 10px;
+    }
+    .viz-voice-wave i {
+      width: 4px;
+      border-radius: 3px;
+      background: linear-gradient(180deg, #FF6B2B, #7B61FF);
+      height: 20%;
+      animation: vwave 1.1s ease-in-out infinite;
+    }
+    .viz-voice-wave i:nth-child(2)  { animation-delay: 0.08s; }
+    .viz-voice-wave i:nth-child(3)  { animation-delay: 0.16s; }
+    .viz-voice-wave i:nth-child(4)  { animation-delay: 0.24s; }
+    .viz-voice-wave i:nth-child(5)  { animation-delay: 0.32s; }
+    .viz-voice-wave i:nth-child(6)  { animation-delay: 0.4s; }
+    .viz-voice-wave i:nth-child(7)  { animation-delay: 0.48s; }
+    .viz-voice-wave i:nth-child(8)  { animation-delay: 0.56s; }
+    .viz-voice-wave i:nth-child(9)  { animation-delay: 0.64s; }
+    .viz-voice-wave i:nth-child(10) { animation-delay: 0.72s; }
+    .viz-voice-wave i:nth-child(11) { animation-delay: 0.8s; }
+    .viz-voice-wave i:nth-child(12) { animation-delay: 0.88s; }
+    .viz-voice-wave i:nth-child(13) { animation-delay: 0.96s; }
+    .viz-voice-wave i:nth-child(14) { animation-delay: 1.04s; }
+    @keyframes vwave {
+      0%, 100% { height: 18%; opacity: 0.55; }
+      50% { height: 95%; opacity: 1; }
+    }
+    .viz-voice-caption {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.45);
+      font-style: italic;
+      line-height: 1.4;
+    }
+    /* 8 services — perfect 2×4 grid on wide screens */
+    @media (min-width: 1240px) {
+      .services-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; }
+      .tilt-card h3 { font-size: 1.4rem; }
+      .tilt-card p { font-size: 0.9rem; }
+    }
+  </style>
 
   <script>
   // ---- Service card micro-viz animations ----
@@ -4915,7 +4998,7 @@
 
       <!-- Eyebrow badge -->
       <div class="reveal">
-        <div style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#FF6B2B;border:1px solid rgba(255,107,43,0.35);padding:4px 14px;border-radius:999px;margin-bottom:24px;box-shadow:0 0 12px rgba(255,107,43,0.3);">Free ROI Calculator</div>
+        <div class="eyebrow-mono" data-num="06">Free ROI Calculator</div>
 
         <!-- Headline -->
         <h2 style="font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:#fff;margin:0 0 18px;letter-spacing:-1.5px;line-height:1.1;font-family:'Space Grotesk',sans-serif;">Find out exactly what<br>your manual work is <span style="background:linear-gradient(90deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">costing you.</span></h2>
@@ -5368,7 +5451,7 @@
   </style>
   <section class="showcase-section" id="work">
     <div class="container" style="text-align:center;">
-      <div class="eyebrow-mono reveal" data-num="06">What We Deliver</div>
+      <div class="eyebrow-mono reveal" data-num="07">What We Deliver</div>
       <h2 class="section-title reveal">Tools That Grow Your Business.</h2>
       <p class="section-desc reveal" style="transition-delay:0.1s;">Custom-built systems tailored to your industry, your workflow, and your growth goals.</p>
     </div>
@@ -6186,7 +6269,7 @@
   <section class="hiw-section section" id="process">
     <div class="container">
       <div class="reveal" style="text-align:center;margin-bottom:12px;">
-        <div class="eyebrow-mono" data-num="07">How It Works</div>
+        <div class="eyebrow-mono" data-num="08">How It Works</div>
       </div>
       <h2 class="section-title reveal">The Methodology.</h2>
       <p class="section-desc reveal" style="text-align:center;margin:0 auto 0;">Three phases. Zero fluff. Real results.
@@ -6708,7 +6791,7 @@
   </style>
   <section class="proof-section">
     <div class="container">
-      <div class="eyebrow-mono reveal" data-num="08">What Clients Are Saying</div>
+      <div class="eyebrow-mono reveal" data-num="09">What Clients Are Saying</div>
       <div class="quotes-ticker-wrap reveal">
         <div class="quotes-ticker-track">
           <span class="qtick">"ROI in 3 weeks."</span>
@@ -6956,7 +7039,7 @@
   <section class="about-section section" id="about">
     <div class="container">
       <div class="about-top reveal">
-        <div class="eyebrow-mono" data-num="09">Our Story</div>
+        <div class="eyebrow-mono" data-num="10">Our Story</div>
         <h2>Your AI<br><span class="about-bold-gradient">Growth Partner.</span></h2>
         <div class="about-divider"></div>
         <p>NeuralFlow was founded by <strong>Danny Boehmer</strong> with one mission: help businesses make more money.
@@ -7061,7 +7144,7 @@
   <section class="faq-section" id="faq">
     <div class="container">
       <div class="reveal" style="text-align:center;">
-        <div class="eyebrow-mono" data-num="10">FAQ</div>
+        <div class="eyebrow-mono" data-num="11">FAQ</div>
       </div>
       <h2 class="section-title reveal" style="margin-bottom:60px;">Questions We Get Asked.</h2>
       <div class="faq-grid">
@@ -7244,16 +7327,34 @@
         <div class="footer-tagline">Your AI growth partner.<br><span>More leads. Less overhead.</span></div>
       </div>
 
-      <div style="text-align: right;">
-        <div class="footer-links">
-          <a href="https://www.linkedin.com/company/neuralflowai-io" target="_blank" rel="noopener noreferrer"
-            class="magnetic" data-strength="10">LinkedIn</a>
-          <a href="https://x.com/NeuralFlow_AI" target="_blank" rel="noopener noreferrer" class="magnetic"
-            data-strength="10">𝕏</a>
-          <a href="mailto:danny@neuralflowai.io" class="magnetic" data-strength="10">Contact.</a>
+      <div class="footer-nav">
+        <div class="fnav-col">
+          <div class="fnav-title">Services</div>
+          <a href="/services/ai-receptionist">AI Receptionist</a>
+          <a href="/services/workflow-automation">Workflow Automation</a>
+          <a href="/services/seo-optimization">SEO &amp; AI Search</a>
+          <a href="/services/ai-consulting">AI Consulting</a>
+          <a href="/services/custom-development">Custom Development</a>
+          <a href="/services">All Services →</a>
         </div>
-        <div style="margin-top:10px;">
-          <a href="tel:+18627019030" style="font-size:0.78rem;letter-spacing:0.08em;color:#888899;text-decoration:none;" onmouseover="this.style.color='#FF6B2B'" onmouseout="this.style.color='#888899'">📞 Call or Text &middot; (862) 701-9030</a>
+        <div class="fnav-col">
+          <div class="fnav-title">Company</div>
+          <a href="#about">Our Story</a>
+          <a href="#process">How We Work</a>
+          <a href="#work">What We Deliver</a>
+          <a href="#faq">FAQ</a>
+          <a href="https://roi.neuralflowai.io/roi-calculator" target="_blank" rel="noopener">ROI Calculator</a>
+        </div>
+        <div class="fnav-col">
+          <div class="fnav-title">Get in Touch</div>
+          <a href="#" onclick="if(typeof toggleChat==='function')toggleChat();return false;">Talk to ARIA</a>
+          <a href="/book">Book a Free Call</a>
+          <a href="mailto:danny@neuralflowai.io">danny@neuralflowai.io</a>
+          <a href="tel:+18627019030">(862) 701-9030</a>
+          <div style="display:flex;gap:14px;margin-top:6px;">
+            <a href="https://www.linkedin.com/company/neuralflowai-io" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            <a href="https://x.com/NeuralFlow_AI" target="_blank" rel="noopener noreferrer">𝕏</a>
+          </div>
         </div>
       </div>
     </div>
@@ -8126,6 +8227,22 @@
         cta: 'Get Your AI Receptionist →',
         link: '#contact'
       },
+      'ai-voice-agents': {
+        title: 'AI Voice Agents',
+        subtitle: 'Your phone, answered — in a natural human voice, 24/7',
+        body: 'Missed calls are missed revenue. Our AI voice agents pick up every call in a natural, friendly voice — they answer questions, qualify the caller, book appointments straight into your calendar, and transfer to a human when it matters. No hold music, no voicemail black hole.',
+        included: [
+          '24/7 call answering in a natural AI voice',
+          'Appointment booking synced to your calendar',
+          'Caller qualification & intelligent routing',
+          'Warm transfer to your team for hot leads',
+          'Full call transcripts & recordings dashboard',
+          'Spam & robocall screening built in'
+        ],
+        who: 'Any business that lives on the phone — medical and dental offices, law firms, home services, salons, real estate teams.',
+        cta: 'Get My Phone Answered →',
+        link: '#contact'
+      },
       'process-optimization': {
         title: 'Business Process Optimization',
         subtitle: 'Less overhead, faster output, better margins',
@@ -8570,6 +8687,43 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.25),
         0 0 0 1px rgba(255, 255, 255, 0.08),
         0 12px 36px -8px rgba(255, 107, 43, 0.5);
+    }
+
+    /* ── FOOTER SITEMAP COLUMNS ───────────────────────────────── */
+    .footer-nav {
+      display: flex;
+      gap: 64px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 2;
+    }
+    .fnav-col {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      min-width: 150px;
+    }
+    .fnav-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .fnav-col a {
+      font-size: 13.5px;
+      color: rgba(255, 255, 255, 0.55);
+      transition: color 0.2s, transform 0.2s;
+    }
+    .fnav-col a:hover {
+      color: #fff;
+      transform: translateX(3px);
+    }
+    @media (max-width: 900px) {
+      .footer-content { flex-direction: column; align-items: flex-start; gap: 40px; }
+      .footer-nav { gap: 40px; }
     }
 
     /* ── FOOTER REFINEMENT ────────────────────────────────────── */
