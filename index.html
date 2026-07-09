@@ -2059,9 +2059,12 @@
       flex-direction: column;
       z-index: 9999;
       opacity: 0;
+      /* visibility:hidden required — backdrop-filter still renders at opacity:0
+         in Chromium, blurring a 440x620 patch of whatever sits behind */
+      visibility: hidden;
       pointer-events: none;
       transform: translateY(20px);
-      transition: opacity 0.3s ease, transform 0.3s ease, width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, bottom 0.3s ease;
+      transition: opacity 0.3s ease, visibility 0.3s, transform 0.3s ease, width 0.3s ease, height 0.3s ease, top 0.3s ease, left 0.3s ease, bottom 0.3s ease;
       overflow: hidden;
     }
 
@@ -2147,6 +2150,7 @@
 
     .chat-window.active {
       opacity: 1;
+      visibility: visible;
       pointer-events: all;
       transform: translateY(0);
     }
@@ -2405,12 +2409,16 @@
       align-items: center;
       justify-content: center;
       opacity: 0;
+      /* visibility:hidden is required — Chromium applies backdrop-filter even at
+         opacity:0, which permanently blurred the center of the viewport */
+      visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s ease, visibility 0.3s;
     }
 
     .modal-overlay.active {
       opacity: 1;
+      visibility: visible;
       pointer-events: all;
     }
 
@@ -2727,12 +2735,14 @@
       cursor: pointer;
       z-index: 9990;
       opacity: 0;
+      visibility: hidden; /* backdrop-filter ghosts at opacity:0 otherwise */
       pointer-events: none;
       transform: translateY(12px);
-      transition: opacity 0.3s, transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+      transition: opacity 0.3s, visibility 0.3s, transform 0.3s, border-color 0.3s, box-shadow 0.3s;
     }
     .back-to-top.show {
       opacity: 1;
+      visibility: visible;
       pointer-events: all;
       transform: translateY(0);
     }
@@ -2961,7 +2971,7 @@
           <span class="term-prompt">→</span>
           <span class="term-value" id="heroTermValue">online · booking calls 24/7</span>
           <span class="term-cursor"></span>
-          <span style="margin-left:14px;">press <kbd class="keycap">A</kbd> to chat</span>
+          <span style="margin-left:14px;">press <kbd class="keycap">A</kbd> to chat · <kbd class="keycap">⌘K</kbd> menu</span>
         </div>
       </div>
 
@@ -4202,7 +4212,7 @@
   </script>
 
   <!-- ARIA LIVE DEMO -->
-  <section class="aria-demo-section">
+  <section class="aria-demo-section" id="aria-demo">
     <div class="aria-demo-grid">
 
       <!-- Left: copy -->
@@ -6789,7 +6799,7 @@
       }
     }
   </style>
-  <section class="proof-section">
+  <section class="proof-section" id="clients">
     <div class="container">
       <div class="eyebrow-mono reveal" data-num="09">What Clients Are Saying</div>
       <div class="quotes-ticker-wrap reveal">
@@ -6879,7 +6889,399 @@
     </div>
   </section>
 
-  <!-- FREE CALL CTA BAND -->
+  <!-- SCROLL STORY — 60 SECONDS -->
+  <style>
+    .story-section {
+      background: linear-gradient(180deg, var(--bg) 0%, #060a14 50%, var(--bg) 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 120px 0 60px;
+    }
+    .story-intro { text-align: center; margin-bottom: 40px; }
+    .story-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: start;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 5vw;
+    }
+    .story-steps { display: flex; flex-direction: column; }
+    .story-step {
+      padding: 8vh 0;
+      opacity: 0.25;
+      transition: opacity 0.5s;
+    }
+    .story-step.on { opacity: 1; }
+    .story-step .ss-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+      margin-bottom: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .story-step .ss-time::before {
+      content: '';
+      width: 26px;
+      height: 1px;
+      background: var(--accent);
+      display: inline-block;
+    }
+    .story-step h3 {
+      font-size: clamp(1.6rem, 2.4vw, 2.3rem);
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .story-step p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 1.02rem;
+      max-width: 420px;
+    }
+    /* Right: sticky stage */
+    .story-stage-wrap {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .story-stage {
+      width: 100%;
+      max-width: 470px;
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.015) 45%, rgba(255, 255, 255, 0.03) 100%),
+        rgba(9, 11, 19, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 40px 80px -24px rgba(0, 0, 0, 0.7),
+        0 0 64px -18px rgba(255, 107, 43, 0.2);
+      overflow: hidden;
+      position: relative;
+    }
+    .st-timeline {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: rgba(255, 255, 255, 0.4);
+    }
+    .st-timeline .st-bar {
+      flex: 1;
+      height: 3px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+    .st-timeline .st-bar i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #FF6B2B, #7B61FF);
+      transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .st-states { position: relative; height: 360px; }
+    .st-state {
+      position: absolute;
+      inset: 0;
+      padding: 24px;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .st-state.on { opacity: 1; transform: none; }
+
+    /* state 0 — landing */
+    .st-browser {
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.3);
+    }
+    .st-urlbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.45);
+    }
+    .st-urlbar i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.14); }
+    .st-page { padding: 18px; }
+    .st-sk { border-radius: 6px; background: rgba(255, 255, 255, 0.07); }
+    .st-visitor-bubble {
+      margin-top: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      background: linear-gradient(135deg, rgba(255, 107, 43, 0.16), rgba(123, 97, 255, 0.16));
+      border: 1px solid rgba(255, 107, 43, 0.35);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, 0.85);
+      animation: stPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      animation-delay: 0.6s;
+    }
+    @keyframes stPop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
+
+    /* state 1 — qualify (chat) */
+    .st-chat { display: flex; flex-direction: column; gap: 10px; }
+    .st-chat .m {
+      max-width: 84%;
+      padding: 10px 14px;
+      border-radius: 13px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .st-chat .m.a { align-self: flex-start; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.88); border-bottom-left-radius: 4px; }
+    .st-chat .m.u { align-self: flex-end; background: linear-gradient(135deg, rgba(255,107,43,0.92), rgba(123,97,255,0.92)); color: #fff; border-bottom-right-radius: 4px; }
+    .st-qualify-tag {
+      align-self: flex-start;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: #FF6B2B;
+      border: 1px solid rgba(255, 107, 43, 0.4);
+      border-radius: 5px;
+      padding: 4px 9px;
+      margin-top: 4px;
+    }
+
+    /* state 2 — calendar */
+    .st-cal-head {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .st-cal {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .st-slot {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-align: center;
+      padding: 12px 4px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.45);
+    }
+    .st-slot.busy { color: rgba(255, 255, 255, 0.18); text-decoration: line-through; }
+    .st-slot.pick {
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      border-color: transparent;
+      color: #fff;
+      font-weight: 700;
+      animation: stPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      animation-delay: 0.7s;
+      box-shadow: 0 6px 20px -6px rgba(255, 107, 43, 0.6);
+    }
+    .st-freebusy {
+      margin-top: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: rgba(0, 230, 118, 0.85);
+    }
+
+    /* state 3 — booked + ping */
+    .st-booked {
+      text-align: center;
+      padding: 18px 0 8px;
+    }
+    .st-booked .big {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #fff;
+      margin: 0 auto 14px;
+      box-shadow: 0 10px 30px -8px rgba(255, 107, 43, 0.6);
+      animation: stPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    .st-booked h4 { font-size: 1.3rem; color: #fff; margin-bottom: 6px; }
+    .st-booked p { font-size: 12.5px; color: var(--muted); }
+    .st-ping {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 13px 16px;
+      animation: stPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      animation-delay: 0.8s;
+    }
+    .st-ping .icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: #229ED9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .st-ping b { display: block; font-size: 12.5px; color: #fff; font-weight: 600; }
+    .st-ping span { font-size: 11.5px; color: rgba(255, 255, 255, 0.5); }
+
+    @media (max-width: 980px) {
+      .story-grid { grid-template-columns: 1fr; gap: 0; }
+      .story-stage-wrap { position: relative; height: auto; margin-bottom: 30px; }
+      .st-states { height: 340px; }
+      .story-step { padding: 34px 0 10px; opacity: 1; }
+      .story-section { padding: 70px 0 40px; }
+    }
+  </style>
+  <section class="story-section" id="story60">
+    <div class="container story-intro">
+      <div class="reveal eyebrow-mono" data-num="10">Sixty Seconds</div>
+      <h2 class="section-title reveal">Visitor to booked call.<br>No humans required.</h2>
+      <p class="section-desc reveal" style="transition-delay:0.1s;">This exact sequence runs on this site, every day. Scroll through one minute of ARIA's work.</p>
+    </div>
+    <div class="story-grid">
+      <div class="story-steps">
+        <div class="story-step" data-step="0">
+          <div class="ss-time">00:00</div>
+          <h3>A visitor lands.</h3>
+          <p>Someone finds you — Google, a referral, a late-night search. ARIA greets them instantly. No contact form. No "we'll get back to you."</p>
+        </div>
+        <div class="story-step" data-step="1">
+          <div class="ss-time">00:12</div>
+          <h3>ARIA qualifies them.</h3>
+          <p>Natural conversation, not a form: what they need, team size, budget signals. Tire-kickers get helpful answers. Buyers get moved forward.</p>
+        </div>
+        <div class="story-step" data-step="2">
+          <div class="ss-time">00:38</div>
+          <h3>Calendar checked — live.</h3>
+          <p>ARIA queries the real calendar in real time, offers only genuinely open slots, and handles timezones without breaking a sweat.</p>
+        </div>
+        <div class="story-step" data-step="3">
+          <div class="ss-time">00:52</div>
+          <h3>Booked. You get pinged.</h3>
+          <p>Invite sent, confirmation emailed, and a full AI-written sales brief lands in your Telegram before your phone stops buzzing.</p>
+        </div>
+      </div>
+      <div class="story-stage-wrap">
+        <div class="story-stage" id="storyStage">
+          <div class="st-timeline">
+            <span>00:00</span>
+            <div class="st-bar"><i id="stBar"></i></div>
+            <span>00:59</span>
+          </div>
+          <div class="st-states">
+            <div class="st-state on" data-state="0">
+              <div class="st-browser">
+                <div class="st-urlbar"><i></i><i></i><i></i>&nbsp;neuralflowai.io</div>
+                <div class="st-page">
+                  <div class="st-sk" style="width:55%;height:14px;margin-bottom:9px;"></div>
+                  <div class="st-sk" style="width:80%;height:9px;margin-bottom:6px;"></div>
+                  <div class="st-sk" style="width:68%;height:9px;margin-bottom:6px;"></div>
+                  <div class="st-sk" style="width:40%;height:9px;"></div>
+                  <div class="st-visitor-bubble">👋 Hi! I'm ARIA — what brings you here today?</div>
+                </div>
+              </div>
+            </div>
+            <div class="st-state" data-state="1">
+              <div class="st-chat">
+                <div class="m u">We're a 12-person law firm drowning in intake calls.</div>
+                <div class="m a">That's exactly what we fix. Roughly how many calls a week are you missing?</div>
+                <div class="m u">Maybe 15? It's bad.</div>
+                <span class="st-qualify-tag">⚡ QUALIFIED · HOT</span>
+              </div>
+            </div>
+            <div class="st-state" data-state="2">
+              <div class="st-cal-head"><span>danny@neuralflowai.io</span><span>THU</span></div>
+              <div class="st-cal">
+                <div class="st-slot busy">9:00</div>
+                <div class="st-slot busy">10:00</div>
+                <div class="st-slot">11:00</div>
+                <div class="st-slot busy">1:00</div>
+                <div class="st-slot pick">2:00 ✓</div>
+                <div class="st-slot">3:00</div>
+                <div class="st-slot busy">4:00</div>
+                <div class="st-slot">5:00</div>
+              </div>
+              <div class="st-freebusy">freebusy ✓ verified — no double-booking, ever</div>
+            </div>
+            <div class="st-state" data-state="3">
+              <div class="st-booked">
+                <div class="big">✓</div>
+                <h4>Thursday, 2:00 PM — booked</h4>
+                <p>Calendar invite + confirmation email sent</p>
+                <div class="st-ping">
+                  <div class="icon">✈️</div>
+                  <div>
+                    <b>🔥 HOT LEAD — Sarah K. (Meridian Legal)</b>
+                    <span>Thu 2 PM · AI sales brief attached · deal est. $17,900</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+  (function() {
+    var steps = document.querySelectorAll('.story-step');
+    var states = document.querySelectorAll('.st-state');
+    var bar = document.getElementById('stBar');
+    if (!steps.length || !states.length) return;
+    var widths = ['8%', '30%', '64%', '100%'];
+    function setStep(n) {
+      steps.forEach(function(s) { s.classList.toggle('on', parseInt(s.dataset.step) === n); });
+      states.forEach(function(s) { s.classList.toggle('on', parseInt(s.dataset.state) === n); });
+      if (bar) bar.style.width = widths[n] || '8%';
+    }
+    setStep(0);
+    // Track the step whose center is nearest the viewport center — an
+    // IntersectionObserver band races when two steps straddle it, leaving
+    // the stage on a stale state
+    var current = 0, ticking = false;
+    function update() {
+      var vh = window.innerHeight;
+      var best = 0, bestD = Infinity;
+      steps.forEach(function(s) {
+        var r = s.getBoundingClientRect();
+        var d = Math.abs((r.top + r.height / 2) - vh / 2);
+        if (d < bestD) { bestD = d; best = parseInt(s.dataset.step); }
+      });
+      if (best !== current) { current = best; setStep(best); }
+      ticking = false;
+    }
+    window.addEventListener('scroll', function() {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(update);
+    }, { passive: true });
+    update();
+  })();
+  </script>
+
   <style>
     .cta-band-section {
       padding: 110px 24px;
@@ -7039,7 +7441,7 @@
   <section class="about-section section" id="about">
     <div class="container">
       <div class="about-top reveal">
-        <div class="eyebrow-mono" data-num="10">Our Story</div>
+        <div class="eyebrow-mono" data-num="11">Our Story</div>
         <h2>Your AI<br><span class="about-bold-gradient">Growth Partner.</span></h2>
         <div class="about-divider"></div>
         <p>NeuralFlow was founded by <strong>Danny Boehmer</strong> with one mission: help businesses make more money.
@@ -7144,7 +7546,7 @@
   <section class="faq-section" id="faq">
     <div class="container">
       <div class="reveal" style="text-align:center;">
-        <div class="eyebrow-mono" data-num="11">FAQ</div>
+        <div class="eyebrow-mono" data-num="12">FAQ</div>
       </div>
       <h2 class="section-title reveal" style="margin-bottom:60px;">Questions We Get Asked.</h2>
       <div class="faq-grid">
@@ -7364,6 +7766,8 @@
       <span id="footerClock">Bayonne, NJ</span>
       <span class="meta-sep">/</span>
       <span>ARIA answering 24/7</span>
+      <span class="meta-sep">/</span>
+      <a href="#" onclick="if(window.__openCmdk)window.__openCmdk();return false;" style="color:rgba(255,255,255,0.45);letter-spacing:0.1em;">⌘K command menu</a>
     </div>
     <div class="container footer-bottom">
       <div>&copy; <span id="year"></span> NeuralFlow.</div>
@@ -9053,6 +9457,280 @@
       }, 5000);
       termEl.style.transition = 'opacity 0.3s';
     }
+  })();
+  </script>
+
+  <!-- SECTION DOT RAIL + COMMAND PALETTE -->
+  <style>
+    /* ── DOT RAIL ─────────────────────────────────────────────── */
+    .dot-rail {
+      position: fixed;
+      right: 22px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 9980;
+    }
+    @media (min-width: 1200px) { .dot-rail { display: flex; } }
+    .dot-rail a {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.16);
+      position: relative;
+      transition: background 0.3s, transform 0.3s;
+    }
+    .dot-rail a:hover { background: rgba(255, 255, 255, 0.45); }
+    .dot-rail a.on {
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      transform: scale(1.45);
+      box-shadow: 0 0 10px rgba(255, 107, 43, 0.6);
+    }
+    .dot-rail a::after {
+      content: attr(data-label);
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.75);
+      background: rgba(8, 8, 14, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 4px 9px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .dot-rail a:hover::after { opacity: 1; }
+
+    /* ── COMMAND PALETTE (⌘K) ─────────────────────────────────── */
+    .cmdk-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 3, 6, 0.7);
+      backdrop-filter: blur(6px);
+      z-index: 100000;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 14vh 20px 20px;
+    }
+    .cmdk-overlay.open { display: flex; }
+    .cmdk {
+      width: 100%;
+      max-width: 560px;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0.02) 100%),
+        rgba(10, 11, 18, 0.97);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 40px 90px -20px rgba(0, 0, 0, 0.85);
+      overflow: hidden;
+      animation: stPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .cmdk input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 18px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: #fff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .cmdk input::placeholder { color: rgba(255, 255, 255, 0.3); }
+    .cmdk-list { max-height: 46vh; overflow-y: auto; padding: 8px; }
+    .cmdk-group {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.3);
+      padding: 10px 12px 5px;
+    }
+    .cmdk-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 13.5px;
+      color: rgba(255, 255, 255, 0.75);
+    }
+    .cmdk-item .ci-icon { width: 20px; text-align: center; }
+    .cmdk-item kbd {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .cmdk-item.sel {
+      background: linear-gradient(135deg, rgba(255, 107, 43, 0.16), rgba(123, 97, 255, 0.14));
+      color: #fff;
+    }
+    .cmdk-empty {
+      padding: 26px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.35);
+    }
+    .cmdk-foot {
+      display: flex;
+      gap: 16px;
+      padding: 10px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* ── RENDER PERFORMANCE — skip offscreen layout/paint ─────── */
+    .seo-demo-section,
+    .showcase-section,
+    .hiw-section,
+    .proof-section,
+    .about-section,
+    .faq-section {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 900px;
+    }
+  </style>
+
+  <div class="dot-rail" role="navigation" aria-label="Section quick navigation" id="dotRail">
+    <a href="#home" data-label="Top"></a>
+    <a href="#services" data-label="Services"></a>
+    <a href="#demos" data-label="Live Demos"></a>
+    <a href="#aria-demo" data-label="Meet ARIA"></a>
+    <a href="#seo" data-label="SEO"></a>
+    <a href="#roi" data-label="ROI"></a>
+    <a href="#work" data-label="Work"></a>
+    <a href="#story60" data-label="60 Seconds"></a>
+    <a href="#contact" data-label="Contact"></a>
+  </div>
+
+  <div class="cmdk-overlay" id="cmdkOverlay" role="dialog" aria-modal="true" aria-label="Command menu">
+    <div class="cmdk">
+      <input type="text" id="cmdkInput" placeholder="Type a command or search…" autocomplete="off">
+      <div class="cmdk-list" id="cmdkList"></div>
+      <div class="cmdk-foot"><span>↑↓ navigate</span><span>↵ select</span><span>esc close</span></div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    // ── Dot rail active state ──
+    var rail = document.getElementById('dotRail');
+    if (rail) {
+      var dots = [].slice.call(rail.querySelectorAll('a'));
+      var targets = dots.map(function(d) { return document.querySelector(d.getAttribute('href')); }).filter(Boolean);
+      var railObs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (!entry.isIntersecting) return;
+          dots.forEach(function(d) { d.classList.toggle('on', d.getAttribute('href') === '#' + entry.target.id); });
+        });
+      }, { rootMargin: '-35% 0px -55% 0px' });
+      targets.forEach(function(t) { railObs.observe(t); });
+    }
+
+    // ── Command palette ──
+    var overlay = document.getElementById('cmdkOverlay');
+    var input = document.getElementById('cmdkInput');
+    var list = document.getElementById('cmdkList');
+    if (!overlay || !input || !list) return;
+
+    var ACTIONS = [
+      { group: 'Actions', icon: '💬', label: 'Talk to ARIA', kbd: 'A', run: function() { if (typeof toggleChat === 'function' && !isChatOpen) toggleChat(); } },
+      { group: 'Actions', icon: '📅', label: 'Book a free strategy call', run: function() { location.href = '/book'; } },
+      { group: 'Actions', icon: '🧮', label: 'Open the ROI calculator', run: function() { window.open('https://roi.neuralflowai.io/roi-calculator', '_blank'); } },
+      { group: 'Actions', icon: '✉️', label: 'Email Danny', run: function() { location.href = 'mailto:danny@neuralflowai.io'; } },
+      { group: 'Actions', icon: '📞', label: 'Call or text (862) 701-9030', run: function() { location.href = 'tel:+18627019030'; } },
+      { group: 'Go to', icon: '⚙️', label: 'Services', run: function() { location.hash = '#services'; } },
+      { group: 'Go to', icon: '▶️', label: 'Live demos', run: function() { location.hash = '#demos'; } },
+      { group: 'Go to', icon: '🔍', label: 'SEO & AI Search', run: function() { location.hash = '#seo'; } },
+      { group: 'Go to', icon: '⏱', label: '60 seconds — visitor to booked', run: function() { location.hash = '#story60'; } },
+      { group: 'Go to', icon: '⭐', label: 'Client results', run: function() { location.hash = '#clients'; } },
+      { group: 'Go to', icon: '❓', label: 'FAQ', run: function() { location.hash = '#faq'; } },
+      { group: 'Go to', icon: '📨', label: 'Contact', run: function() { location.hash = '#contact'; } }
+    ];
+    var filtered = ACTIONS;
+    var sel = 0;
+
+    function render() {
+      list.innerHTML = '';
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="cmdk-empty">no matches — try "book" or "demo"</div>';
+        return;
+      }
+      var lastGroup = null;
+      filtered.forEach(function(a, i) {
+        if (a.group !== lastGroup) {
+          lastGroup = a.group;
+          var g = document.createElement('div');
+          g.className = 'cmdk-group';
+          g.textContent = a.group;
+          list.appendChild(g);
+        }
+        var el = document.createElement('div');
+        el.className = 'cmdk-item' + (i === sel ? ' sel' : '');
+        el.innerHTML = '<span class="ci-icon">' + a.icon + '</span><span>' + a.label + '</span>' + (a.kbd ? '<kbd>' + a.kbd + '</kbd>' : '');
+        el.addEventListener('click', function() { execute(a); });
+        el.addEventListener('mousemove', function() { if (sel !== i) { sel = i; render(); } });
+        list.appendChild(el);
+      });
+    }
+    function execute(a) {
+      close();
+      setTimeout(a.run, 60);
+    }
+    function open() {
+      overlay.classList.add('open');
+      input.value = '';
+      filtered = ACTIONS;
+      sel = 0;
+      render();
+      setTimeout(function() { input.focus(); }, 30);
+    }
+    function close() { overlay.classList.remove('open'); }
+
+    input.addEventListener('input', function() {
+      var q = input.value.trim().toLowerCase();
+      filtered = q ? ACTIONS.filter(function(a) { return a.label.toLowerCase().indexOf(q) !== -1 || a.group.toLowerCase().indexOf(q) !== -1; }) : ACTIONS;
+      sel = 0;
+      render();
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, filtered.length - 1); render(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); render(); }
+      else if (e.key === 'Enter' && filtered[sel]) { e.preventDefault(); execute(filtered[sel]); }
+    });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) close(); });
+
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        overlay.classList.contains('open') ? close() : open();
+      } else if (e.key === 'Escape' && overlay.classList.contains('open')) {
+        e.stopPropagation();
+        close();
+      }
+    }, true);
+
+    // expose for footer trigger
+    window.__openCmdk = open;
   })();
   </script>
 
