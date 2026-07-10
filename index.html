@@ -6902,6 +6902,67 @@
     </div>
   </section>
 
+  <!-- MANIFESTO — ink-scrub statement -->
+  <style>
+    .manifesto {
+      padding: 24vh 24px;
+      background: var(--bg);
+      overflow: clip;
+    }
+    .mani-inner { max-width: 1040px; margin: 0 auto; }
+    .mani-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 28px;
+    }
+    .mani-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: clamp(2.3rem, 5.2vw, 4.8rem);
+      letter-spacing: -2.5px;
+      line-height: 1.1;
+      background: linear-gradient(90deg, #101014 50%, rgba(16, 16, 20, 0.13) 50.5%);
+      background-size: 205% 100%;
+      background-position: 0% 0;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .mani-text em {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      letter-spacing: -1px;
+    }
+    /* Ink scrub: the statement fills with ink as you scroll through it */
+    @media (prefers-reduced-motion: no-preference) {
+      @supports (animation-timeline: view()) {
+        .mani-text {
+          animation: inkScrub linear both;
+          animation-timeline: view();
+          animation-range: entry 60% cover 62%;
+        }
+        @keyframes inkScrub {
+          from { background-position: 100% 0; }
+          to { background-position: 0% 0; }
+        }
+      }
+    }
+    @media (max-width: 768px) {
+      .manifesto { padding: 16vh 20px; }
+      .mani-text { letter-spacing: -1.2px; }
+    }
+  </style>
+  <section class="manifesto" id="manifesto" aria-label="Why NeuralFlow exists">
+    <div class="mani-inner">
+      <div class="mani-tag">— The Point</div>
+      <p class="mani-text">Every lead you miss <em>found someone else.</em> We build the machine that <em>never misses.</em></p>
+    </div>
+  </section>
+
   <!-- SCROLL STORY — 60 SECONDS -->
   <style>
     .story-section {
@@ -11710,8 +11771,8 @@
     @media (prefers-reduced-motion: no-preference) {
       @supports (animation-timeline: view()) {
         .hero, .stats-section, #services, #demos, #aria-demo, #seo,
-        #roi, #work, #process, #clients, .cta-band-section, #about,
-        #faq, #contact {
+        #roi, #work, #process, #clients, #manifesto, .cta-band-section,
+        #about, #faq, #contact {
           animation: secRecede linear both;
           animation-timeline: view();
           animation-range: exit 0% exit 100%;
@@ -11867,6 +11928,80 @@
       }
     }
 
+    /* ── WORK GALLERY SCRUB — vertical scroll pans the card track
+       horizontally while the section pins. The track is duplicated
+       for the marquee loop, so any pan position is seamless. ── */
+    @media (min-width: 981px) and (prefers-reduced-motion: no-preference) {
+      @supports (animation-timeline: view()) {
+        #work.work-scrub {
+          min-height: 300vh;
+          view-timeline: --workT block;
+          /* recede + cv would re-anchor / skip the pinned track */
+          animation: none;
+          content-visibility: visible;
+          contain-intrinsic-size: none;
+          /* hidden would make the section a scroll container and kill
+             the sticky pin — clip clips without one */
+          overflow: clip;
+        }
+        #work.work-scrub .work-pin {
+          position: sticky;
+          top: 0;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        #work.work-scrub .build-track {
+          animation: workPan linear both;
+          animation-timeline: --workT;
+          animation-range: contain 0% contain 100%;
+          animation-play-state: running !important; /* hover-pause is for the marquee */
+        }
+        @keyframes workPan {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+      }
+    }
+
+    /* ── GHOST CHAPTER NUMERALS — huge outlined numbers floating
+       behind each section header ── */
+    @media (min-width: 981px) {
+      .ghost-num {
+        position: absolute;
+        left: 50%;
+        top: -0.34em;
+        font-family: 'Space Grotesk', sans-serif;
+        font-size: clamp(9rem, 15vw, 14rem);
+        font-weight: 800;
+        letter-spacing: -8px;
+        line-height: 1;
+        color: transparent;
+        -webkit-text-stroke: 1.5px rgba(16, 16, 20, 0.07);
+        pointer-events: none;
+        user-select: none;
+        z-index: -1;
+        transform: translateX(-50%);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        @supports (animation-timeline: view()) {
+          .ghost-num {
+            animation: ghostDrift linear both;
+            animation-timeline: view();
+            animation-range: cover 0% cover 100%;
+          }
+          @keyframes ghostDrift {
+            from { transform: translateX(-50%) translateY(46px); }
+            to { transform: translateX(-50%) translateY(-46px); }
+          }
+        }
+      }
+    }
+    @media (max-width: 980px) {
+      .ghost-num { display: none; }
+    }
+
     /* CTA gloss sweep on hover */
     .btn { position: relative; overflow: hidden; }
     .btn::after {
@@ -11907,6 +12042,33 @@
       window.addEventListener('scroll', onScroll, { passive: true });
       onScroll();
     }
+
+    // Work gallery scrub: wrap the section content in a sticky pin and
+    // let scroll drive the track sideways (Chromium; marquee elsewhere)
+    if (!reduced && CSS.supports('animation-timeline: view()') &&
+        window.matchMedia('(min-width: 981px)').matches) {
+      var work = document.getElementById('work');
+      if (work && work.querySelector('.build-track')) {
+        var pin = document.createElement('div');
+        pin.className = 'work-pin';
+        while (work.firstChild) pin.appendChild(work.firstChild);
+        work.appendChild(pin);
+        work.classList.add('work-scrub');
+        var hint = work.querySelector('.build-hint');
+        if (hint) hint.innerHTML = '⇣ keep scrolling — the gallery pans &nbsp;·&nbsp; click any card to explore';
+      }
+    }
+
+    // Ghost chapter numerals behind each section header
+    document.querySelectorAll('.eyebrow-mono[data-num]').forEach(function(chip) {
+      var n = document.createElement('span');
+      n.className = 'ghost-num';
+      n.textContent = chip.getAttribute('data-num');
+      n.setAttribute('aria-hidden', 'true');
+      chip.style.position = 'relative';
+      chip.style.zIndex = '1';
+      chip.appendChild(n);
+    });
 
     // Hero pointer parallax — the headline drifts away from the cursor,
     // the product card floats toward it (its long transform transition
