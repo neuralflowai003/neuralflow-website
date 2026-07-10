@@ -11224,7 +11224,11 @@
     @media (max-width: 768px) {
       /* Hero card already rotates all four demos on mobile —
          the demos section is redundant there */
-      #demos { display: none !important; }
+      /* phones get the flagship website-build demo only — the four
+         mini demos stay desktop, keeping mobile condensed */
+      #demos .demo-panel:not(.wb-panel) { display: none !important; }
+      #demos .demos-grid { grid-template-columns: 1fr !important; }
+      #demos .wb-body { grid-template-columns: 1fr !important; }
       /* Service cards become compact rows — the dark viz chips are
          the desktop treat */
       .tilt-card .card-viz { display: none !important; }
