@@ -3503,9 +3503,72 @@
           </div>
         </div>
 
+        <!-- High-Converting Websites — the one-stop shop -->
+        <div class="tilt-card reveal trigger-hover" style="transition-delay:0.2s;" data-tilt>
+          <div class="card-inner">
+            <div class="card-viz">
+              <div class="viz-website">
+                <div class="viz-web-bar"><i></i><i></i><i></i><span>yourbusiness.com</span><em class="viz-web-live">● LIVE</em></div>
+                <div class="viz-web-body">
+                  <div class="viz-web-sk" style="width:52%"></div>
+                  <div class="viz-web-sk" style="width:74%;height:7px;"></div>
+                  <div class="viz-web-chips">
+                    <span>🤖 ARIA</span><span>📅 Booking</span><span>🔍 SEO 98</span><span>⚡ Automations</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <h3>High-Converting Websites</h3>
+            <p>The one-stop shop: we design and build your entire site with ARIA, booking, SEO, and automations wired in from day one.</p>
+            <button class="learn-more" type="button" data-modal="website-builds" onclick="openServiceModal(this)">Learn More</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
+
+  <style>
+    /* flagship website-build demo */
+    .wb-body { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 18px; align-items: stretch; }
+    .wb-site { border: 1px solid var(--hairline); border-radius: 14px; overflow: hidden; background: #fff; }
+    .wb-urlbar { display: flex; align-items: center; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--hairline); background: var(--paper-2); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #9a9890; }
+    .wb-urlbar i { width: 7px; height: 7px; border-radius: 50%; background: #D8D6CF; }
+    .wb-urlbar span { margin-left: 5px; }
+    .wb-live { margin-left: auto; font-style: normal; color: #9a9890; font-size: 9.5px; letter-spacing: 0.08em; transition: color 0.3s; }
+    .wb-live.on { color: #0B9E5E; }
+    .wb-canvas { padding: 16px; position: relative; min-height: 190px; }
+    .wb-block { border-radius: 7px; background: #E6E4DE; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+    .wb-nav-sk { height: 12px; margin-bottom: 12px; }
+    .wb-hero-sk { height: 44px; margin-bottom: 12px; background: linear-gradient(120deg, rgba(255, 107, 43, 0.18), rgba(123, 97, 255, 0.18)); }
+    .wb-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .wb-cols .wb-block { height: 42px; }
+    .wb-block.in { opacity: 1; transform: none; }
+    .wb-chat { position: absolute; right: 12px; bottom: 10px; font-size: 11px; background: #fff; border: 1px solid rgba(242, 90, 28, 0.35); border-radius: 11px 11px 3px 11px; padding: 8px 11px; box-shadow: 0 10px 24px -12px rgba(16, 16, 20, 0.3); opacity: 0; transform: translateY(8px) scale(0.95); transition: opacity 0.4s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .wb-chat.in { opacity: 1; transform: none; }
+    .wb-side { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+    .wb-step { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); border: 1px solid var(--hairline); border-radius: 10px; padding: 9px 12px; background: #fff; opacity: 0.35; transition: opacity 0.4s, border-color 0.4s; }
+    .wb-step em { margin-left: auto; font-style: normal; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #0B9E5E; opacity: 0; transition: opacity 0.3s; }
+    .wb-step.on { opacity: 1; border-color: rgba(11, 158, 94, 0.35); }
+    .wb-step.on em { opacity: 1; }
+    .wb-ic { font-size: 14px; }
+    .wb-note { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #9a9890; padding: 8px 2px 0; }
+    .wb-note b { color: var(--accent); font-weight: 700; }
+    @media (max-width: 900px) {
+      .wb-body { grid-template-columns: 1fr; }
+    }
+
+    /* mini-viz for the websites card */
+    .viz-website { border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; background: #fff; }
+    .viz-web-bar { display: flex; align-items: center; gap: 5px; padding: 7px 10px; border-bottom: 1px solid var(--hairline); background: var(--paper-2); font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #9a9890; }
+    .viz-web-bar i { width: 6px; height: 6px; border-radius: 50%; background: #D8D6CF; }
+    .viz-web-bar span { margin-left: 4px; }
+    .viz-web-live { margin-left: auto; font-style: normal; color: #0B9E5E; font-size: 8.5px; letter-spacing: 0.08em; }
+    .viz-web-body { padding: 12px; }
+    .viz-web-sk { height: 10px; border-radius: 5px; background: #E6E4DE; margin-bottom: 7px; }
+    .viz-web-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .viz-web-chips span { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; color: var(--accent); border: 1px solid rgba(242, 90, 28, 0.3); border-radius: 5px; padding: 3px 7px; background: rgba(242, 90, 28, 0.05); }
+  </style>
 
   <style>
     /* — AI Voice Agents card viz — */
@@ -3936,6 +3999,30 @@
             <div class="rk-row"><span class="rk-kw">seo for local business nj</span><span class="rk-delta">▲19</span><span class="rk-pos" data-from="21" data-to="2">#21</span></div>
           </div>
         </div>
+
+        <!-- Flagship: full website build — the one-stop shop -->
+        <div class="demo-panel reveal wb-panel" id="wbDemo" style="grid-column: 1 / -1;">
+          <div class="demo-head"><span class="dh-dots"><i></i><i></i><i></i></span>website — the whole system, one build<span class="dh-tag">ONE-STOP SHOP</span></div>
+          <div class="demo-body wb-body">
+            <div class="wb-site">
+              <div class="wb-urlbar"><i></i><i></i><i></i><span>yourbusiness.com</span><em class="wb-live" id="wbLive">deploying…</em></div>
+              <div class="wb-canvas">
+                <div class="wb-block wb-nav-sk"></div>
+                <div class="wb-block wb-hero-sk"></div>
+                <div class="wb-cols"><div class="wb-block"></div><div class="wb-block"></div><div class="wb-block"></div></div>
+                <div class="wb-chat" id="wbChat">🤖 Hi! I'm ARIA — want Thursday 2 PM?</div>
+              </div>
+            </div>
+            <div class="wb-side">
+              <div class="wb-step" data-i="0"><span class="wb-ic">🎨</span>Design & build<em>done</em></div>
+              <div class="wb-step" data-i="1"><span class="wb-ic">🤖</span>ARIA embedded<em>done</em></div>
+              <div class="wb-step" data-i="2"><span class="wb-ic">📅</span>Booking wired to calendar<em>done</em></div>
+              <div class="wb-step" data-i="3"><span class="wb-ic">🔍</span>SEO &amp; AI-search structure<em>98/100</em></div>
+              <div class="wb-step" data-i="4"><span class="wb-ic">⚡</span>Automations connected<em>live</em></div>
+              <div class="wb-note">everything on this page, working together — <b>one build, one team</b></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="demos-cta reveal" style="display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;">
@@ -4079,7 +4166,30 @@
     } else {
       // Start each demo when it first scrolls into view
       var started = {};
-      var starters = { wfDemo: wfRun, lsDemo: lsRun, fwDemo: fwRun, rkDemo: rkRun };
+      function wbRun() {
+        var blocks = [].slice.call(document.querySelectorAll('#wbDemo .wb-block'));
+        var steps = [].slice.call(document.querySelectorAll('#wbDemo .wb-step'));
+        var chat = document.getElementById('wbChat');
+        var live = document.getElementById('wbLive');
+        function reset() {
+          blocks.forEach(function(b) { b.classList.remove('in'); });
+          steps.forEach(function(s) { s.classList.remove('on'); });
+          if (chat) chat.classList.remove('in');
+          if (live) { live.classList.remove('on'); live.textContent = 'deploying…'; }
+        }
+        function play() {
+          reset();
+          blocks.forEach(function(b, i) { setTimeout(function() { b.classList.add('in'); }, 300 + i * 260); });
+          steps.forEach(function(s, i) { setTimeout(function() { s.classList.add('on'); }, 700 + i * 520); });
+          setTimeout(function() { if (chat) chat.classList.add('in'); }, 1500);
+          setTimeout(function() {
+            if (live) { live.classList.add('on'); live.textContent = '● LIVE'; }
+          }, 700 + steps.length * 520 + 300);
+          setTimeout(play, 9000); // loop like the other demos
+        }
+        play();
+      }
+      var starters = { wfDemo: wfRun, lsDemo: lsRun, fwDemo: fwRun, rkDemo: rkRun, wbDemo: wbRun };
       var obs = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
           if (entry.isIntersecting && !started[entry.target.id]) {
@@ -5665,93 +5775,6 @@
     // removed old drag scroll — now using CSS marquee animation
     // Build track uses CSS marquee animation — no JS needed
   </script>
-  <div style="display:none!important;visibility:hidden;height:0;overflow:hidden">
-    <div class="showcase-track">
-
-      <div class="showcase-card trigger-hover">
-        <div class="fake-ui">
-          <div class="ui-top">
-            <div class="ui-dot"></div>
-            <div class="ui-dot"></div>
-            <div class="ui-dot"></div>
-          </div>
-          <div class="ui-line"></div>
-          <div class="ui-line short"></div>
-          <div style="margin-top:20px; display:flex; gap:10px;">
-            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--border);"></div>
-            <div style="flex:1;">
-              <div class="ui-line shorter" style="margin-bottom:8px;"></div>
-              <div class="ui-line"></div>
-            </div>
-          </div>
-        </div>
-        <h3>AI Receptionists</h3>
-        <p>Autonomous voice and text agents that book appointments, answer FAQs, and qualify leads without human
-          intervention.</p>
-      </div>
-
-      <div class="showcase-card trigger-hover">
-        <div class="fake-ui">
-          <div class="ui-top">
-            <div class="ui-dot"></div>
-            <div class="ui-dot"></div>
-            <div class="ui-dot"></div>
-          </div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; flex:1;">
-            <div style="background: var(--border); border-radius: 4px;"></div>
-            <div style="display:flex; flex-direction:column; gap:10px;">
-              <div style="background: var(--border); border-radius: 4px; flex:1;"></div>
-              <div style="background: var(--border); border-radius: 4px; flex:1;"></div>
-            </div>
-          </div>
-        </div>
-        <h3>Custom Dashboards</h3>
-        <p>Centralized command centers pulling real-time data from all your disjointed SaaS tools into one beautiful
-          UI.</p>
-      </div>
-
-      <div class="showcase-card trigger-hover">
-        <div class="fake-ui">
-          <div class="ui-top">
-            <div class="ui-dot"></div>
-            <div class="ui-dot"></div>
-            <div class="ui-dot"></div>
-          </div>
-          <div style="display:flex; align-items:center; gap:10px; margin-top: 10px;">
-            <div
-              style="padding:10px; border:1px solid var(--border); border-radius:4px; flex:1; text-align:center; color:var(--muted); font-size:10px;">
-              CRM</div>
-            <div style="color:var(--accent);">→</div>
-            <div
-              style="padding:10px; border:1px solid var(--border); border-radius:4px; flex:1; text-align:center; color:var(--muted); font-size:10px;">
-              LLM</div>
-            <div style="color:var(--accent);">→</div>
-            <div
-              style="padding:10px; border:1px solid var(--border); border-radius:4px; flex:1; text-align:center; color:var(--muted); font-size:10px;">
-              EMAIL</div>
-          </div>
-        </div>
-        <h3>Automation Pipelines</h3>
-        <p>Complex Zapier/Make replacements engineered in code for zero latency and infinite scalability.</p>
-      </div>
-
-      <div class="showcase-card trigger-hover">
-        <div class="fake-ui">
-          <div class="ui-top">
-            <div class="ui-dot"></div>
-            <div class="ui-dot"></div>
-            <div class="ui-dot"></div>
-          </div>
-          <div class="ui-line short" style="margin-top:10px;"></div>
-          <div class="ui-line" style="margin-top:20px; height: 40px;"></div>
-          <div class="ui-line" style="margin-top:10px; height: 40px; background: rgba(255,107,43,0.2);"></div>
-        </div>
-        <h3>Lead Gen Systems</h3>
-        <p>Scrape, enrich, and automatically email hyper-personalized outreach at scale using AI.</p>
-      </div>
-
-    </div>
-  </div>
   </section>
 
   <!-- HOW IT WORKS -->
@@ -6688,44 +6711,6 @@
   <section class="proof-section" id="clients">
     <div class="container">
       <div class="eyebrow-mono reveal" data-num="09">What Clients Are Saying</div>
-      <div class="quotes-ticker-wrap reveal">
-        <div class="quotes-ticker-track">
-          <span class="qtick">"ROI in 3 weeks."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Leads on autopilot."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Team finally freed up."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Closed 40% more deals."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Pipeline fills itself."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Zero manual follow-ups."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Best investment this year."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Runs while we sleep."</span>
-          <span class="qtick-dot">✦</span>
-          <!-- Duplicate for seamless loop -->
-          <span class="qtick">"ROI in 3 weeks."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Leads on autopilot."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Team finally freed up."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Closed 40% more deals."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Pipeline fills itself."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Zero manual follow-ups."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Best investment this year."</span>
-          <span class="qtick-dot">✦</span>
-          <span class="qtick">"Runs while we sleep."</span>
-          <span class="qtick-dot">✦</span>
-        </div>
-      </div>
-
       <h2 class="section-title reveal" style="margin-bottom:60px;">What Clients Say.</h2>
 
       <div class="testimonials-grid">
@@ -7374,32 +7359,6 @@
       .cta-band-eyebrow { font-size: 10px; white-space: nowrap; }
     }
   </style>
-  <section class="cta-band-section" id="free-call">
-    <div class="container">
-      <div class="cta-band reveal">
-        <div class="cta-band-glow" aria-hidden="true"></div>
-        <div class="cta-band-eyebrow">Free Strategy Call &middot; No Strings</div>
-        <h2>Not sure where AI fits your business?<br><span class="cta-grad">Let's find out — free.</span></h2>
-        <p>Book a <strong>free 15-minute call</strong>. We'll look at how you operate, pinpoint exactly where you're
-          losing time and money, and map out what AI can fix — <strong>whether you hire us or not</strong>.</p>
-        <div class="hs-avatars" style="justify-content:center;display:flex;margin:0 auto 18px;" aria-hidden="true">
-          <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="34" height="34" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
-          <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="34" height="34" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
-          <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="34" height="34" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
-          <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="34" height="34" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
-        </div>
-        <div class="cta-band-actions">
-          <button onclick="if(typeof toggleChat==='function')toggleChat();" class="btn btn-solid magnetic" data-strength="50" style="cursor:pointer;border:none;white-space:nowrap;">Book My Free&nbsp;Call&nbsp;→</button>
-          <a href="#contact" class="btn btn-ghost magnetic" data-strength="40">Send a Message Instead</a>
-        </div>
-        <div class="cta-band-trust">
-          <span>✓ 15 minutes, zero pressure</span>
-          <span>✓ Walk away with a real plan</span>
-          <span>✓ Books instantly — no back-and-forth</span>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- ABOUT -->
   <section class="about-section section" id="about">
@@ -7950,6 +7909,7 @@
         "Automate Everything.",
         "Grow While You Sleep.",
         "Outrank Your Competition.",
+        "Websites That Sell.",
         "Turn Clicks Into Clients."
       ];
       var hIdx = 0;
@@ -8733,6 +8693,22 @@
         ],
         who: 'Growth-focused teams, e-commerce brands, SaaS companies — anyone who has data but isn\'t fully leveraging it.',
         cta: 'Unlock My Data →',
+        link: '#contact'
+      },
+      'website-builds': {
+        title: 'High-Converting Websites',
+        subtitle: 'Your entire growth system, in one build',
+        body: 'We design and build premium websites with everything you see on this site wired in from day one — ARIA answering visitors, appointments booking themselves into your calendar, SEO structured to rank on Google and AI search, and automations connecting it all to your tools. One team, one build, one system that sells while you sleep.',
+        included: [
+          'Custom high-converting design & build',
+          'ARIA AI receptionist embedded on every page',
+          'Direct calendar booking — no back-and-forth',
+          'SEO & AI-search structure baked in',
+          'Lead capture wired to your CRM & phone',
+          'Analytics, hosting, and ongoing care'
+        ],
+        who: 'Any business whose website should be its hardest-working employee — service businesses, firms, local companies, startups.',
+        cta: 'Build My Website →',
         link: '#contact'
       },
       'seo-optimization': {
@@ -11654,7 +11630,7 @@
     @media (prefers-reduced-motion: no-preference) {
       @supports (animation-timeline: view()) {
         .hero, .stats-section, #services, #demos, #aria-demo, #seo,
-        #roi, #work, #process, #clients, #manifesto, .cta-band-section,
+        #roi, #work, #process, #clients, #manifesto,
         #about, #faq, #contact {
           animation: secRecede linear both;
           animation-timeline: view();
@@ -12581,7 +12557,6 @@
       .build-card,
       .hiw-card:not(.card-in),
       .tcard:not(.fx-left):not(.fx-rise):not(.fx-right),
-      .quotes-ticker-wrap.visible,
       .mani-inner,
       .founder-copy.visible {
         border-radius: 26px !important;
@@ -12616,7 +12591,6 @@
           0 26px 52px -26px rgba(16, 16, 20, 0.4),
           0 0 44px -14px rgba(242, 90, 28, 0.2);
       }
-      .quotes-ticker-wrap.visible { overflow: hidden; }
       /* hover lift for the interactive ones */
       .build-card:hover,
       .tcard:not(.fx-left):not(.fx-rise):not(.fx-right):hover {
@@ -12639,7 +12613,6 @@
         .build-card,
         .hiw-card:not(.card-in),
         .tcard:not(.fx-left):not(.fx-rise):not(.fx-right),
-        .quotes-ticker-wrap.visible,
         .mani-inner,
         .founder-copy.visible {
           border-radius: 20px !important;
