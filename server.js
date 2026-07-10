@@ -139,7 +139,7 @@ function sanitizeTg(str) {
 }
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
+app.get('/health', (req, res) => res.json({ status: 'ok', build: 'GLASS-0710', ts: Date.now() }));
 
 // ─── SEO ──────────────────────────────────────────────────────────────────────
 app.get('/robots.txt', (req, res) => {
