@@ -78,7 +78,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://www.google-analytics.com"],
+      imgSrc: ["'self'", "data:", "https://www.google-analytics.com", "https://images.unsplash.com"],
       connectSrc: ["'self'", "https://www.google-analytics.com", "https://roi.neuralflowai.io"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
