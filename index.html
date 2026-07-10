@@ -4732,8 +4732,8 @@
       </div>
     </div>
 
-    <!-- Bottom CTA banner -->
-    <div class="container reveal" style="margin-top:60px;text-align:center;">
+    <!-- Bottom CTA banner (mobile only — desktop capture form is the CTA) -->
+    <div class="container reveal seo-bottom-cta" style="margin-top:60px;text-align:center;">
       <div style="background:linear-gradient(135deg,rgba(255,107,43,0.08),rgba(123,97,255,0.08));border:1px solid rgba(255,107,43,0.15);border-radius:20px;padding:40px 32px;max-width:800px;margin:0 auto;">
         <div style="font-family:'Space Grotesk',sans-serif;font-size:clamp(1.3rem,3vw,1.8rem);font-weight:700;color:#fff;margin-bottom:12px;">Every day you're not ranking is a day your competitors are taking your customers.</div>
         <p style="color:var(--muted);font-size:1rem;margin-bottom:24px;max-width:550px;margin-left:auto;margin-right:auto;">SEO isn't a nice-to-have — it's the highest-ROI marketing channel that exists. We make it happen.</p>
@@ -11596,6 +11596,141 @@
     .hiw-card:hover .hiw-graphic { border-color: rgba(242, 90, 28, 0.45) !important; }
     .hiw-steps li { border-bottom: 1px solid var(--hairline) !important; color: var(--muted); }
   </style>
+
+  <!-- ============================================================
+       LAYERED STACK SCROLL — housing.cloud-style: each section pins
+       and the next slides up over it like stacked sheets.
+       Variable-height sections use measured sticky offsets so tall
+       sections fully play out (bottom-aligned pin) before layering.
+       ============================================================ -->
+  <style>
+    .layer-sheet {
+      border-radius: 28px 28px 0 0;
+      box-shadow: 0 -26px 56px -30px rgba(16, 16, 20, 0.28);
+      border-top: 1px solid var(--hairline);
+      /* sticky + content-visibility conflict — layers must always render */
+      content-visibility: visible !important;
+      contain-intrinsic-size: none !important;
+    }
+    @media (max-width: 768px) {
+      .layer-sheet { border-radius: 18px 18px 0 0; }
+    }
+    /* The SEO section pins bottom-aligned (taller than the viewport), so
+       its resting frame is the last viewport-height of content. The bottom
+       CTA banner is redundant on desktop (the capture form beside the mock
+       IS the CTA) and would push the form's top above the fold — hide it
+       and trim padding so the pinned frame shows the full form. */
+    @media (min-width: 769px) {
+      .seo-bottom-cta { display: none; }
+      #seo.layer-sheet { padding-bottom: 64px !important; }
+    }
+  </style>
+
+  <script>
+  (function() {
+    // Ordered layers. Sections marked pin:false still slide over the
+    // previous pinned layer but never pin themselves (the 60s story
+    // needs its internal scroll to play; marquees/footer are ribbons).
+    var LAYERS = [
+      { sel: '.hero', pin: true, sheet: false },
+      { sel: '.hero + .mega-marquee', pin: false, sheet: false },
+      { sel: '.stats-section', pin: true, sheet: true },
+      { sel: '#services', pin: true, sheet: true },
+      { sel: '#demos', pin: true, sheet: true },
+      { sel: '#aria-demo', pin: true, sheet: true },
+      { sel: '#seo', pin: true, sheet: true },
+      { sel: '#roi', pin: true, sheet: true },
+      { sel: '#work', pin: true, sheet: true },
+      { sel: '#process', pin: true, sheet: true },
+      { sel: '#clients', pin: true, sheet: true },
+      { sel: '#story60', pin: false, sheet: true },
+      { sel: '.cta-band-section', pin: true, sheet: true },
+      { sel: '#about', pin: true, sheet: true },
+      { sel: '#faq', pin: true, sheet: true },
+      { sel: '.mm-reverse', pin: false, sheet: false },
+      { sel: '#contact', pin: true, sheet: true },
+      { sel: 'footer', pin: false, sheet: true }
+    ];
+    var els = [];
+    LAYERS.forEach(function(L, i) {
+      var el = document.querySelector(L.sel);
+      if (!el) return;
+      el.style.position = L.pin ? 'sticky' : 'relative';
+      el.style.zIndex = String(10 + i);
+      if (L.sheet) el.classList.add('layer-sheet');
+      els.push({ el: el, pin: L.pin });
+    });
+
+    function measure() {
+      var vh = window.innerHeight;
+      els.forEach(function(item) {
+        if (!item.pin) return;
+        // Short sections pin at the top; tall sections pin bottom-aligned
+        // so every pixel of them is reachable before the next layer covers
+        var h = item.el.offsetHeight;
+        item.el.style.top = Math.min(0, vh - h) + 'px';
+      });
+    }
+    measure();
+    // Re-measure after fonts/images settle and on resize
+    setTimeout(measure, 800);
+    setTimeout(measure, 2500);
+    window.addEventListener('resize', function() { requestAnimationFrame(measure); }, { passive: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function() { setTimeout(measure, 50); });
+
+    // ── Pinned sections stay geometrically "in viewport" while covered,
+    //    which breaks IntersectionObserver scrollspy. And Chrome reports
+    //    offsetTop of a STUCK element at its stuck position, so flow
+    //    offsets must be cached while nothing is stuck (page load).
+    var topCache = new Map();
+    function rawTop(el) {
+      return window.scrollY + el.getBoundingClientRect().top;
+    }
+    function cacheTops() {
+      if (window.scrollY > 50) return; // only trust geometry when nothing is stuck
+      document.querySelectorAll('section, footer, .stats-section').forEach(function(el) {
+        topCache.set(el, rawTop(el));
+      });
+    }
+    function docTop(el) {
+      if (topCache.has(el)) return topCache.get(el);
+      return rawTop(el);
+    }
+    cacheTops();
+    setTimeout(cacheTops, 900);
+    setTimeout(cacheTops, 2600);
+    window.addEventListener('resize', function() { setTimeout(cacheTops, 100); }, { passive: true });
+    var navMap = [['#seo', 'seo'], ['#work', 'work'], ['#process', 'process'], ['#about', 'about']];
+    var navLinks = navMap.map(function(p) {
+      return { link: document.querySelector('.nav-links a[href="' + p[0] + '"]'), sec: document.getElementById(p[1]) };
+    }).filter(function(x) { return x.link && x.sec; });
+    var dots = [].slice.call(document.querySelectorAll('.dot-rail a'));
+    var dotSecs = dots.map(function(d) { return document.querySelector(d.getAttribute('href')); });
+
+    var spyTick = false;
+    function spy() {
+      spyTick = false;
+      var probe = window.scrollY + window.innerHeight * 0.45;
+      var activeNav = null;
+      navLinks.forEach(function(x) {
+        var top = docTop(x.sec);
+        if (probe >= top && probe < top + x.sec.offsetHeight) activeNav = x;
+      });
+      navLinks.forEach(function(x) { x.link.classList.toggle('nav-active', x === activeNav); });
+      var best = -1;
+      dotSecs.forEach(function(sec, i) {
+        if (sec && probe >= docTop(sec)) best = i;
+      });
+      dots.forEach(function(d, i) { d.classList.toggle('on', i === best); });
+    }
+    window.addEventListener('scroll', function() {
+      if (spyTick) return;
+      spyTick = true;
+      requestAnimationFrame(spy);
+    }, { passive: true });
+    spy();
+  })();
+  </script>
 </body>
 
 </html>
