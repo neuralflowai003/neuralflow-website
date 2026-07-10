@@ -12,12 +12,12 @@
         rel="stylesheet">
     <style>
         :root {
-            --bg: #0a0a0f;
-            --accent: #FF6B2B;
-            --text: #ffffff;
-            --text-muted: #a0a0b0;
-            --card-bg: #13131a;
-            --border: rgba(255, 255, 255, 0.1);
+            --bg: #FAFAF7;
+            --accent: #F25A1C;
+            --text: #101014;
+            --text-muted: #55555F;
+            --card-bg: #ffffff;
+            --border: #E6E4DE;
         }
 
         * {
@@ -103,7 +103,7 @@
         }
 
         input {
-            background: var(--card-bg);
+            background: #F3F2EE;
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 14px;
@@ -116,6 +116,7 @@
         input:focus {
             outline: none;
             border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(242, 90, 28, 0.12);
         }
 
         button {
@@ -179,7 +180,7 @@
 
         .pay-button {
             display: inline-block;
-            background: #22c55e;
+            background: #0BB463;
             color: white;
             text-decoration: none;
             padding: 16px 32px;
@@ -192,7 +193,7 @@
 
         .pay-button:hover {
             transform: translateY(-2px);
-            background: #16a34a;
+            background: #099a55;
         }
 
         .docusign-note {
@@ -201,7 +202,7 @@
         }
 
         .error-message {
-            color: #ef4444;
+            color: #C42348;
             margin-bottom: 20px;
         }
 
@@ -369,34 +370,34 @@
 
         /* Premium panel wrapping form + success/error states */
         .container {
-            background: linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.012) 45%, rgba(255,255,255,0.022) 100%), #0a0a12;
-            border: 1px solid rgba(255,255,255,0.09);
+            background: #ffffff;
+            border: 1px solid #E6E4DE;
             border-radius: 20px;
             padding: 40px 32px;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -20px rgba(0,0,0,0.6);
+            box-shadow: 0 24px 50px -32px rgba(16,16,20,0.25);
             transition: border-color 0.3s, box-shadow 0.3s;
         }
 
         .container:hover {
-            border-color: rgba(255,107,43,0.32);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -20px rgba(0,0,0,0.6), 0 0 48px -12px rgba(255,107,43,0.18);
+            border-color: rgba(242,90,28,0.35);
+            box-shadow: 0 24px 50px -32px rgba(16,16,20,0.25), 0 0 48px -12px rgba(242,90,28,0.12);
         }
 
         /* Nested pricing card */
         .info-card {
-            background: linear-gradient(180deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.012) 45%, rgba(255,255,255,0.022) 100%), #0a0a12;
-            border: 1px solid rgba(255,255,255,0.09);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -20px rgba(0,0,0,0.6);
+            background: #F3F2EE;
+            border: 1px solid #E6E4DE;
+            box-shadow: none;
         }
 
         .info-card:hover {
-            border-color: rgba(255,107,43,0.32);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 24px 48px -20px rgba(0,0,0,0.6), 0 0 48px -12px rgba(255,107,43,0.18);
+            border-color: rgba(242,90,28,0.35);
+            box-shadow: none;
         }
 
         /* Gradient sheen headline */
         h1 {
-            background: linear-gradient(180deg, #ffffff 0%, #eeeef4 55%, #a9a9bd 100%);
+            background: linear-gradient(180deg, #101014 0%, #26262e 55%, #55555F 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -405,27 +406,27 @@
         /* Form input focus glow */
         input:focus {
             border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(255,107,43,0.12);
+            box-shadow: 0 0 0 3px rgba(242,90,28,0.12);
         }
 
         /* Premium primary CTA */
         #submit-btn {
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 28px -10px rgba(255,107,43,0.55), 0 4px 12px rgba(0,0,0,0.35);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 28px -10px rgba(242,90,28,0.4), 0 4px 12px rgba(16,16,20,0.12);
             transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
         }
 
         #submit-btn:hover {
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 14px 34px -10px rgba(255,107,43,0.68), 0 6px 16px rgba(0,0,0,0.4);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 14px 34px -10px rgba(242,90,28,0.5), 0 6px 16px rgba(16,16,20,0.15);
         }
 
         /* Pay button — green glow variant */
         .pay-button {
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 28px -10px rgba(34,197,94,0.5), 0 4px 12px rgba(0,0,0,0.35);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 28px -10px rgba(11,180,99,0.4), 0 4px 12px rgba(16,16,20,0.12);
             transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
         }
 
         .pay-button:hover {
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 14px 34px -10px rgba(34,197,94,0.6), 0 6px 16px rgba(0,0,0,0.4);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.32), 0 14px 34px -10px rgba(11,180,99,0.5), 0 6px 16px rgba(16,16,20,0.15);
         }
 
         @media (max-width: 480px) {
