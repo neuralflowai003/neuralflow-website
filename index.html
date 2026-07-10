@@ -12434,6 +12434,159 @@
     .nav-link.nav-active { color: var(--ink) !important; }
   </style>
 
+  <!-- ============================================================
+       LENS EVERYWHERE — the gliding glass lens applied to the other
+       moving controls: dot rail, SEO segmented toggle, story puck.
+       ============================================================ -->
+  <style>
+    /* Dot rail: a glass ring that glides vertically between dots */
+    .rail-lens {
+      position: absolute;
+      left: 50%;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      opacity: 0;
+      background:
+        linear-gradient(135deg, rgba(255, 107, 43, 0.22), rgba(123, 97, 255, 0.22)),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.3));
+      backdrop-filter: blur(8px) saturate(1.8);
+      -webkit-backdrop-filter: blur(8px) saturate(1.8);
+      box-shadow:
+        inset 0 1px 0.5px rgba(255, 255, 255, 1),
+        0 0 0 1px rgba(16, 16, 20, 0.07),
+        0 6px 14px -6px rgba(242, 90, 28, 0.4);
+      transition: top 0.5s cubic-bezier(0.3, 1.45, 0.35, 1), opacity 0.3s ease;
+    }
+    /* SEO Before/After: iOS-style segmented control with sliding lens */
+    .seo-toggle { position: relative; }
+    .seg-lens {
+      position: absolute;
+      top: 50%;
+      height: 34px;
+      border-radius: 999px;
+      transform: translateY(-50%);
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(255, 107, 43, 0.3), rgba(123, 97, 255, 0.3)),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.3));
+      backdrop-filter: blur(8px) saturate(1.8);
+      -webkit-backdrop-filter: blur(8px) saturate(1.8);
+      box-shadow:
+        inset 0 1.5px 1px rgba(255, 255, 255, 1),
+        inset 0 -1px 2px rgba(123, 97, 255, 0.2),
+        0 0 0 1px rgba(16, 16, 20, 0.06),
+        0 8px 18px -8px rgba(242, 90, 28, 0.45);
+      transition:
+        left 0.5s cubic-bezier(0.3, 1.45, 0.35, 1),
+        width 0.5s cubic-bezier(0.3, 1.45, 0.35, 1);
+    }
+    /* lens carries the highlight now — active button becomes quiet ink */
+    .seo-toggle.has-lens button.active {
+      background: transparent !important;
+      color: var(--ink) !important;
+      border-color: transparent !important;
+    }
+    .seo-toggle.has-lens button { position: relative; z-index: 1; }
+    /* Story timeline: glass puck riding the progress bar */
+    .st-timeline { position: relative; }
+    .st-puck {
+      position: absolute;
+      top: 50%;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(255, 107, 43, 0.5), rgba(123, 97, 255, 0.5)),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4));
+      box-shadow:
+        inset 0 1px 0.5px rgba(255, 255, 255, 1),
+        0 0 0 1px rgba(16, 16, 20, 0.08),
+        0 4px 12px -3px rgba(242, 90, 28, 0.6);
+      transition: left 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+
+  <script>
+  (function() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // ── Dot rail lens ──
+    var rail = document.querySelector('.dot-rail');
+    if (rail) {
+      var rl = document.createElement('span');
+      rl.className = 'rail-lens';
+      rl.setAttribute('aria-hidden', 'true');
+      rail.appendChild(rl);
+      var curDot = null;
+      function railSync() {
+        var on = rail.querySelector('a.on');
+        if (on === curDot) return;
+        curDot = on;
+        if (!on) { rl.style.opacity = '0'; return; }
+        rl.style.opacity = '1';
+        rl.style.top = (on.offsetTop + on.offsetHeight / 2 - 11) + 'px';
+      }
+      var rt = false;
+      window.addEventListener('scroll', function() {
+        if (rt) return;
+        rt = true;
+        requestAnimationFrame(function() { rt = false; railSync(); });
+      }, { passive: true });
+      railSync();
+    }
+
+    // ── SEO segmented lens ──
+    var seg = document.querySelector('.seo-toggle');
+    if (seg) {
+      var sl = document.createElement('span');
+      sl.className = 'seg-lens';
+      sl.setAttribute('aria-hidden', 'true');
+      seg.appendChild(sl);
+      seg.classList.add('has-lens');
+      function segSync() {
+        var active = seg.querySelector('button.active');
+        if (!active) return;
+        sl.style.left = (active.offsetLeft - 4) + 'px';
+        sl.style.width = (active.offsetWidth + 8) + 'px';
+      }
+      seg.querySelectorAll('button').forEach(function(b) {
+        b.addEventListener('click', function() { setTimeout(segSync, 30); });
+      });
+      window.addEventListener('resize', function() { setTimeout(segSync, 120); }, { passive: true });
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(function() { setTimeout(segSync, 60); });
+      segSync();
+    }
+
+    // ── Story puck rides the timeline ──
+    var bar = document.querySelector('.st-timeline .st-bar');
+    if (bar) {
+      var puck = document.createElement('span');
+      puck.className = 'st-puck';
+      puck.setAttribute('aria-hidden', 'true');
+      bar.parentElement.appendChild(puck);
+      var fill = document.getElementById('stBar');
+      function puckSync() {
+        var pct = fill ? (parseFloat(fill.style.width) || 8) : 8;
+        puck.style.left = (bar.offsetLeft + bar.offsetWidth * pct / 100) + 'px';
+      }
+      // follow the same scroll that drives the story steps
+      var pt = false;
+      window.addEventListener('scroll', function() {
+        if (pt) return;
+        pt = true;
+        requestAnimationFrame(function() { pt = false; puckSync(); });
+      }, { passive: true });
+      window.addEventListener('resize', function() { setTimeout(puckSync, 120); }, { passive: true });
+      puckSync();
+    }
+  })();
+  </script>
+
   <script>
   (function() {
     // Ink-scrub fallback: engines without scroll timelines (e.g. iOS
