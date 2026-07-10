@@ -124,7 +124,11 @@ app.use(express.json({ limit: '1mb' }));
 // This prevents accidental exposure of server.js, CLAUDE.md, sales/, package.json, etc.
 const ALLOWED_STATIC_FILES = new Set(['/favicon.svg', '/og-image.png', '/danny.jpg']);
 app.use((req, res, next) => {
-  if (req.method === 'GET' && ALLOWED_STATIC_FILES.has(req.path.split('?')[0])) {
+  const staticPath = req.path.split('?')[0];
+  // /brand/* serves the downloadable brand kit (flat directory, no traversal:
+  // express.static resolves within __dirname and rejects .. segments)
+  const isBrandAsset = /^\/brand\/[A-Za-z0-9._-]+$/.test(staticPath);
+  if (req.method === 'GET' && (ALLOWED_STATIC_FILES.has(staticPath) || isBrandAsset)) {
     return express.static(path.join(__dirname, ''))(req, res, next);
   }
   next();
@@ -1705,6 +1709,7 @@ app.get('/oauth/callback', async (req, res) => {
 
 app.get('/accept', (req, res) => res.sendFile(path.join(__dirname, 'accept.html')));
 app.get('/booked', (req, res) => res.sendFile(path.join(__dirname, 'booked.html')));
+app.get('/brand', (req, res) => res.sendFile(path.join(__dirname, 'brand', 'index.html')));
 app.get('/book', (req, res) => res.sendFile(path.join(__dirname, 'book.html')));
 
 // Service landing pages
