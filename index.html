@@ -3537,15 +3537,66 @@
     .wb-urlbar span { margin-left: 5px; }
     .wb-live { margin-left: auto; font-style: normal; color: #9a9890; font-size: 9.5px; letter-spacing: 0.08em; transition: color 0.3s; }
     .wb-live.on { color: #0B9E5E; }
-    .wb-canvas { padding: 16px; position: relative; min-height: 190px; }
-    .wb-block { border-radius: 7px; background: #E6E4DE; opacity: 0; transform: translateY(10px); transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
-    .wb-nav-sk { height: 12px; margin-bottom: 12px; }
-    .wb-hero-sk { height: 44px; margin-bottom: 12px; background: linear-gradient(120deg, rgba(255, 107, 43, 0.18), rgba(123, 97, 255, 0.18)); }
-    .wb-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .wb-cols .wb-block { height: 42px; }
-    .wb-block.in { opacity: 1; transform: none; }
-    .wb-chat { position: absolute; right: 12px; bottom: 10px; font-size: 11px; background: #fff; border: 1px solid rgba(242, 90, 28, 0.35); border-radius: 11px 11px 3px 11px; padding: 8px 11px; box-shadow: 0 10px 24px -12px rgba(16, 16, 20, 0.3); opacity: 0; transform: translateY(8px) scale(0.95); transition: opacity 0.4s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    .wb-chat.in { opacity: 1; transform: none; }
+    .wb-stage { position: relative; height: 252px; overflow: hidden; }
+    .wb-scene {
+      position: absolute; inset: 0; padding: 0;
+      display: flex; flex-direction: column;
+      opacity: 0; transform: translateY(26px) scale(0.98); filter: blur(8px);
+      transition: opacity 0.55s cubic-bezier(0.22,1,0.36,1), transform 0.75s cubic-bezier(0.16,1,0.3,1), filter 0.6s cubic-bezier(0.22,1,0.36,1);
+      pointer-events: none;
+    }
+    .wb-scene.on { opacity: 1; transform: none; filter: none; }
+    .ws-nav { display: flex; align-items: center; gap: 12px; padding: 11px 16px; font-size: 10px; }
+    .ws-nav b { font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: -0.3px; margin-right: auto; }
+    .ws-nav i { font-style: normal; opacity: 0.65; }
+    .ws-nav u { text-decoration: none; font-weight: 700; font-size: 9.5px; padding: 5px 10px; border-radius: 999px; }
+    .ws-hero { padding: 20px 18px 0; flex: 1; }
+    .ws-hero h5 { font-family: 'Space Grotesk', sans-serif; font-size: 25px; line-height: 1.02; letter-spacing: -1px; margin: 0 0 8px; }
+    .ws-hero h5 em { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; }
+    .ws-hero p { font-size: 11px; margin: 0 0 12px; opacity: 0.75; }
+    .ws-cta { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 8px 14px; border-radius: 999px; }
+    .ws-chat {
+      align-self: flex-end; margin: 0 14px 12px; max-width: 78%;
+      font-size: 10.5px; background: rgba(255, 255, 255, 0.92); color: #101014;
+      border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 11px 11px 3px 11px;
+      padding: 7px 11px; box-shadow: 0 10px 24px -12px rgba(16, 16, 20, 0.35);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    /* Meridian Legal — navy + gold, serif gravitas */
+    .ws-law { background: linear-gradient(165deg, #0F1D31 0%, #16283F 100%); color: #F4EFE4; }
+    .ws-law .ws-nav { border-bottom: 1px solid rgba(200, 162, 75, 0.25); }
+    .ws-law .ws-nav b { color: #fff; } .ws-law .ws-nav b span { color: #C8A24B; }
+    .ws-law .ws-nav u { background: #C8A24B; color: #16283F; }
+    .ws-law .ws-hero h5 { color: #fff; } .ws-law .ws-hero h5 em { color: #C8A24B; }
+    .ws-law .ws-cta { background: #C8A24B; color: #16283F; }
+    /* Summit Comfort — crisp light, navy + safety orange */
+    .ws-hvac { background: linear-gradient(165deg, #F2F7FC 0%, #E8F0F9 100%); color: #12365E; }
+    .ws-hvac .ws-nav { border-bottom: 1px solid rgba(18, 54, 94, 0.12); }
+    .ws-hvac .ws-nav b { color: #12365E; } .ws-hvac .ws-nav b span { color: #E8641F; }
+    .ws-hvac .ws-nav u { background: #E8641F; color: #fff; }
+    .ws-hvac .ws-hero h5 { color: #12365E; } .ws-hvac .ws-hero h5 em { color: #E8641F; }
+    .ws-hvac .ws-cta { background: #12365E; color: #fff; }
+    /* Lumière Spa — cream + rose elegance */
+    .ws-spa { background: linear-gradient(165deg, #FBF3EE 0%, #F7E9E4 100%); color: #6B4A44; }
+    .ws-spa .ws-nav { border-bottom: 1px solid rgba(179, 89, 110, 0.15); }
+    .ws-spa .ws-nav b { color: #4A322E; } .ws-spa .ws-nav b span { color: #B3596E; }
+    .ws-spa .ws-nav u { background: #B3596E; color: #fff; }
+    .ws-spa .ws-hero h5 { color: #4A322E; } .ws-spa .ws-hero h5 em { color: #B3596E; }
+    .ws-spa .ws-cta { background: #B3596E; color: #fff; }
+    /* tabs on the side — glass chips with the active lens look */
+    .wb-tabs { display: flex; gap: 6px; margin-bottom: 4px; }
+    .wb-tabs span {
+      font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.06em;
+      padding: 6px 11px; border-radius: 999px; color: var(--muted);
+      border: 1px solid var(--hairline); background: rgba(255, 255, 255, 0.5);
+      transition: all 0.4s;
+    }
+    .wb-tabs span.on {
+      color: var(--ink); border-color: rgba(242, 90, 28, 0.35);
+      background: linear-gradient(135deg, rgba(255, 107, 43, 0.16), rgba(123, 97, 255, 0.16)), rgba(255, 255, 255, 0.8);
+      box-shadow: 0 6px 14px -8px rgba(242, 90, 28, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
     .wb-side { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
     .wb-step { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); border: 1px solid var(--hairline); border-radius: 10px; padding: 9px 12px; background: #fff; opacity: 0.35; transition: opacity 0.4s, border-color 0.4s; }
     .wb-step em { margin-left: auto; font-style: normal; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #0B9E5E; opacity: 0; transition: opacity 0.3s; }
@@ -4000,26 +4051,56 @@
           </div>
         </div>
 
-        <!-- Flagship: full website build — the one-stop shop -->
+        <!-- Flagship: rotating gallery of real client-style websites,
+             each running the same engine: ARIA, booking, SEO, automations -->
         <div class="demo-panel reveal wb-panel" id="wbDemo" style="grid-column: 1 / -1;">
-          <div class="demo-head"><span class="dh-dots"><i></i><i></i><i></i></span>website — the whole system, one build<span class="dh-tag">ONE-STOP SHOP</span></div>
+          <div class="demo-head"><span class="dh-dots"><i></i><i></i><i></i></span>websites — three businesses, one engine<span class="dh-tag">ONE-STOP SHOP</span></div>
           <div class="demo-body wb-body">
             <div class="wb-site">
-              <div class="wb-urlbar"><i></i><i></i><i></i><span>yourbusiness.com</span><em class="wb-live" id="wbLive">deploying…</em></div>
-              <div class="wb-canvas">
-                <div class="wb-block wb-nav-sk"></div>
-                <div class="wb-block wb-hero-sk"></div>
-                <div class="wb-cols"><div class="wb-block"></div><div class="wb-block"></div><div class="wb-block"></div></div>
-                <div class="wb-chat" id="wbChat">🤖 Hi! I'm ARIA — want Thursday 2 PM?</div>
+              <div class="wb-urlbar"><i></i><i></i><i></i><span id="wbUrl">meridianlegal.com</span><em class="wb-live on" id="wbLive">● LIVE</em></div>
+              <div class="wb-stage">
+                <!-- Law firm -->
+                <div class="wb-scene ws-law on" data-url="meridianlegal.com">
+                  <div class="ws-nav"><b>Meridian<span>&nbsp;Legal</span></b><i>Results</i><i>Team</i><i>Contact</i><u>Free Case Review</u></div>
+                  <div class="ws-hero">
+                    <h5>Injury law.<br><em>Won.</em></h5>
+                    <p>$18M+ recovered for clients across New Jersey.</p>
+                    <span class="ws-cta">Get My Free Case Review →</span>
+                  </div>
+                  <div class="ws-chat">🤖 I can get you a consultation tomorrow at 10 AM — want it?</div>
+                </div>
+                <!-- HVAC -->
+                <div class="wb-scene ws-hvac" data-url="summitcomfort.com">
+                  <div class="ws-nav"><b>Summit<span>&nbsp;Comfort</span></b><i>Services</i><i>Reviews</i><i>Book</i><u>24/7 Emergency</u></div>
+                  <div class="ws-hero">
+                    <h5>AC down?<br><em>On our way.</em></h5>
+                    <p>Same-day HVAC service · 4.9★ from 612 reviews.</p>
+                    <span class="ws-cta">Book a Tech Now →</span>
+                  </div>
+                  <div class="ws-chat">🤖 A tech is free at 2 PM today — should I book it?</div>
+                </div>
+                <!-- Med spa -->
+                <div class="wb-scene ws-spa" data-url="lumierespa.com">
+                  <div class="ws-nav"><b>Lumière<span>&nbsp;Spa</span></b><i>Treatments</i><i>Gallery</i><i>Visit</i><u>Book Now</u></div>
+                  <div class="ws-hero">
+                    <h5>Glow,<br><em>booked.</em></h5>
+                    <p>Med-spa treatments with same-week availability.</p>
+                    <span class="ws-cta">Reserve My Visit →</span>
+                  </div>
+                  <div class="ws-chat">🤖 Saturday 11 AM just opened up — want me to hold it?</div>
+                </div>
               </div>
             </div>
             <div class="wb-side">
-              <div class="wb-step" data-i="0"><span class="wb-ic">🎨</span>Design & build<em>done</em></div>
-              <div class="wb-step" data-i="1"><span class="wb-ic">🤖</span>ARIA embedded<em>done</em></div>
-              <div class="wb-step" data-i="2"><span class="wb-ic">📅</span>Booking wired to calendar<em>done</em></div>
-              <div class="wb-step" data-i="3"><span class="wb-ic">🔍</span>SEO &amp; AI-search structure<em>98/100</em></div>
-              <div class="wb-step" data-i="4"><span class="wb-ic">⚡</span>Automations connected<em>live</em></div>
-              <div class="wb-note">everything on this page, working together — <b>one build, one team</b></div>
+              <div class="wb-tabs" id="wbTabs" aria-hidden="true">
+                <span class="on">Law Firm</span><span>HVAC</span><span>Med Spa</span>
+              </div>
+              <div class="wb-step on" data-i="0"><span class="wb-ic">🎨</span>Custom design &amp; build<em>done</em></div>
+              <div class="wb-step on" data-i="1"><span class="wb-ic">🤖</span>ARIA embedded<em>done</em></div>
+              <div class="wb-step on" data-i="2"><span class="wb-ic">📅</span>Booking wired to calendar<em>done</em></div>
+              <div class="wb-step on" data-i="3"><span class="wb-ic">🔍</span>SEO &amp; AI-search structure<em>98/100</em></div>
+              <div class="wb-step on" data-i="4"><span class="wb-ic">⚡</span>Automations connected<em>live</em></div>
+              <div class="wb-note">three different businesses — same engine underneath: <b>one build, one team</b></div>
             </div>
           </div>
         </div>
@@ -4167,27 +4248,17 @@
       // Start each demo when it first scrolls into view
       var started = {};
       function wbRun() {
-        var blocks = [].slice.call(document.querySelectorAll('#wbDemo .wb-block'));
-        var steps = [].slice.call(document.querySelectorAll('#wbDemo .wb-step'));
-        var chat = document.getElementById('wbChat');
-        var live = document.getElementById('wbLive');
-        function reset() {
-          blocks.forEach(function(b) { b.classList.remove('in'); });
-          steps.forEach(function(s) { s.classList.remove('on'); });
-          if (chat) chat.classList.remove('in');
-          if (live) { live.classList.remove('on'); live.textContent = 'deploying…'; }
-        }
-        function play() {
-          reset();
-          blocks.forEach(function(b, i) { setTimeout(function() { b.classList.add('in'); }, 300 + i * 260); });
-          steps.forEach(function(s, i) { setTimeout(function() { s.classList.add('on'); }, 700 + i * 520); });
-          setTimeout(function() { if (chat) chat.classList.add('in'); }, 1500);
-          setTimeout(function() {
-            if (live) { live.classList.add('on'); live.textContent = '● LIVE'; }
-          }, 700 + steps.length * 520 + 300);
-          setTimeout(play, 9000); // loop like the other demos
-        }
-        play();
+        var scenes = [].slice.call(document.querySelectorAll('#wbDemo .wb-scene'));
+        var tabs = [].slice.call(document.querySelectorAll('#wbTabs span'));
+        var url = document.getElementById('wbUrl');
+        if (!scenes.length) return;
+        var i = 0;
+        setInterval(function() {
+          i = (i + 1) % scenes.length;
+          scenes.forEach(function(s, k) { s.classList.toggle('on', k === i); });
+          tabs.forEach(function(t, k) { t.classList.toggle('on', k === i); });
+          if (url) url.textContent = scenes[i].getAttribute('data-url');
+        }, 4200);
       }
       var starters = { wfDemo: wfRun, lsDemo: lsRun, fwDemo: fwRun, rkDemo: rkRun, wbDemo: wbRun };
       var obs = new IntersectionObserver(function(entries) {
@@ -4578,24 +4649,6 @@
       <div class="reveal eyebrow-mono" data-num="05">SEO &amp; AI Search</div>
       <h2 class="section-title reveal">If They Can't Find You,<br>They Can't Pay You.</h2>
       <p class="section-desc reveal" style="margin-bottom:0;">75% of people never scroll past page 1. If your business isn't ranking, your competitors are getting the calls, the leads, and the revenue that should be yours.</p>
-    </div>
-
-    <!-- Value stats strip -->
-    <div class="container reveal" style="margin-bottom:50px;">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;max-width:900px;margin:0 auto;">
-        <div style="background:rgba(255,107,43,0.04);border:1px solid rgba(255,107,43,0.12);border-radius:14px;padding:24px 20px;text-align:center;">
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;background:linear-gradient(135deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">93%</div>
-          <div style="font-size:0.85rem;color:var(--muted);margin-top:4px;">of online experiences start with a search engine</div>
-        </div>
-        <div style="background:rgba(255,107,43,0.04);border:1px solid rgba(255,107,43,0.12);border-radius:14px;padding:24px 20px;text-align:center;">
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;background:linear-gradient(135deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">$0</div>
-          <div style="font-size:0.85rem;color:var(--muted);margin-top:4px;">cost per click — organic traffic is free traffic forever</div>
-        </div>
-        <div style="background:rgba(255,107,43,0.04);border:1px solid rgba(255,107,43,0.12);border-radius:14px;padding:24px 20px;text-align:center;">
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:800;background:linear-gradient(135deg,#FF6B2B,#7B61FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">14.6%</div>
-          <div style="font-size:0.85rem;color:var(--muted);margin-top:4px;">SEO close rate vs 1.7% for outbound leads</div>
-        </div>
-      </div>
     </div>
 
     <div class="seo-demo-layout">
@@ -7513,24 +7566,8 @@
             <p>AI automation projects typically deploy in <strong>2-4 weeks</strong>. SEO results show meaningful improvement in <strong>60-90 days</strong>. We prioritize quick wins — most clients see ROI within the first month of working together.</p>
           </div>
         </div>
-        <div class="faq-item reveal" style="transition-delay:0.15s;">
-          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
-            What is an AI receptionist?
-            <span class="faq-icon">+</span>
-          </button>
-          <div class="faq-answer">
-            <p>An AI receptionist lives on your website and handles visitors <strong>24/7</strong> — answering questions, qualifying leads, and booking appointments directly into your calendar. It works while you sleep, never misses a lead, and costs a fraction of a human receptionist. <strong>ARIA on this site is a live example.</strong></p>
-          </div>
-        </div>
-        <div class="faq-item reveal" style="transition-delay:0.2s;">
-          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
-            Do you help with SEO?
-            <span class="faq-icon">+</span>
-          </button>
-          <div class="faq-answer">
-            <p>Yes — full SEO including <strong>technical audits, local SEO, Google Business Profile, content strategy, and AI search optimization</strong> for ChatGPT and Perplexity. We offer free SEO audits so you can see exactly where you stand before committing to anything.</p>
-          </div>
-        </div>
+        
+        
         <div class="faq-item reveal" style="transition-delay:0.25s;">
           <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
             I'm not technical — can you still help me?
