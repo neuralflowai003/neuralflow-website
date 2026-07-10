@@ -7405,14 +7405,14 @@
   <section class="about-section section" id="about">
     <div class="container">
       <div class="about-top founder-grid">
-        <div class="founder-photo rev-left">
+        <div class="founder-photo reveal">
           <img src="/danny.jpg" alt="Danny Boehmer, founder of NeuralFlow AI" width="440" height="440" loading="lazy">
           <div class="founder-plate">
             <b>Danny Boehmer</b>
             <span>Founder &amp; CEO — Bayonne, NJ</span>
           </div>
         </div>
-        <div class="founder-copy rev-right">
+        <div class="founder-copy reveal" style="transition-delay:0.08s;">
           <div class="eyebrow-mono" data-num="11">Our Story</div>
           <h2>Your AI<br><span class="about-bold-gradient">Growth Partner.</span></h2>
           <div class="about-divider"></div>
@@ -7605,7 +7605,7 @@
         </div>
       </div>
 
-      <div class="form-box reveal" style="transition-delay: 0.2s;">
+      <div class="form-box reveal" style="transition-delay:0.08s;">
         <form id="contactForm" onsubmit="submitContactForm(event)">
           <div class="form-group-float">
             <input type="text" id="n_name" required>
@@ -10681,6 +10681,13 @@
       box-shadow: 0 30px 60px -30px rgba(16, 16, 20, 0.32), 0 0 40px -18px rgba(242, 90, 28, 0.25) !important;
     }
     .tilt-card h3, .cred-card h4, .hiw-card-title { color: var(--ink); }
+    /* dark-era white->orange gradient fill made titles white-on-white */
+    .cred-card h4 {
+      background: none !important;
+      -webkit-background-clip: initial !important;
+      background-clip: initial !important;
+      -webkit-text-fill-color: var(--ink) !important;
+    }
     .tilt-card p, .cred-card p, .hiw-card-desc { color: var(--muted); }
     .services-grid .tilt-card .card-inner::before { color: #C9C7C0; }
     .tilt-card .card-viz {
@@ -11321,7 +11328,7 @@
 
     // ── Directional reveals on split layouts ──
     var splits = [
-      ['.aria-demo-grid', 2], ['.story-grid', 2], ['.contact-layout', 2], ['.seo-demo-layout', 2]
+      ['.aria-demo-grid', 2], ['.story-grid', 2], ['.seo-demo-layout', 2]
     ];
     var dirEls = [];
     splits.forEach(function(pair) {
@@ -11603,7 +11610,8 @@
       transition: clip-path 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
                   transform 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
     }
-    .founder-photo.rev-in img {
+    .founder-photo.rev-in img,
+    .founder-photo.visible img {
       clip-path: inset(0 0 0 0 round 0);
       transform: scale(1);
     }
@@ -11687,7 +11695,7 @@
       { sel: '.demos-grid',        pattern: ['fx-left', 'fx-right'] },
       { sel: '.hiw-grid',          pattern: ['fx-left', 'fx-rise', 'fx-right'] },
       { sel: '.testimonials-grid', pattern: ['fx-left', 'fx-rise', 'fx-right'] },
-      { sel: '.credentials-grid',  pattern: ['fx-pop'] },
+      { sel: '.credentials-grid',  pattern: ['fx-pop'], together: true },
       { sel: '.faq-grid',          pattern: ['fx-left', 'fx-right'] },
       { sel: '.stats-grid',        pattern: ['fx-pop'] }
     ];
@@ -11702,7 +11710,7 @@
         if (el.tagName === 'SPAN') return; // seam lines etc.
         el.classList.remove('reveal', 'visible', 'reveal-slide-right');
         el.classList.add(g.pattern[i % g.pattern.length]);
-        el.style.transitionDelay = (i * 0.1) + 's';
+        el.style.transitionDelay = (g.together ? 0 : i * 0.1) + 's';
         items.push(el);
       });
     });
@@ -12053,6 +12061,93 @@
           0 40px 90px -30px rgba(16, 16, 20, 0.4),
           inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
       }
+      /* ── GLASS CONTROLS — toggles, pills, accordions, forms ── */
+
+      /* SEO Before/After toggle */
+      .seo-toggle {
+        background: rgba(255, 255, 255, 0.4) !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.6) !important;
+        backdrop-filter: blur(14px) saturate(1.5);
+        -webkit-backdrop-filter: blur(14px) saturate(1.5);
+      }
+      .seo-toggle button:not(.active) {
+        background: rgba(255, 255, 255, 0.55) !important;
+        border: 1px solid rgba(255, 255, 255, 0.75) !important;
+        color: var(--muted) !important;
+        box-shadow: 0 8px 20px -14px rgba(16, 16, 20, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+      }
+
+      /* FAQ accordion becomes glass toggle cards */
+      .faq-item:not(.fx-left):not(.fx-right) {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.32));
+        backdrop-filter: blur(16px) saturate(1.5);
+        -webkit-backdrop-filter: blur(16px) saturate(1.5);
+        border: 1px solid rgba(255, 255, 255, 0.72);
+        border-radius: 16px;
+        margin-bottom: 14px;
+        padding: 2px 24px;
+        box-shadow: 0 16px 36px -24px rgba(16, 16, 20, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        transition: box-shadow 0.3s, border-color 0.3s;
+      }
+      .faq-item:not(.fx-left):not(.fx-right):hover {
+        border-color: rgba(242, 90, 28, 0.3);
+        box-shadow: 0 20px 44px -24px rgba(16, 16, 20, 0.34),
+                    0 0 34px -14px rgba(242, 90, 28, 0.14),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+      }
+
+      /* Process step expanders */
+      .hiw-card:not(.card-in) {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.34)) !important;
+        backdrop-filter: blur(18px) saturate(1.55);
+        -webkit-backdrop-filter: blur(18px) saturate(1.55);
+        border: 1px solid rgba(255, 255, 255, 0.72) !important;
+        box-shadow: 0 22px 48px -28px rgba(16, 16, 20, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+      }
+
+      /* Contact: founder chip, availability pill, form panel */
+      .contact-text.visible .talk-to-danny,
+      .contact-text.visible .status-pill {
+        background: rgba(255, 255, 255, 0.5) !important;
+        backdrop-filter: blur(14px) saturate(1.5);
+        -webkit-backdrop-filter: blur(14px) saturate(1.5);
+        border: 1px solid rgba(255, 255, 255, 0.72) !important;
+        box-shadow: 0 12px 30px -18px rgba(16, 16, 20, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+      }
+      .form-box.visible {
+        background: linear-gradient(165deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.4)) !important;
+        backdrop-filter: blur(24px) saturate(1.7);
+        -webkit-backdrop-filter: blur(24px) saturate(1.7);
+        border: 1px solid rgba(255, 255, 255, 0.76) !important;
+        box-shadow: 0 30px 64px -30px rgba(16, 16, 20, 0.34),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+      }
+      .form-box.visible input,
+      .form-box.visible textarea {
+        background: rgba(255, 255, 255, 0.55) !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+      }
+
+      /* Floating utilities */
+      .back-to-top, .chat-toggle {
+        backdrop-filter: blur(18px) saturate(1.7);
+        -webkit-backdrop-filter: blur(18px) saturate(1.7);
+      }
+      .back-to-top {
+        background: rgba(255, 255, 255, 0.55) !important;
+        border: 1px solid rgba(255, 255, 255, 0.75) !important;
+        box-shadow: 0 12px 30px -14px rgba(16, 16, 20, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+      }
+    }
+
+    /* faq answer padding compensation for the new glass cards */
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .faq-item .faq-answer > * { padding-bottom: 6px; }
     }
 
     /* Ambient color field behind the stats so the frosting shows */
