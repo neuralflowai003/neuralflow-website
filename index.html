@@ -12301,13 +12301,15 @@
 
     var current = null;
     function moveTo(el) {
-      if (!el) { lens.style.opacity = '0'; return; }
+      if (!el) return;
       lens.style.opacity = '1';
       lens.style.left = (el.offsetLeft - 12) + 'px';
       lens.style.width = (el.offsetWidth + 24) + 'px';
     }
     function sync() {
-      var active = wrap.querySelector('.nav-link.nav-active');
+      // always parked somewhere: the active section's link, or the
+      // first link while above the fold
+      var active = wrap.querySelector('.nav-link.nav-active') || wrap.querySelector('.nav-link');
       if (active !== current) {
         current = active;
         moveTo(current);
@@ -12508,6 +12510,63 @@
         0 0 0 1px rgba(16, 16, 20, 0.08),
         0 4px 12px -3px rgba(242, 90, 28, 0.6);
       transition: left 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+  </style>
+
+  <!-- ============================================================
+       BUBBLE SKIN — the flagship boxes read as iridescent liquid
+       glass bubbles: big radius, brand-hued double ring, specular
+       arc up top, soft orange/purple bloom inside, halo outside.
+       ============================================================ -->
+  <style>
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .hero-aria-card.visible,
+      .stat-box:not(.pop-in),
+      .tilt-card:not(.fx-left):not(.fx-rise):not(.fx-right),
+      .demo-panel {
+        border-radius: 26px !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        background:
+          radial-gradient(120% 90% at 18% 0%, rgba(255, 107, 43, 0.10), transparent 55%),
+          radial-gradient(130% 100% at 88% 100%, rgba(123, 97, 255, 0.10), transparent 55%),
+          linear-gradient(160deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.24)) !important;
+        backdrop-filter: blur(26px) saturate(1.9);
+        -webkit-backdrop-filter: blur(26px) saturate(1.9);
+        box-shadow:
+          inset 0 2px 1.5px rgba(255, 255, 255, 1),
+          inset 0 -12px 26px -20px rgba(123, 97, 255, 0.30),
+          inset 12px 0 26px -22px rgba(255, 107, 43, 0.22),
+          0 0 0 1.5px rgba(242, 90, 28, 0.16),
+          0 0 0 3.5px rgba(123, 97, 255, 0.08),
+          0 26px 52px -26px rgba(16, 16, 20, 0.38),
+          0 0 44px -14px rgba(242, 90, 28, 0.16) !important;
+      }
+      .demo-panel { overflow: hidden; }
+      .demo-panel .demo-head { background: transparent !important; }
+      /* hover: the bubble brightens and lifts its halo */
+      .tilt-card:not(.fx-left):not(.fx-rise):not(.fx-right):hover,
+      .stat-box:not(.pop-in):hover,
+      .demo-panel:hover {
+        border-color: rgba(255, 255, 255, 0.95) !important;
+        box-shadow:
+          inset 0 2px 1.5px rgba(255, 255, 255, 1),
+          inset 0 -12px 26px -20px rgba(123, 97, 255, 0.36),
+          inset 12px 0 26px -22px rgba(255, 107, 43, 0.28),
+          0 0 0 1.5px rgba(242, 90, 28, 0.28),
+          0 0 0 3.5px rgba(123, 97, 255, 0.12),
+          0 32px 62px -28px rgba(16, 16, 20, 0.44),
+          0 0 58px -14px rgba(242, 90, 28, 0.26) !important;
+      }
+    }
+    @media (max-width: 768px) {
+      @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .hero-aria-card.visible,
+        .stat-box:not(.pop-in),
+        .tilt-card:not(.fx-left):not(.fx-rise):not(.fx-right),
+        .demo-panel {
+          border-radius: 20px !important;
+        }
+      }
     }
   </style>
 
