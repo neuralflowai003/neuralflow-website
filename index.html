@@ -11530,88 +11530,22 @@
   </style>
 
   <!-- ============================================================
-       LAYERED STACK SCROLL — housing.cloud-style: each section pins
-       and the next slides up over it like stacked sheets.
-       Variable-height sections use measured sticky offsets so tall
-       sections fully play out (bottom-aligned pin) before layering.
+       SECTION SCROLLSPY — offset-cached nav + dot rail highlighting.
+       (The sheet-stack pin engine was replaced by the depth-recede
+       transition in the choreography layer below.)
        ============================================================ -->
   <style>
-    .layer-sheet {
-      border-radius: 28px 28px 0 0;
-      box-shadow: 0 -26px 56px -30px rgba(16, 16, 20, 0.28);
-      border-top: 1px solid var(--hairline);
-      /* sticky + content-visibility conflict — layers must always render */
-      content-visibility: visible !important;
-      contain-intrinsic-size: none !important;
-    }
-    @media (max-width: 768px) {
-      .layer-sheet { border-radius: 18px 18px 0 0; }
-    }
-    /* The SEO section pins bottom-aligned (taller than the viewport), so
-       its resting frame is the last viewport-height of content. The bottom
-       CTA banner is redundant on desktop (the capture form beside the mock
-       IS the CTA) and would push the form's top above the fold — hide it
-       and trim padding so the pinned frame shows the full form. */
+    /* The bottom CTA banner is redundant on desktop — the capture form
+       beside the Google mock IS the CTA */
     @media (min-width: 769px) {
       .seo-bottom-cta { display: none; }
-      #seo.layer-sheet { padding-bottom: 64px !important; }
     }
   </style>
 
   <script>
   (function() {
-    // Ordered layers. Sections marked pin:false still slide over the
-    // previous pinned layer but never pin themselves (the 60s story
-    // needs its internal scroll to play; marquees/footer are ribbons).
-    var LAYERS = [
-      { sel: '.hero', pin: true, sheet: false },
-      { sel: '.stats-section', pin: true, sheet: true },
-      { sel: '#services', pin: true, sheet: true },
-      { sel: '#demos', pin: true, sheet: true },
-      { sel: '#aria-demo', pin: true, sheet: true },
-      { sel: '#seo', pin: true, sheet: true },
-      { sel: '#roi', pin: true, sheet: true },
-      { sel: '#work', pin: true, sheet: true },
-      { sel: '#process', pin: true, sheet: true },
-      { sel: '#clients', pin: true, sheet: true },
-      { sel: '#story60', pin: false, sheet: true },
-      { sel: '.cta-band-section', pin: true, sheet: true },
-      { sel: '#about', pin: true, sheet: true },
-      { sel: '#faq', pin: true, sheet: true },
-      { sel: '#contact', pin: true, sheet: true },
-      { sel: 'footer', pin: false, sheet: true }
-    ];
-    var els = [];
-    LAYERS.forEach(function(L, i) {
-      var el = document.querySelector(L.sel);
-      if (!el) return;
-      el.style.position = L.pin ? 'sticky' : 'relative';
-      el.style.zIndex = String(10 + i);
-      if (L.sheet) el.classList.add('layer-sheet');
-      els.push({ el: el, pin: L.pin });
-    });
-
-    function measure() {
-      var vh = window.innerHeight;
-      els.forEach(function(item) {
-        if (!item.pin) return;
-        // Short sections pin at the top; tall sections pin bottom-aligned
-        // so every pixel of them is reachable before the next layer covers
-        var h = item.el.offsetHeight;
-        item.el.style.top = Math.min(0, vh - h) + 'px';
-      });
-    }
-    measure();
-    // Re-measure after fonts/images settle and on resize
-    setTimeout(measure, 800);
-    setTimeout(measure, 2500);
-    window.addEventListener('resize', function() { requestAnimationFrame(measure); }, { passive: true });
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function() { setTimeout(measure, 50); });
-
-    // ── Pinned sections stay geometrically "in viewport" while covered,
-    //    which breaks IntersectionObserver scrollspy. And Chrome reports
-    //    offsetTop of a STUCK element at its stuck position, so flow
-    //    offsets must be cached while nothing is stuck (page load).
+    // Offset cache: positions read once at load (and on resize) so the
+    // spy never reads geometry mid-animation.
     var topCache = new Map();
     function rawTop(el) {
       // offset-chain walk: immune to in-flight entrance transforms
@@ -11621,7 +11555,6 @@
       return t;
     }
     function cacheTops() {
-      if (window.scrollY > 50) return; // only trust geometry when nothing is stuck
       document.querySelectorAll('section, footer, .stats-section').forEach(function(el) {
         topCache.set(el, rawTop(el));
       });
@@ -11676,15 +11609,18 @@
        the sticky stage gets room so it never clips at the last step.
        ============================================================ -->
   <style>
-    /* Base reveal: taller rise you can actually see */
+    /* Base reveal: tall rise with a soft focus pull */
     .reveal {
-      transform: translateY(44px);
-      transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
-                  transform 1.05s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: translateY(56px);
+      transition: opacity 1s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .reveal.visible { transform: translateY(0); }
+    /* Section titles land with weight: taller rise + settle from 95% */
+    .section-title.reveal { transform: translateY(72px) scale(0.95); }
+    .section-title.reveal.visible { transform: translateY(0) scale(1); }
     /* Eyebrow chips slide in from the left as a counterpoint */
-    .eyebrow-mono.reveal { transform: translateX(-48px); }
+    .eyebrow-mono.reveal { transform: translateX(-64px); }
     .eyebrow-mono.reveal.visible { transform: translateX(0); }
 
     /* Entrance variants — assigned per grid column so rows converge */
@@ -11695,9 +11631,9 @@
                   transform 1.1s cubic-bezier(0.16, 1, 0.3, 1),
                   filter 0.9s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .fx-left  { transform: translateX(-76px) translateY(14px) rotate(-2deg); filter: blur(5px); }
-    .fx-right { transform: translateX(76px) translateY(14px) rotate(2deg); filter: blur(5px); }
-    .fx-rise  { transform: translateY(76px) scale(0.96); filter: blur(5px); }
+    .fx-left  { transform: translateX(-110px) translateY(18px) rotate(-3deg); filter: blur(7px); }
+    .fx-right { transform: translateX(110px) translateY(18px) rotate(3deg); filter: blur(7px); }
+    .fx-rise  { transform: translateY(100px) scale(0.94); filter: blur(7px); }
     /* Spring pop — no blur (gradient numbers) */
     .fx-pop {
       transform: translateY(30px) scale(0.88);
@@ -11705,11 +11641,11 @@
     }
     /* Materialize — product windows resolve out of focus */
     .fx-mat {
-      transform: scale(0.88) translateY(24px);
-      filter: blur(16px);
-      transition: opacity 1s cubic-bezier(0.22, 1, 0.36, 1),
-                  transform 1.25s cubic-bezier(0.16, 1, 0.3, 1),
-                  filter 1.05s cubic-bezier(0.22, 1, 0.36, 1);
+      transform: scale(0.84) translateY(32px);
+      filter: blur(22px);
+      transition: opacity 1.15s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 1.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  filter 1.25s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .fx-left.chor-in, .fx-right.chor-in, .fx-rise.chor-in,
     .fx-pop.chor-in, .fx-mat.chor-in { opacity: 1; transform: none; filter: none; }
@@ -11719,8 +11655,8 @@
     }
 
     /* Directional split halves: more travel + focus pull */
-    .rev-left { transform: translateX(-72px) rotate(-1.2deg); filter: blur(4px); transition: opacity 0.95s cubic-bezier(0.22,1,0.36,1), transform 1.15s cubic-bezier(0.16,1,0.3,1), filter 0.9s cubic-bezier(0.22,1,0.36,1); }
-    .rev-right { transform: translateX(72px) rotate(1.2deg); filter: blur(4px); transition: opacity 0.95s cubic-bezier(0.22,1,0.36,1), transform 1.15s cubic-bezier(0.16,1,0.3,1), filter 0.9s cubic-bezier(0.22,1,0.36,1); }
+    .rev-left { transform: translateX(-104px) rotate(-1.8deg); filter: blur(6px); transition: opacity 1.05s cubic-bezier(0.22,1,0.36,1), transform 1.3s cubic-bezier(0.16,1,0.3,1), filter 1s cubic-bezier(0.22,1,0.36,1); }
+    .rev-right { transform: translateX(104px) rotate(1.8deg); filter: blur(6px); transition: opacity 1.05s cubic-bezier(0.22,1,0.36,1), transform 1.3s cubic-bezier(0.16,1,0.3,1), filter 1s cubic-bezier(0.22,1,0.36,1); }
     .rev-left.rev-in, .rev-right.rev-in { opacity: 1; transform: none; filter: none; }
     @media (max-width: 980px) {
       .rev-left, .rev-right { transform: translateY(44px); }
@@ -11765,18 +11701,28 @@
       .story-stage-wrap { top: 34px; height: calc(100vh - 34px); }
     }
 
-    /* Scroll-driven polish (Chromium): sheets rise + settle as they
-       slide over the pinned layer below; process graphics drift. */
+    /* ── DEPTH RECEDE (Chromium) — the signature transition. As a
+       section exits through the top it shrinks toward its seam, dims
+       and falls out of focus, like the page folding back into depth
+       while the next section flows forward. Compositor-driven; other
+       browsers just scroll normally. #story60 is excluded — an active
+       transform would re-anchor its sticky stage. */
     @media (prefers-reduced-motion: no-preference) {
       @supports (animation-timeline: view()) {
-        .layer-sheet {
-          animation: sheetRise linear both;
+        .hero, .stats-section, #services, #demos, #aria-demo, #seo,
+        #roi, #work, #process, #clients, .cta-band-section, #about,
+        #faq, #contact {
+          animation: secRecede linear both;
           animation-timeline: view();
-          animation-range: entry 0% entry 60%;
+          animation-range: exit 0% exit 100%;
+          transform-origin: 50% 100%;
         }
-        @keyframes sheetRise {
-          from { transform: translateY(16px) scale(0.985); }
-          to { transform: translateY(0) scale(1); }
+        @keyframes secRecede {
+          to {
+            transform: scale(0.93) translateY(-28px);
+            opacity: 0.35;
+            filter: blur(5px);
+          }
         }
         .hiw-graphic {
           animation: chorDrift linear both;
