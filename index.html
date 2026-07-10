@@ -11504,6 +11504,26 @@
        (service card visuals, work mockups, process graphics)
        ============================================================ -->
   <style>
+    /* IDLE-JITTER FIX — timed content must never change layout height.
+       The showcase card's scenes have different natural heights, and the
+       rotating headline alternates between 1 and 2 lines; both were
+       resizing the page every few seconds while the user sat still. */
+    .hac-messages {
+      height: 302px !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+    }
+    .hero-headline .line-1 {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 2.05em;
+    }
+    @media (max-width: 768px) {
+      .hero-headline .line-1 { min-height: 2.3em; }
+      .hac-messages { height: 280px !important; }
+    }
+
     /* Service card visuals → light chips */
     .tilt-card .card-viz {
       background: var(--paper-2) !important;
