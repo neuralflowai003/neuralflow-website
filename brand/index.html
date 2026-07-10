@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand Kit | NeuralFlow</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #FAFAF7; color: #101014; font-family: -apple-system, 'Segoe UI', sans-serif; padding: 60px 24px 100px; }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: clamp(2rem, 5vw, 3.2rem); letter-spacing: -1.5px; margin-bottom: 10px; }
+  h1 .flow { background: linear-gradient(135deg, #FF6B2B, #7B61FF); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .sub { color: #55555F; margin-bottom: 28px; }
+  .dl {
+    display: inline-block; color: #fff; text-decoration: none; font-weight: 700;
+    background: linear-gradient(135deg, #FF6B2B, #7B61FF); padding: 15px 30px; border-radius: 999px;
+    box-shadow: 0 14px 30px -14px rgba(242,90,28,0.55); margin-bottom: 48px;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 22px; }
+  .asset {
+    background: linear-gradient(160deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+    border: 1px solid rgba(16,16,20,0.08); border-radius: 18px; overflow: hidden;
+    box-shadow: inset 0 1.5px 1px rgba(255,255,255,1), 0 0 0 1.5px rgba(242,90,28,0.10), 0 18px 36px -22px rgba(16,16,20,0.3);
+  }
+  .asset .thumb { background: repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 0 0/24px 24px; padding: 18px; display: flex; align-items: center; justify-content: center; min-height: 170px; }
+  .asset img { max-width: 100%; max-height: 200px; }
+  .asset .meta { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-top: 1px solid rgba(16,16,20,0.06); }
+  .asset .name { font-family: ui-monospace, monospace; font-size: 12px; color: #55555F; }
+  .asset a { font-size: 13px; font-weight: 700; color: #F25A1C; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Neural<span class="flow">Flow</span> Brand Kit</h1>
+  <p class="sub">Light-theme rebrand — logos, icons, avatars, banners, email assets, cards. Right-click any asset to save, or grab everything at once.</p>
+  <a class="dl" href="/brand/neuralflow-brand-kit.zip" download>⬇ Download full kit (.zip)</a>
+  <div class="grid" id="grid"></div>
+</div>
+<script>
+  const assets = [
+    'logo-wordmark-light.png','logo-wordmark-transparent.png','logo-wordmark-gradient.png',
+    'logomark-1024.png','logomark-dark-1024.png','icon-512.png','icon-192.png','apple-touch-180.png',
+    'avatar-light-800.png','avatar-gradient-800.png',
+    'banner-linkedin-1584x396.png','banner-x-1500x500.png','banner-web-1920x600.png',
+    'og-image-1200x630.png','email-header-1200x300.png','email-footer-1200x340.png','email-signature-600x220.png',
+    'card-front-1050x600.png','card-back-1050x600.png','social-square-1080.png'
+  ];
+  document.getElementById('grid').innerHTML = assets.map(a =>
+    '<div class="asset"><div class="thumb"><img loading="lazy" src="/brand/' + a + '" alt="' + a + '"></div>' +
+    '<div class="meta"><span class="name">' + a + '</span><a href="/brand/' + a + '" download>download</a></div></div>'
+  ).join('');
+</script>
+</body>
+</html>
