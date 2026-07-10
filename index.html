@@ -3336,133 +3336,6 @@
     </div>
   </section>
 
-  <!-- INTEGRATIONS MARQUEE -->
-  <style>
-    .integrations-strip {
-      overflow: hidden;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      padding: 24px 0;
-      background: rgba(0,0,0,0.2);
-      position: relative;
-    }
-    .integrations-strip::before, .integrations-strip::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 120px;
-      z-index: 2;
-      pointer-events: none;
-    }
-    .integrations-strip::before {
-      left: 0;
-      background: linear-gradient(90deg, #050508 0%, transparent 100%);
-    }
-    .integrations-strip::after {
-      right: 0;
-      background: linear-gradient(270deg, #050508 0%, transparent 100%);
-    }
-    .integrations-track {
-      display: flex;
-      align-items: center;
-      gap: 48px;
-      width: max-content;
-      animation: marqueeScroll 30s linear infinite;
-    }
-    .integrations-track:hover {
-      animation-play-state: paused;
-    }
-    .int-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.3);
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      white-space: nowrap;
-      transition: color 0.3s;
-    }
-    .int-item:hover { color: rgba(255,255,255,0.6); }
-    .int-icon {
-      width: 20px;
-      height: 20px;
-      border-radius: 5px;
-      background: rgba(255,255,255,0.06);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-    }
-    .int-dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: rgba(255,107,43,0.4);
-      flex-shrink: 0;
-    }
-    @keyframes marqueeScroll {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-  </style>
-  <div class="integrations-strip" aria-hidden="true">
-    <div class="integrations-track">
-      <span class="int-item"><span class="int-icon">🤖</span>Claude AI</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">📅</span>Google Calendar</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">📧</span>Resend</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">📲</span>Telegram</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🔍</span>Google Search</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">⚡</span>Zapier</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">📊</span>Analytics</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🔗</span>HubSpot</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">💬</span>Slack</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🏗️</span>Railway</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🐙</span>GitHub</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🔒</span>OAuth 2.0</span>
-      <span class="int-dot"></span>
-      <!-- duplicate for seamless loop -->
-      <span class="int-item"><span class="int-icon">🤖</span>Claude AI</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">📅</span>Google Calendar</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">📧</span>Resend</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">📲</span>Telegram</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🔍</span>Google Search</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">⚡</span>Zapier</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">📊</span>Analytics</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🔗</span>HubSpot</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">💬</span>Slack</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🏗️</span>Railway</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🐙</span>GitHub</span>
-      <span class="int-dot"></span>
-      <span class="int-item"><span class="int-icon">🔒</span>OAuth 2.0</span>
-      <span class="int-dot"></span>
-    </div>
-  </div>
-
   <!-- AURORA DIVIDER -->
   <div class="aurora-divider" aria-hidden="true">
     <div class="aurora-blob ab-1"></div>
@@ -10824,10 +10697,6 @@
     /* STATS / INTEGRATIONS / TICKERS */
     .stat-text { color: var(--muted); }
     .stat-bar-bg { background: var(--paper-2); }
-    .integrations-strip { background: var(--paper-2); }
-    .integrations-strip::before { background: linear-gradient(to right, var(--paper-2), transparent) !important; }
-    .integrations-strip::after { background: linear-gradient(to left, var(--paper-2), transparent) !important; }
-    .int-item { color: var(--muted) !important; }
     .qtick { color: var(--muted) !important; }
 
     /* STORY SECTION (stage stays dark) */
@@ -11316,7 +11185,6 @@
     .about-section { background: var(--paper-2) !important; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
     .faq-section { background: var(--bg) !important; border: none !important; }
     .contact-section { background: var(--bg) !important; border-top: none !important; }
-    .integrations-strip { background: var(--bg) !important; border-color: var(--hairline) !important; }
 
     /* ── HEADING SCALE HARMONY ─────────────────────────────────── */
     /* One display scale for all centered section titles */
@@ -11505,6 +11373,11 @@
       height: 302px !important;
       min-height: 0 !important;
       overflow: hidden !important;
+    }
+    /* scene headers differ by a wrapped line on narrow screens —
+       reserve the tall state so scene swaps never resize the page */
+    @media (max-width: 768px) {
+      .hac-header { min-height: 76px; }
     }
     .hero-headline .line-1 {
       display: flex;
@@ -12097,6 +11970,116 @@
     }, { passive: true });
   })();
   </script>
+
+  <!-- ============================================================
+       LIQUID GLASS LAYER — Apple-style frosted surfaces: heavy
+       blur + saturation, specular top edge, soft depth shadows.
+       Glass activates only on settled elements (backdrop-filter on
+       an opacity-0 element paints a ghost blur patch — the bug this
+       codebase has met before). Solid backgrounds remain the
+       fallback where backdrop-filter is unsupported.
+       ============================================================ -->
+  <style>
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      /* Nav: the flagship glass pill */
+      #nav {
+        background: rgba(255, 255, 255, 0.42) !important;
+        backdrop-filter: blur(28px) saturate(1.9);
+        -webkit-backdrop-filter: blur(28px) saturate(1.9);
+        border: 1px solid rgba(255, 255, 255, 0.68) !important;
+        box-shadow:
+          0 16px 48px -20px rgba(16, 16, 20, 0.30),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.35) !important;
+      }
+      #nav.scrolled {
+        background: rgba(255, 255, 255, 0.58) !important;
+      }
+
+      /* Stat tiles frost over an ambient color field */
+      .stat-box:not(.pop-in) {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.34)) !important;
+        backdrop-filter: blur(20px) saturate(1.6);
+        -webkit-backdrop-filter: blur(20px) saturate(1.6);
+        border: 1px solid rgba(255, 255, 255, 0.75) !important;
+        box-shadow:
+          0 22px 48px -26px rgba(16, 16, 20, 0.30),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.30) !important;
+      }
+
+      /* Eyebrow chips */
+      .eyebrow-mono.visible, .eyebrow-mono:not(.reveal) {
+        background: rgba(255, 255, 255, 0.50) !important;
+        backdrop-filter: blur(14px) saturate(1.5);
+        -webkit-backdrop-filter: blur(14px) saturate(1.5);
+        border: 1px solid rgba(255, 255, 255, 0.72) !important;
+        box-shadow:
+          0 10px 26px -16px rgba(16, 16, 20, 0.25),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+      }
+
+      /* Hero product card frosts over the neural canvas */
+      .hero-aria-card.visible {
+        background: linear-gradient(165deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.40)) !important;
+        backdrop-filter: blur(26px) saturate(1.8);
+        -webkit-backdrop-filter: blur(26px) saturate(1.8);
+        border: 1px solid rgba(255, 255, 255, 0.78) !important;
+        box-shadow:
+          0 34px 70px -30px rgba(16, 16, 20, 0.35),
+          0 0 60px -24px rgba(242, 90, 28, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.30) !important;
+      }
+
+      /* Ghost buttons become glass buttons */
+      .btn-ghost {
+        background: rgba(255, 255, 255, 0.45) !important;
+        backdrop-filter: blur(16px) saturate(1.5);
+        -webkit-backdrop-filter: blur(16px) saturate(1.5);
+        border: 1px solid rgba(255, 255, 255, 0.7) !important;
+        box-shadow:
+          0 12px 30px -18px rgba(16, 16, 20, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+      }
+
+      /* Modal + command palette */
+      .modal-card, .cmdk-panel {
+        background: rgba(255, 255, 255, 0.72) !important;
+        backdrop-filter: blur(32px) saturate(1.8);
+        -webkit-backdrop-filter: blur(32px) saturate(1.8);
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        box-shadow:
+          0 40px 90px -30px rgba(16, 16, 20, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+      }
+    }
+
+    /* Ambient color field behind the stats so the frosting shows */
+    .stats-section { position: relative; overflow: clip; }
+    .stats-section::before,
+    .stats-section::after {
+      content: '';
+      position: absolute;
+      width: 620px;
+      height: 520px;
+      border-radius: 50%;
+      filter: blur(58px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .stats-section::before {
+      left: 4%;
+      top: 8%;
+      background: radial-gradient(circle at 40% 40%, rgba(242, 90, 28, 0.17), transparent 65%);
+    }
+    .stats-section::after {
+      right: 3%;
+      bottom: 4%;
+      background: radial-gradient(circle at 60% 60%, rgba(123, 97, 255, 0.15), transparent 65%);
+    }
+    .stats-section .container, .stats-section .stats-grid { position: relative; z-index: 1; }
+  </style>
 </body>
 
 </html>
