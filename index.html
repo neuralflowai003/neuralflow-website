@@ -2979,6 +2979,20 @@
           <span class="term-cursor"></span>
           <span style="margin-left:14px;">press <kbd class="keycap">A</kbd> to chat · <kbd class="keycap">⌘K</kbd> menu</span>
         </div>
+
+        <div class="hero-social reveal" style="transition-delay: 1s;">
+          <div class="hs-avatars" aria-hidden="true">
+            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="36" height="36" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
+            <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="36" height="36" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="36" height="36" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
+            <img src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="36" height="36" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
+            <img src="https://images.unsplash.com/photo-1552058544-f2b08422138a?auto=format&fit=crop&w=72&h=72&q=80&crop=faces" alt="" width="36" height="36" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">
+          </div>
+          <div class="hs-copy">
+            <span class="hs-stars">★★★★★</span>
+            <span>Trusted by <b>150+ businesses</b> — from law firms to home services</span>
+          </div>
+        </div>
       </div>
 
       <!-- LIVE PRODUCT CARD — ARIA in the hero -->
@@ -6856,7 +6870,7 @@
           <div class="tcard-body">NeuralFlow automated our entire lead qualification process. What used to take our team
             3 hours a day now runs itself overnight. We closed 40% more deals in the first month.</div>
           <div class="tcard-author">
-            <div class="tcard-avatar">M</div>
+            <div class="tcard-avatar"><img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=96&h=96&q=80&crop=faces" alt="" width="48" height="48" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span>M</span></div>
             <div>
               <div class="tcard-name">Marcus T.</div>
               <div class="tcard-role">Business Owner — Austin, TX</div>
@@ -6870,7 +6884,7 @@
           <div class="tcard-body">The AI receptionist they built handles 300+ inbound inquiries a week. Our team went
             from drowning in admin work to focusing purely on high-value clients. Game changing.</div>
           <div class="tcard-author">
-            <div class="tcard-avatar">S</div>
+            <div class="tcard-avatar"><img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=96&h=96&q=80&crop=faces" alt="" width="48" height="48" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span>S</span></div>
             <div>
               <div class="tcard-name">Sarah K.</div>
               <div class="tcard-role">Operations Director — Miami, FL</div>
@@ -6884,7 +6898,7 @@
           <div class="tcard-body">We replaced 4 different SaaS tools with one custom dashboard NeuralFlow built us.
             Saves us $2,400/month in subscriptions and our data is actually accurate now.</div>
           <div class="tcard-author">
-            <div class="tcard-avatar">J</div>
+            <div class="tcard-avatar"><img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=96&h=96&q=80&crop=faces" alt="" width="48" height="48" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"><span>J</span></div>
             <div>
               <div class="tcard-name">James R.</div>
               <div class="tcard-role">Entrepreneur — New York, NY</div>
@@ -10573,6 +10587,17 @@
        and the three dark bands (ARIA demo, SEO demo, Work) keep dark.
        ============================================================ -->
   <style>
+    /* DARK CONTEXTS keep dark-theme tokens — var(--muted)/var(--text)
+       consumers inside them were inheriting ink values and vanishing */
+    .aria-demo-section, .seo-demo-section, .showcase-section,
+    .story-stage, .demo-panel, .hac-window, .chat-window,
+    .modal-card, .cmdk, footer {
+      --text: #ffffff;
+      --muted: #888899;
+      --border: rgba(255, 255, 255, 0.08);
+      --bg-alt: #0a0a0f;
+    }
+
     /* GLOBAL */
     body::after { opacity: 0.03; }
     ::selection { background: var(--accent); color: #fff; }
@@ -10800,6 +10825,59 @@
       box-shadow: 0 8px 24px -10px rgba(16, 16, 20, 0.25);
     }
     .aurora-blob { opacity: 0.5; }
+
+    /* HUMAN FACES — avatar cluster + photo avatars */
+    .hero-social {
+      margin-top: 26px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .hs-avatars { display: flex; }
+    .hs-avatars img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--bg);
+      margin-left: -10px;
+      box-shadow: 0 4px 10px -4px rgba(16, 16, 20, 0.35);
+    }
+    .hs-avatars img:first-child { margin-left: 0; }
+    .hs-copy {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .hs-copy b { color: var(--text); font-weight: 600; }
+    .hs-stars { color: #F2A81C; letter-spacing: 2px; font-size: 13px; }
+    @media (max-width: 1100px) {
+      .hero-social { justify-content: center; }
+    }
+    .tcard-avatar { position: relative; overflow: hidden; }
+    .tcard-avatar img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: inherit;
+      z-index: 1;
+    }
+
+    /* LEGIBILITY BUMPS inside dark mockups (over-dimmed for light-era eyes) */
+    .seo-result-url { color: rgba(255, 255, 255, 0.38) !important; }
+    .seo-result-desc { color: rgba(255, 255, 255, 0.38) !important; }
+    .seo-results-count { color: rgba(255, 255, 255, 0.4) !important; }
+    .seo-result-title { color: rgba(255, 255, 255, 0.55) !important; }
+    .build-hint { color: rgba(255, 255, 255, 0.42) !important; }
+    .aria-chat-restart button { color: rgba(255, 255, 255, 0.45) !important; }
+    .code-cm { color: rgba(125, 195, 135, 0.8) !important; }
+    .viz-roi-label { color: rgba(255, 255, 255, 0.5) !important; }
+    .st-slot.busy { color: rgba(255, 255, 255, 0.3) !important; }
 
     /* MOBILE DRAWER - light */
     #mobile-menu-drawer { background: #fff !important; }
