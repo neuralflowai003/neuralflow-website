@@ -120,7 +120,7 @@ app.use(express.json({ limit: '1mb' }));
 
 // Serve only explicitly allowed static assets (allowlist, not blocklist).
 // This prevents accidental exposure of server.js, CLAUDE.md, sales/, package.json, etc.
-const ALLOWED_STATIC_FILES = new Set(['/favicon.svg', '/og-image.png']);
+const ALLOWED_STATIC_FILES = new Set(['/favicon.svg', '/og-image.png', '/danny.jpg']);
 app.use((req, res, next) => {
   if (req.method === 'GET' && ALLOWED_STATIC_FILES.has(req.path.split('?')[0])) {
     return express.static(path.join(__dirname, ''))(req, res, next);

@@ -7476,14 +7476,27 @@
   <!-- ABOUT -->
   <section class="about-section section" id="about">
     <div class="container">
-      <div class="about-top reveal">
-        <div class="eyebrow-mono" data-num="11">Our Story</div>
-        <h2>Your AI<br><span class="about-bold-gradient">Growth Partner.</span></h2>
-        <div class="about-divider"></div>
-        <p>NeuralFlow was founded by <strong>Danny Boehmer</strong> with one mission: help businesses make more money.
-          We don't just hand you a report — we come in, find where you're losing revenue, and build the AI systems and SEO strategies that fix it.</p>
-        <p style="margin-top:20px;">More leads from search. More conversions from AI. Less money wasted on manual work.
-          That's what we deliver — and we don't stop until the numbers prove it.</p>
+      <div class="about-top founder-grid">
+        <div class="founder-photo rev-left">
+          <img src="/danny.jpg" alt="Danny Boehmer, founder of NeuralFlow AI" width="440" height="440" loading="lazy">
+          <div class="founder-plate">
+            <b>Danny Boehmer</b>
+            <span>Founder &amp; CEO — Bayonne, NJ</span>
+          </div>
+        </div>
+        <div class="founder-copy rev-right">
+          <div class="eyebrow-mono" data-num="11">Our Story</div>
+          <h2>Your AI<br><span class="about-bold-gradient">Growth Partner.</span></h2>
+          <div class="about-divider"></div>
+          <p>NeuralFlow was founded by <strong>Danny Boehmer</strong> with one mission: help businesses make more money.
+            We don't just hand you a report — we come in, find where you're losing revenue, and build the AI systems and SEO strategies that fix it.</p>
+          <p style="margin-top:20px;">More leads from search. More conversions from AI. Less money wasted on manual work.
+            That's what we deliver — and we don't stop until the numbers prove it.</p>
+          <div class="founder-sign">
+            <span class="fs-serif">— Danny</span>
+            <span class="fs-note">Every project is built and overseen by me personally. No handoffs, no account managers.</span>
+          </div>
+        </div>
       </div>
 
       <div class="credentials-title reveal">Why Danny &amp; NeuralFlow?</div>
@@ -7668,6 +7681,10 @@
         <br>
         <a href="tel:+18627019030" class="magnetic" data-strength="20" style="margin-top:8px;display:inline-block;">(862) 701-9030</a>
         <br>
+        <div class="talk-to-danny">
+          <img src="/danny.jpg" alt="" width="46" height="46" loading="lazy">
+          <span>You'll talk directly with <b>Danny</b> — no sales team, no handoffs.</span>
+        </div>
         <div class="status-pill magnetic" data-strength="10" style="margin-top:20px;">
           <div class="status-dot"></div>
           Available Now
@@ -11063,6 +11080,71 @@
     }
     .aurora-blob { opacity: 0.28; filter: blur(120px); }
 
+    /* FOUNDER BLOCK */
+    .founder-grid {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 64px;
+      align-items: center;
+      text-align: left;
+      margin-bottom: 72px;
+    }
+    .founder-photo { position: relative; max-width: 420px; }
+    .founder-photo img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 24px;
+      border: 1px solid var(--hairline);
+      box-shadow: 0 44px 84px -30px rgba(16, 16, 20, 0.35), 0 0 60px -24px rgba(242, 90, 28, 0.25);
+      transform: rotate(-1.5deg);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .founder-photo:hover img { transform: rotate(0deg) scale(1.015); }
+    .founder-plate {
+      position: absolute;
+      left: 18px;
+      bottom: -20px;
+      background: #fff;
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      box-shadow: 0 18px 40px -18px rgba(16, 16, 20, 0.35);
+      padding: 12px 18px;
+    }
+    .founder-plate b { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 15px; color: var(--ink); }
+    .founder-plate span { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #9a9890; }
+    .founder-sign { margin-top: 28px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+    .founder-sign .fs-serif {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-size: 1.7rem;
+      background: linear-gradient(135deg, #FF6B2B, #7B61FF);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      padding-right: 6px;
+    }
+    .founder-sign .fs-note { font-size: 0.85rem; color: #9a9890; max-width: 340px; line-height: 1.5; }
+    @media (max-width: 980px) {
+      .founder-grid { grid-template-columns: 1fr; gap: 44px; text-align: left; }
+      .founder-photo { max-width: 320px; margin: 0 auto; }
+    }
+    .talk-to-danny {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 22px;
+      background: #fff;
+      border: 1px solid var(--hairline);
+      border-radius: 100px;
+      padding: 8px 18px 8px 8px;
+      box-shadow: 0 10px 24px -14px rgba(16, 16, 20, 0.25);
+      font-size: 13.5px;
+      color: var(--muted);
+    }
+    .talk-to-danny img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; }
+    .talk-to-danny b { color: var(--ink); }
+
     /* HUMAN FACES — avatar cluster + photo avatars */
     .hero-social {
       margin-top: 26px;
@@ -11391,6 +11473,11 @@
       kids[0].classList.add('rev-left');
       kids[1].classList.add('rev-right');
       dirEls.push(kids[0], kids[1]);
+    });
+
+    // Pick up any hand-authored directional elements (e.g. founder block)
+    document.querySelectorAll('.rev-left, .rev-right').forEach(function(el) {
+      if (dirEls.indexOf(el) === -1) dirEls.push(el);
     });
 
     if (reduced) return;
