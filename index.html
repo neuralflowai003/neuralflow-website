@@ -12568,6 +12568,84 @@
         }
       }
     }
+
+    /* ── BUBBLE SKIN, everywhere else it belongs ─────────────────
+       ARIA chat demo, SEO Google mock + capture form, work gallery
+       cards, methodology steps, testimonial cards, quotes ticker,
+       the manifesto statement, and the founder block. Same recipe,
+       same brand hues, gated on settled entrance states. ── */
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .rev-in .aria-chat-window,
+      .seo-search-mock:not(.fx-mat),
+      .seo-capture-box.rev-in,
+      .build-card,
+      .hiw-card:not(.card-in),
+      .tcard:not(.fx-left):not(.fx-rise):not(.fx-right),
+      .quotes-ticker-wrap.visible,
+      .mani-inner,
+      .founder-copy.visible {
+        border-radius: 26px !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        background:
+          radial-gradient(120% 90% at 18% 0%, rgba(255, 107, 43, 0.10), transparent 55%),
+          radial-gradient(130% 100% at 88% 100%, rgba(123, 97, 255, 0.10), transparent 55%),
+          linear-gradient(160deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0.24)) !important;
+        backdrop-filter: blur(26px) saturate(1.9);
+        -webkit-backdrop-filter: blur(26px) saturate(1.9);
+        box-shadow:
+          inset 0 2px 1.5px rgba(255, 255, 255, 1),
+          inset 0 -12px 26px -20px rgba(123, 97, 255, 0.30),
+          inset 12px 0 26px -22px rgba(255, 107, 43, 0.22),
+          0 0 0 1.5px rgba(242, 90, 28, 0.16),
+          0 0 0 3.5px rgba(123, 97, 255, 0.08),
+          0 26px 52px -26px rgba(16, 16, 20, 0.38),
+          0 0 44px -14px rgba(242, 90, 28, 0.16) !important;
+      }
+      .rev-in .aria-chat-window { overflow: hidden; }
+      .seo-search-mock:not(.fx-mat) { overflow: hidden; }
+      /* the manifesto statement becomes a proper bubble panel */
+      .mani-inner { padding: clamp(36px, 6vw, 72px); }
+      /* founder bio reads as a glass panel beside the portrait */
+      .founder-copy.visible { padding: clamp(26px, 3.4vw, 44px); }
+      /* portrait keeps its photo — ring + halo only */
+      .founder-photo.visible {
+        border-radius: 26px;
+        box-shadow:
+          0 0 0 1.5px rgba(242, 90, 28, 0.18),
+          0 0 0 3.5px rgba(123, 97, 255, 0.09),
+          0 26px 52px -26px rgba(16, 16, 20, 0.4),
+          0 0 44px -14px rgba(242, 90, 28, 0.2);
+      }
+      .quotes-ticker-wrap.visible { overflow: hidden; }
+      /* hover lift for the interactive ones */
+      .build-card:hover,
+      .tcard:not(.fx-left):not(.fx-rise):not(.fx-right):hover {
+        border-color: rgba(255, 255, 255, 0.95) !important;
+        box-shadow:
+          inset 0 2px 1.5px rgba(255, 255, 255, 1),
+          inset 0 -12px 26px -20px rgba(123, 97, 255, 0.36),
+          inset 12px 0 26px -22px rgba(255, 107, 43, 0.28),
+          0 0 0 1.5px rgba(242, 90, 28, 0.28),
+          0 0 0 3.5px rgba(123, 97, 255, 0.12),
+          0 32px 62px -28px rgba(16, 16, 20, 0.44),
+          0 0 58px -14px rgba(242, 90, 28, 0.26) !important;
+      }
+    }
+    @media (max-width: 768px) {
+      @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+        .rev-in .aria-chat-window,
+        .seo-search-mock:not(.fx-mat),
+        .seo-capture-box.rev-in,
+        .build-card,
+        .hiw-card:not(.card-in),
+        .tcard:not(.fx-left):not(.fx-rise):not(.fx-right),
+        .quotes-ticker-wrap.visible,
+        .mani-inner,
+        .founder-copy.visible {
+          border-radius: 20px !important;
+        }
+      }
+    }
   </style>
 
   <script>
