@@ -12175,6 +12175,157 @@
     }
     .stats-section .container, .stats-section .stats-grid { position: relative; z-index: 1; }
   </style>
+
+  <!-- ============================================================
+       LIQUID LENS LAYER — Apple Liquid Glass, the real recipe:
+       a glass lens that glides along the nav as the active section
+       changes, true edge refraction (SVG displacement, Chromium),
+       and specular rim highlights around every glass panel.
+       ============================================================ -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="lgRefract" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.008 0.014" numOctaves="2" seed="7" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <style>
+    /* ── The nav lens bubble ── */
+    .nav-links { position: relative; }
+    .nav-links .nav-link { position: relative; z-index: 1; }
+    .nav-lens {
+      position: absolute;
+      top: 50%;
+      height: 38px;
+      border-radius: 999px;
+      transform: translateY(-50%);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 0;
+      background: linear-gradient(160deg,
+        rgba(255, 255, 255, 0.85) 0%,
+        rgba(255, 255, 255, 0.30) 50%,
+        rgba(255, 255, 255, 0.55) 100%);
+      backdrop-filter: blur(10px) saturate(1.9);
+      -webkit-backdrop-filter: blur(10px) saturate(1.9);
+      box-shadow:
+        inset 0 1.5px 1px rgba(255, 255, 255, 1),
+        inset 0 -1px 2px rgba(123, 97, 255, 0.16),
+        inset 1.5px 0 1.5px rgba(255, 255, 255, 0.55),
+        inset -1px 0 1.5px rgba(242, 90, 28, 0.10),
+        0 0 0 1px rgba(255, 255, 255, 0.65),
+        0 10px 24px -10px rgba(16, 16, 20, 0.32),
+        0 3px 8px -2px rgba(242, 90, 28, 0.10);
+      transition:
+        left 0.55s cubic-bezier(0.3, 1.45, 0.35, 1),
+        width 0.55s cubic-bezier(0.3, 1.45, 0.35, 1),
+        opacity 0.35s ease;
+    }
+    /* true refraction where the engine supports SVG backdrop filters */
+    html.lens-refract .nav-lens {
+      backdrop-filter: blur(10px) saturate(1.9) url(#lgRefract);
+      -webkit-backdrop-filter: blur(10px) saturate(1.9) url(#lgRefract);
+    }
+    @media (max-width: 768px) { .nav-lens { display: none; } }
+
+    /* ── Specular lens edges on every glass panel — the rim-light
+       stack that makes the glass read as glass ── */
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .stat-box:not(.pop-in),
+      .hiw-card:not(.card-in),
+      .form-box.visible,
+      .cred-card {
+        box-shadow:
+          inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+          inset 0 -1px 2px rgba(123, 97, 255, 0.10),
+          inset 1.5px 0 1.5px rgba(255, 255, 255, 0.45),
+          inset -1px 0 1.5px rgba(242, 90, 28, 0.06),
+          0 0 0 1px rgba(255, 255, 255, 0.55),
+          0 26px 54px -30px rgba(16, 16, 20, 0.38) !important;
+      }
+      .faq-item:not(.fx-left):not(.fx-right) {
+        box-shadow:
+          inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+          inset 0 -1px 2px rgba(123, 97, 255, 0.10),
+          0 0 0 1px rgba(255, 255, 255, 0.55),
+          0 18px 40px -26px rgba(16, 16, 20, 0.32);
+      }
+      .cred-card {
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.34)) !important;
+        backdrop-filter: blur(18px) saturate(1.55);
+        -webkit-backdrop-filter: blur(18px) saturate(1.55);
+        border: 1px solid rgba(255, 255, 255, 0.72) !important;
+      }
+      .hero-aria-card.visible {
+        box-shadow:
+          inset 0 2px 1.5px rgba(255, 255, 255, 1),
+          inset 0 -1.5px 3px rgba(123, 97, 255, 0.14),
+          inset 2px 0 2px rgba(255, 255, 255, 0.5),
+          inset -1.5px 0 2px rgba(242, 90, 28, 0.09),
+          0 0 0 1px rgba(255, 255, 255, 0.6),
+          0 38px 76px -32px rgba(16, 16, 20, 0.4),
+          0 0 64px -26px rgba(242, 90, 28, 0.2) !important;
+      }
+      #nav {
+        box-shadow:
+          inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
+          inset 0 -1px 2px rgba(123, 97, 255, 0.10),
+          0 0 0 1px rgba(255, 255, 255, 0.55),
+          0 18px 50px -22px rgba(16, 16, 20, 0.34) !important;
+      }
+    }
+  </style>
+
+  <script>
+  (function() {
+    // Refraction only where the engine accepts SVG backdrop filters
+    try {
+      if (CSS.supports('backdrop-filter', 'url(#lgRefract)') ||
+          CSS.supports('-webkit-backdrop-filter', 'url(#lgRefract)')) {
+        document.documentElement.classList.add('lens-refract');
+      }
+    } catch (e) {}
+
+    // The lens glides to the active nav link as the scrollspy moves,
+    // and previews under whichever link the cursor visits
+    var wrap = document.querySelector('.nav-links');
+    if (!wrap || !window.matchMedia('(min-width: 769px)').matches) return;
+    var lens = document.createElement('span');
+    lens.className = 'nav-lens';
+    lens.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(lens);
+
+    var current = null;
+    function moveTo(el) {
+      if (!el) { lens.style.opacity = '0'; return; }
+      lens.style.opacity = '1';
+      lens.style.left = (el.offsetLeft - 12) + 'px';
+      lens.style.width = (el.offsetWidth + 24) + 'px';
+    }
+    function sync() {
+      var active = wrap.querySelector('.nav-link.nav-active');
+      if (active !== current) {
+        current = active;
+        moveTo(current);
+      }
+    }
+    var tick = false;
+    window.addEventListener('scroll', function() {
+      if (tick) return;
+      tick = true;
+      requestAnimationFrame(function() { tick = false; sync(); });
+    }, { passive: true });
+    wrap.querySelectorAll('.nav-link').forEach(function(l) {
+      l.addEventListener('mouseenter', function() { moveTo(l); });
+    });
+    wrap.addEventListener('mouseleave', function() { moveTo(current); });
+    window.addEventListener('resize', function() { setTimeout(function() { moveTo(current); }, 120); }, { passive: true });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function() { setTimeout(sync, 60); });
+    sync();
+  })();
+  </script>
 </body>
 
 </html>
