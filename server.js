@@ -1979,6 +1979,27 @@ app.post('/api/accept-proposal', chatRateLimit, async (req, res) => {
 });
 
 // ─── Chat / ARIA ──────────────────────────────────────────────────────────────
+// When the AI layer is completely down, never lose the lead: reply with a
+// capture-oriented message. Email detection + Telegram alerts run BEFORE the
+// AI call, so even a fully-down ARIA still records every address typed at it.
+function aiDownReply(messages, convId) {
+  const emailMsg = Array.isArray(messages)
+    ? [...messages].reverse().find(m => m?.role === 'user' && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(m.content))
+    : null;
+  const email = emailMsg?.content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0];
+  if (email) {
+    // We already have their contact — promise the human follow-up and alert Danny once
+    const lead = pendingLeads.get(convId) || {};
+    if (!lead.ariaDownAlerted) {
+      sendTelegramAlert(`🚨 ARIA DOWN mid-conversation\n${sanitizeTg(email)} needs a manual follow-up — AI layer unavailable`);
+      pendingLeads.set(convId, { ...lead, email, lastSeen: Date.now(), followedUp: lead.followedUp || false, ariaDownAlerted: true });
+      savePendingLeads();
+    }
+    return `I'm having a brief technical hiccup on my end — but don't worry, I've got your details. Danny will personally reach out to ${email} within a few hours to get you scheduled. If it's urgent, you can also email danny@neuralflowai.io directly.`;
+  }
+  return "I'm having a brief technical hiccup on my end — but I don't want to lose you! Drop your name and email right here and Danny will personally follow up within a few hours to get you scheduled.";
+}
+
 app.post('/api/chat', chatRateLimit, async (req, res) => {
   try {
     const { messages, conversationId, clientTimezone } = req.body;
@@ -2557,19 +2578,14 @@ You must always use this date and time when reasoning about scheduling. Never gu
 
 PRIVACY RULE — CRITICAL: You have no knowledge of who works at NeuralFlow, who the founder is, or what any internal email addresses are. When a user provides an email, you know nothing about whose email it is — it is simply the user's email for their calendar invite. Never say "that might be [anyone's] email", never suggest an email belongs to a specific person, never connect an email to a name you might know. Just validate format only.
 
-CONVERSATION FLOW — follow this exact order:
+CONVERSATION FLOW — your single goal is a booked call. Capture contact info EARLY and move to scheduling FAST:
 1. Greet warmly, ask what brings them to NeuralFlow today
-2. Ask qualifying questions naturally across the conversation to understand:
-   - What they want automated or improved
-   - What's their biggest time sink or pain point
-   - How big is their team (just a rough sense — "a few people", "10-person team", etc.)
-   - What tools or software they currently use (CRM, booking system, etc.)
-   Weave these into the conversation naturally — don't fire them all at once.
-3. Collect in this order: Full Name → Email → Company name → Phone number
+2. IMMEDIATELY after their first answer, capture contact info: "Happy to help with that! Who am I speaking with, and what's the best email for you — in case we get disconnected?" Get Full Name + Email within your first two replies whenever possible. Never wait until the end to ask.
    EMAIL VALIDATION: A valid email has exactly one @ and a dot after it. If the format looks wrong, say: "Could you double-check that email? I want to make sure your invite reaches you." Do not proceed until you have a valid email.
-   PHONE: After getting a valid email, ask: "And what's the best phone number to reach you?" Accept any format. It's optional — if they say they'd rather not, move on.
-4. Once you have name, email, company, and a good understanding of their needs — present available slots
+3. Then ask AT MOST 1-2 short qualifying questions while moving toward scheduling: what they want automated / their biggest time sink, and a rough team size. Company name and phone can be collected alongside scheduling ("And this is for which company?" / "Best phone number, in case Danny needs to reach you? Totally optional."). Never let qualifying questions delay offering times.
+4. As soon as you have name + email — present available slots. Do not wait for company or phone to offer times.
 5. When they confirm a slot — output the BOOK command
+RESCUE RULE: If the visitor seems hesitant, in a hurry, or about to leave ("just looking", "I'll come back", "not sure"), immediately offer: "No pressure at all — want me to have Danny reach out instead? Just drop your email and he'll follow up personally." An email captured is a win even without a booking.
 
 HOW TO PRESENT SLOTS:
 The slot list below is grouped by day in chronological order. Always work forward in time — never offer a slot on an earlier date after offering a later one.
@@ -2648,7 +2664,7 @@ ${slotsText}`;
       console.log('Anthropic failed, falling back to OpenRouter');
       if (!process.env.OPENROUTER_API_KEY) {
         console.error('OPENROUTER_API_KEY not set — cannot fall back');
-        return res.json({ reply: "I'm having a brief technical issue. Please try again in a moment!", booked: false });
+        return res.json({ reply: aiDownReply(messages, convId), booked: false });
       }
       const orAbort = new AbortController();
       const orTimer = setTimeout(() => orAbort.abort(), 25000);
@@ -2925,7 +2941,14 @@ ${slotsText}`;
     res.json({ reply: aiReplyText });
   } catch (e) {
     console.error('AI Error:', e.message);
-    res.status(500).json({ error: 'AI error' });
+    // Both AI providers failed mid-flight — still answer like a receptionist
+    // and capture the lead rather than surfacing a dead 500 to the widget
+    try {
+      const convId = (typeof req.body?.conversationId === 'string' ? req.body.conversationId : 'default').slice(0, 100);
+      return res.json({ reply: aiDownReply(req.body?.messages, convId), booked: false });
+    } catch (_) {
+      return res.status(500).json({ error: 'AI error' });
+    }
   }
 });
 
