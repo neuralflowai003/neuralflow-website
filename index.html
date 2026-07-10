@@ -11283,6 +11283,134 @@
       .section-desc { font-size: 0.98rem !important; }
     }
   </style>
+
+  <!-- ============================================================
+       FLOW & CHOREOGRAPHY LAYER — mobile condensing + scroll
+       storytelling (staggered cascades, directional reveals,
+       animated seam connectors that lead into the next section)
+       ============================================================ -->
+  <style>
+    /* ── MOBILE CONDENSING — the phone gets the essentials ─────── */
+    @media (max-width: 768px) {
+      /* Hero card already rotates all four demos on mobile —
+         the demos section is redundant there */
+      #demos { display: none !important; }
+      /* Service cards become compact rows — the dark viz chips are
+         the desktop treat */
+      .tilt-card .card-viz { display: none !important; }
+      .tilt-card { padding: 20px 18px !important; }
+      .tilt-card h3 { font-size: 1.15rem !important; margin-bottom: 8px !important; }
+      .tilt-card p { font-size: 0.85rem !important; margin-bottom: 12px !important; }
+      /* The Google mock is tall — mobile keeps the stats + audit form */
+      .seo-search-mock { display: none !important; }
+      /* Tighten the 60s story steps */
+      .story-step { padding: 26px 0 6px !important; }
+      .story-step h3 { font-size: 1.4rem !important; }
+      /* Quotes ticker adds little on a phone */
+      .quotes-ticker-wrap { display: none !important; }
+      /* Mega marquees slimmer */
+      .mega-marquee { padding: 34px 0 10px !important; }
+      .mega-track span { font-size: clamp(2.4rem, 12vw, 3.4rem) !important; }
+    }
+
+    /* ── SEAM CONNECTORS — a drawn line leads into each section ── */
+    .flow-seam { position: relative; }
+    .flow-seam .seam-line {
+      display: block;
+      width: 2px;
+      height: 52px;
+      margin: 0 auto 30px;
+      background: linear-gradient(180deg, transparent 0%, var(--accent) 55%, #7B61FF 100%);
+      border-radius: 2px;
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .flow-seam.seam-in .seam-line { transform: scaleY(1); }
+    @media (max-width: 768px) {
+      .flow-seam .seam-line { height: 36px; margin-bottom: 20px; }
+    }
+
+    /* ── DIRECTIONAL REVEALS for split layouts ─────────────────── */
+    .rev-left { opacity: 0; transform: translateX(-34px); transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1); }
+    .rev-right { opacity: 0; transform: translateX(34px); transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1); }
+    .rev-left.rev-in, .rev-right.rev-in { opacity: 1; transform: none; }
+    @media (max-width: 980px) {
+      .rev-left, .rev-right { transform: translateY(22px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rev-left, .rev-right { opacity: 1 !important; transform: none !important; }
+      .flow-seam .seam-line { transform: scaleY(1) !important; }
+    }
+  </style>
+
+  <script>
+  (function() {
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ── Header cascade: eyebrow → title → desc stagger per section ──
+    document.querySelectorAll('section, .stats-section').forEach(function(sec) {
+      var seq = [
+        sec.querySelector('.eyebrow-mono'),
+        sec.querySelector('.section-title'),
+        sec.querySelector('.section-desc')
+      ].filter(Boolean);
+      seq.forEach(function(el, i) {
+        var target = el.classList.contains('reveal') ? el : (el.closest('.reveal') || el);
+        if (target && !target.style.transitionDelay) target.style.transitionDelay = (i * 0.13) + 's';
+      });
+    });
+
+    // ── Seam connectors: inject a drawn line at the top of each act ──
+    var seamTargets = ['#services', '#aria-demo', '#seo', '#roi', '#work', '#process', '#clients', '#story60', '#about', '#faq', '#contact'];
+    var seamEls = [];
+    seamTargets.forEach(function(sel) {
+      var sec = document.querySelector(sel);
+      if (!sec) return;
+      sec.classList.add('flow-seam');
+      var line = document.createElement('span');
+      line.className = 'seam-line';
+      line.setAttribute('aria-hidden', 'true');
+      var container = sec.querySelector('.container') || sec;
+      container.insertBefore(line, container.firstChild);
+      seamEls.push(sec);
+    });
+
+    // ── Directional reveals on split layouts ──
+    var splits = [
+      ['.aria-demo-grid', 2], ['.story-grid', 2], ['.contact-layout', 2], ['.seo-demo-layout', 2]
+    ];
+    var dirEls = [];
+    splits.forEach(function(pair) {
+      var grid = document.querySelector(pair[0]);
+      if (!grid || grid.children.length < 2) return;
+      var kids = [].slice.call(grid.children).filter(function(k) { return k.tagName !== 'SPAN'; });
+      if (kids.length < 2) return;
+      kids[0].classList.remove('reveal', 'visible');
+      kids[1].classList.remove('reveal', 'visible');
+      kids[0].classList.add('rev-left');
+      kids[1].classList.add('rev-right');
+      dirEls.push(kids[0], kids[1]);
+    });
+
+    if (reduced) return;
+    var io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return;
+        if (entry.target.classList.contains('flow-seam')) entry.target.classList.add('seam-in');
+        else entry.target.classList.add('rev-in');
+        io.unobserve(entry.target);
+      });
+    }, { threshold: 0.12 });
+    seamEls.forEach(function(el) { io.observe(el); });
+    dirEls.forEach(function(el) { io.observe(el); });
+    // reduced-motion path: CSS already forces visible
+    if (reduced) {
+      seamEls.forEach(function(el) { el.classList.add('seam-in'); });
+      dirEls.forEach(function(el) { el.classList.add('rev-in'); });
+    }
+  })();
+  </script>
 </body>
 
 </html>
