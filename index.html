@@ -8016,7 +8016,7 @@
         const isMobile = window.innerWidth < 768;
         const hubCount = isMobile ? 1 : 4;
         for (let i = 0; i < hubCount; i++) particles.push(new Particle(true));
-        const particleCount = isMobile ? 28 : 282;
+        const particleCount = isMobile ? 26 : 230;
         for (let i = 0; i < particleCount; i++) particles.push(new Particle());
       }
       window.addEventListener('resize', resizeCanvas);
@@ -8065,6 +8065,8 @@
       if (heroEl && 'IntersectionObserver' in window) {
         new IntersectionObserver(function(entries) {
           heroVisible = entries[0].isIntersecting;
+          // pause the hero's decorative CSS animations too
+          heroEl.classList.toggle('offstage', !heroVisible);
         }).observe(heroEl);
       }
 
@@ -8078,12 +8080,14 @@
 
           ctx.shadowBlur = 0; // prevent glow from leaking onto the lines
 
+          const connDist = window.innerWidth < 768 ? 110 : 200;
+          const connDist2 = connDist * connDist;
           for (let j = i + 1; j < particles.length; j++) {
             const dx = particles[i].x - particles[j].x;
             const dy = particles[i].y - particles[j].y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const connDist = window.innerWidth < 768 ? 110 : 200;
-            if (dist < connDist) {
+            const d2 = dx * dx + dy * dy;
+            if (d2 < connDist2) {
+              const dist = Math.sqrt(d2);
               ctx.beginPath();
               ctx.moveTo(particles[i].x, particles[i].y);
               ctx.lineTo(particles[j].x, particles[j].y);
@@ -12967,6 +12971,24 @@
     .rev-right:not(.rev-in) [class] {
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
+    }
+  </style>
+
+  <!-- ============================================================
+       SMOOTHNESS II — decorative work stops when it can't be seen
+       ============================================================ -->
+  <style>
+    /* hero decor pauses once the hero scrolls away */
+    .hero.offstage .hero-rays::before,
+    .hero.offstage .hero-rays::after,
+    .hero.offstage .orb,
+    .hero.offstage .eyebrow-mono::after {
+      animation-play-state: paused !important;
+    }
+    /* skip layout/paint for far-offscreen sections (sticky-free ones) */
+    #demos, #roi, #clients, #manifesto, #contact {
+      content-visibility: auto;
+      contain-intrinsic-size: auto 900px;
     }
   </style>
 </body>
