@@ -97,7 +97,9 @@ app.use((req, res, next) => {
   } else if (req.url === '/robots.txt' || req.url === '/sitemap.xml') {
     res.set('Cache-Control', 'public, max-age=86400');
   } else if (req.url === '/' || req.url.endsWith('.html')) {
-    res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+    // HTML must revalidate on every load — an hour of cache meant
+    // deploys were invisible until the browser cache expired
+    res.set('Cache-Control', 'no-cache');
   }
   next();
 });
@@ -1708,12 +1710,12 @@ app.get('/book', (req, res) => res.sendFile(path.join(__dirname, 'book.html')));
 // Service landing pages
 const SERVICE_PAGES = ['ai-consulting', 'ai-receptionist', 'workflow-automation', 'seo-optimization', 'custom-development'];
 app.get('/services', (req, res) => {
-  res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, 'services', 'index.html'));
 });
 SERVICE_PAGES.forEach(slug => {
   app.get(`/services/${slug}`, (req, res) => {
-    res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(__dirname, 'services', `${slug}.html`));
   });
 });
