@@ -3026,20 +3026,6 @@
     <div style="position:absolute;bottom:0;left:0;right:0;height:220px;background:linear-gradient(to bottom,transparent 0%,rgba(250,250,247,0.6) 50%,var(--bg) 100%);pointer-events:none;z-index:3;"></div>
   </header>
 
-  <!-- GIANT OUTLINED MARQUEE -->
-  <div class="mega-marquee" aria-hidden="true">
-    <div class="mega-track">
-      <span>Automate</span><em>✦</em>
-      <span class="mm-fill">Scale</span><em>✦</em>
-      <span>Grow</span><em>✦</em>
-      <span>Repeat</span><em>✦</em>
-      <span>Automate</span><em>✦</em>
-      <span class="mm-fill">Scale</span><em>✦</em>
-      <span>Grow</span><em>✦</em>
-      <span>Repeat</span><em>✦</em>
-    </div>
-  </div>
-
   <!-- CURSOR GLOW + ARIA DEMO STYLES -->
   <style>
     /* ── Cursor glow ── */
@@ -7657,20 +7643,6 @@
     </div>
   </section>
 
-  <!-- GIANT OUTLINED MARQUEE — CONTACT LEAD-IN -->
-  <div class="mega-marquee mm-reverse" aria-hidden="true">
-    <div class="mega-track">
-      <span class="mm-fill">Ready</span><em>✦</em>
-      <span>When</span><em>✦</em>
-      <span>You</span><em>✦</em>
-      <span>Are</span><em>✦</em>
-      <span class="mm-fill">Ready</span><em>✦</em>
-      <span>When</span><em>✦</em>
-      <span>You</span><em>✦</em>
-      <span>Are</span><em>✦</em>
-    </div>
-  </div>
-
   <!-- CONTACT -->
   <section class="contact-section" id="contact">
     <div class="container contact-layout">
@@ -8236,7 +8208,9 @@
           }
         }
       });
-    }, { threshold: 0.15 });
+      // Fire early (as elements clear the bottom edge) so entrances finish
+      // low in the viewport instead of moving at eye level mid-scroll
+    }, { rootMargin: '0px 0px -70px 0px', threshold: 0.01 });
 
     document.querySelectorAll('.reveal, .reveal-slide-right, .stat-box').forEach(el => observer.observe(el));
 
@@ -9289,55 +9263,6 @@
     @media (max-width: 768px) {
       .hero-grid-lines { display: none; }
       .hero-rays::before, .hero-rays::after { filter: blur(10px); }
-    }
-
-    /* ── MEGA MARQUEE — giant outlined scrolling words ─────────── */
-    .mega-marquee {
-      overflow: hidden;
-      padding: 64px 0 22px;
-      position: relative;
-      background: var(--bg);
-    }
-    .mega-track {
-      display: inline-flex;
-      align-items: center;
-      gap: 56px;
-      white-space: nowrap;
-      will-change: transform;
-      animation: megaScroll 44s linear infinite;
-      padding-right: 56px;
-    }
-    .mega-track span {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: clamp(3.2rem, 9vw, 8.5rem);
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: -3px;
-      line-height: 1;
-      color: transparent;
-      -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.13);
-      transition: -webkit-text-stroke-color 0.4s;
-    }
-    .mega-track span.mm-fill {
-      -webkit-text-stroke: 0px transparent;
-      background: linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-style: italic;
-      font-weight: 400;
-      text-transform: none;
-      letter-spacing: -1px;
-      padding-right: 14px;
-    }
-    .mega-track em {
-      font-style: normal;
-      font-size: clamp(1.4rem, 3vw, 2.6rem);
-      color: rgba(255, 107, 43, 0.45);
-    }
-    .mega-marquee.mm-reverse .mega-track { animation-direction: reverse; }
-    @keyframes megaScroll {
-      to { transform: translateX(-50%); }
     }
 
     /* ── BENTO STATS GRID ──────────────────────────────────────── */
@@ -10774,10 +10699,6 @@
     }
     .scroll-indicator { color: #9a9890; }
 
-    /* MEGA MARQUEES */
-    .mega-track span { -webkit-text-stroke: 1.5px rgba(16, 16, 20, 0.18); }
-    .mega-track em { color: rgba(242, 90, 28, 0.5); }
-    .mega-marquee { background: var(--bg); }
 
     /* HEADLINE SHEEN -> INK */
     .section-title,
@@ -11396,8 +11317,6 @@
       /* Quotes ticker adds little on a phone */
       .quotes-ticker-wrap { display: none !important; }
       /* Mega marquees slimmer */
-      .mega-marquee { padding: 34px 0 10px !important; }
-      .mega-track span { font-size: clamp(2.4rem, 12vw, 3.4rem) !important; }
     }
 
     /* ── SEAM CONNECTORS — a drawn line leads into each section ── */
@@ -11493,7 +11412,7 @@
         else entry.target.classList.add('rev-in');
         io.unobserve(entry.target);
       });
-    }, { threshold: 0.12 });
+    }, { rootMargin: '0px 0px -80px 0px', threshold: 0 });
     seamEls.forEach(function(el) { io.observe(el); });
     dirEls.forEach(function(el) { io.observe(el); });
     // reduced-motion path: CSS already forces visible
@@ -11638,7 +11557,6 @@
     // needs its internal scroll to play; marquees/footer are ribbons).
     var LAYERS = [
       { sel: '.hero', pin: true, sheet: false },
-      { sel: '.hero + .mega-marquee', pin: false, sheet: false },
       { sel: '.stats-section', pin: true, sheet: true },
       { sel: '#services', pin: true, sheet: true },
       { sel: '#demos', pin: true, sheet: true },
@@ -11652,7 +11570,6 @@
       { sel: '.cta-band-section', pin: true, sheet: true },
       { sel: '#about', pin: true, sheet: true },
       { sel: '#faq', pin: true, sheet: true },
-      { sel: '.mm-reverse', pin: false, sheet: false },
       { sel: '#contact', pin: true, sheet: true },
       { sel: 'footer', pin: false, sheet: true }
     ];
@@ -11689,7 +11606,11 @@
     //    offsets must be cached while nothing is stuck (page load).
     var topCache = new Map();
     function rawTop(el) {
-      return window.scrollY + el.getBoundingClientRect().top;
+      // offset-chain walk: immune to in-flight entrance transforms
+      // (scroll-driven sheet rise translates sheets near the viewport)
+      var t = 0, n = el;
+      while (n) { t += n.offsetTop; n = n.offsetParent; }
+      return t;
     }
     function cacheTops() {
       if (window.scrollY > 50) return; // only trust geometry when nothing is stuck
@@ -11734,6 +11655,146 @@
       requestAnimationFrame(spy);
     }, { passive: true });
     spy();
+  })();
+  </script>
+
+  <!-- ============================================================
+       SCROLL CHOREOGRAPHY V2 — richer entrances, zero fight with
+       the layer-stack. Cards fall into place with perspective +
+       focus pull; stats spring in; the founder portrait unveils
+       with a clip-path; on Chromium each sheet rises/settles with
+       a compositor-driven scroll animation. All entrance classes
+       are stripped after they finish so hover styles take over.
+       ============================================================ -->
+  <style>
+    /* Refined base reveal: shorter travel, expo settle */
+    .reveal {
+      transform: translateY(18px);
+      transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.95s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal.visible { transform: translateY(0); }
+
+    /* Cards: perspective fall-in with focus pull */
+    .card-in {
+      opacity: 0;
+      transform: perspective(1100px) translateY(38px) rotateX(8deg) scale(0.972);
+      transform-origin: 50% 100%;
+      filter: blur(6px);
+      transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 1s cubic-bezier(0.16, 1, 0.3, 1),
+                  filter 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform, filter;
+    }
+    .card-in.chor-in { opacity: 1; transform: none; filter: none; }
+
+    /* Stat tiles: spring pop (no blur — gradient numbers) */
+    .pop-in {
+      opacity: 0;
+      transform: translateY(22px) scale(0.93);
+      transition: opacity 0.6s ease,
+                  transform 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .pop-in.chor-in { opacity: 1; transform: none; }
+
+    /* Founder portrait: cinematic unveil (piggybacks on rev-in) */
+    .founder-photo img {
+      clip-path: inset(10% 6% 10% 6% round 18px);
+      transform: scale(1.08);
+      transition: clip-path 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
+                  transform 1.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s;
+    }
+    .founder-photo.rev-in img {
+      clip-path: inset(0 0 0 0 round 0);
+      transform: scale(1);
+    }
+
+    /* Scroll-driven polish (Chromium): sheets rise + settle as they
+       slide over the pinned layer below; process graphics drift. */
+    @media (prefers-reduced-motion: no-preference) {
+      @supports (animation-timeline: view()) {
+        .layer-sheet {
+          animation: sheetRise linear both;
+          animation-timeline: view();
+          animation-range: entry 0% entry 60%;
+        }
+        @keyframes sheetRise {
+          from { transform: translateY(16px) scale(0.985); }
+          to { transform: translateY(0) scale(1); }
+        }
+        .hiw-graphic {
+          animation: chorDrift linear both;
+          animation-timeline: view();
+          animation-range: cover 0% cover 100%;
+        }
+        @keyframes chorDrift {
+          from { transform: translateY(16px); }
+          to { transform: translateY(-16px); }
+        }
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .card-in, .pop-in { opacity: 1 !important; transform: none !important; filter: none !important; }
+      .founder-photo img { clip-path: none !important; transform: none !important; }
+    }
+  </style>
+
+  <script>
+  (function() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var GRIDS = [
+      { sel: '.services-grid', cls: 'card-in' },
+      { sel: '.demos-grid', cls: 'card-in' },
+      { sel: '.hiw-grid', cls: 'card-in' },
+      { sel: '.testimonials-grid', cls: 'card-in' },
+      { sel: '.credentials-grid', cls: 'card-in' },
+      { sel: '.faq-grid', cls: 'card-in' },
+      { sel: '.stats-grid', cls: 'pop-in' }
+    ];
+    var items = [];
+    GRIDS.forEach(function(g) {
+      var grid = document.querySelector(g.sel);
+      if (!grid) return;
+      [].slice.call(grid.children).forEach(function(el, i) {
+        if (el.tagName === 'SPAN') return; // seam lines etc.
+        el.classList.remove('reveal', 'visible', 'reveal-slide-right');
+        el.classList.add(g.cls);
+        el.style.transitionDelay = (i * 0.08) + 's';
+        items.push(el);
+      });
+    });
+
+    function finish(el) {
+      // Strip entrance machinery so hover transforms rule afterwards.
+      // Same computed state before/after removal — no visual jump.
+      el.style.transitionDelay = '';
+      el.classList.remove('card-in', 'pop-in', 'chor-in');
+    }
+
+    var io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return;
+        var el = entry.target;
+        io.unobserve(el);
+        var delay = parseFloat(el.style.transitionDelay || '0') * 1000;
+        el.classList.add('chor-in');
+        var cleaned = false;
+        var done = function() {
+          if (cleaned) return;
+          cleaned = true;
+          finish(el);
+        };
+        el.addEventListener('transitionend', function onEnd(e) {
+          if (e.target !== el || e.propertyName !== 'transform') return;
+          el.removeEventListener('transitionend', onEnd);
+          done();
+        });
+        setTimeout(done, delay + 1400); // fallback if transitionend is missed
+      });
+    }, { rootMargin: '0px 0px -70px 0px', threshold: 0.01 });
+    items.forEach(function(el) { io.observe(el); });
   })();
   </script>
 </body>
