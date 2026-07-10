@@ -11061,7 +11061,7 @@
       border-color: var(--hairline);
       box-shadow: 0 8px 24px -10px rgba(16, 16, 20, 0.25);
     }
-    .aurora-blob { opacity: 0.5; }
+    .aurora-blob { opacity: 0.28; filter: blur(120px); }
 
     /* HUMAN FACES — avatar cluster + photo avatars */
     .hero-social {
@@ -11198,6 +11198,89 @@
     #mobile-menu-overlay { background: rgba(16, 16, 20, 0.35) !important; }
     @media (max-width: 768px) {
       #nav { background: transparent !important; border: none !important; box-shadow: none !important; }
+    }
+  </style>
+
+  <!-- ============================================================
+       RHYTHM & TYPE HARMONY LAYER — unified spacing, alternating
+       bands, consistent heading scale. Final cascade authority.
+       ============================================================ -->
+  <style>
+    /* ── UNIFIED VERTICAL RHYTHM (desktop) ─────────────────────── */
+    @media (min-width: 769px) {
+      .stats-section,
+      .section,
+      .demos-section,
+      .aria-demo-section,
+      .seo-demo-section,
+      .showcase-section,
+      .hiw-section,
+      .proof-section,
+      .faq-section,
+      .about-section,
+      .contact-section { padding-top: 118px !important; padding-bottom: 118px !important; }
+      .cta-band-section { padding-top: 96px !important; padding-bottom: 96px !important; }
+      .story-section { padding-top: 118px !important; padding-bottom: 48px !important; }
+      #roi { padding-top: 100px !important; padding-bottom: 110px !important; }
+    }
+
+    /* ── ALTERNATING PAPER BANDS — one consistent stripe pattern ── */
+    .stats-section { background: var(--paper-2) !important; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+    #services { background: var(--bg) !important; }
+    .demos-section { background: var(--paper-2) !important; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+    .aria-demo-section { background: var(--bg) !important; border: none !important; }
+    .seo-demo-section { background: var(--paper-2) !important; border-top: 1px solid var(--hairline) !important; border-bottom: 1px solid var(--hairline); }
+    #roi { background: var(--bg) !important; }
+    .showcase-section { background: var(--paper-2) !important; border-top: 1px solid var(--hairline) !important; border-bottom: 1px solid var(--hairline); }
+    .hiw-section { background: var(--bg) !important; }
+    .proof-section { background: var(--paper-2) !important; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+    .story-section { background: var(--bg) !important; border: none !important; }
+    .cta-band-section { background: var(--bg) !important; }
+    .about-section { background: var(--paper-2) !important; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+    .faq-section { background: var(--bg) !important; border: none !important; }
+    .contact-section { background: var(--bg) !important; border-top: none !important; }
+    .integrations-strip { background: var(--bg) !important; border-color: var(--hairline) !important; }
+
+    /* ── HEADING SCALE HARMONY ─────────────────────────────────── */
+    /* One display scale for all centered section titles */
+    .section-title {
+      font-size: clamp(2.6rem, 5vw, 4.6rem) !important;
+      letter-spacing: -2.5px !important;
+      line-height: 1.02 !important;
+    }
+    /* ROI heading joins the same scale (was a smaller inline one-off) */
+    #roi h2[style] {
+      font-size: clamp(2.6rem, 5vw, 4.6rem) !important;
+      letter-spacing: -2.5px !important;
+      line-height: 1.02 !important;
+    }
+    /* Split-layout headings share one sub-scale */
+    .aria-demo-headline,
+    .expect-title,
+    .about-top h2 {
+      font-size: clamp(2rem, 3.2vw, 3.2rem) !important;
+      letter-spacing: -1.5px !important;
+    }
+    .contact-text h2 { font-size: clamp(2.6rem, 4.6vw, 4.6rem) !important; letter-spacing: -2.5px !important; }
+    /* One description style everywhere */
+    .section-desc {
+      font-size: 1.12rem !important;
+      line-height: 1.65 !important;
+      max-width: 620px !important;
+    }
+
+    /* ── SMOOTHER MOTION ───────────────────────────────────────── */
+    .reveal { transform: translateY(26px); transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+    .reveal.visible { transform: translateY(0); }
+    html { scroll-padding-top: 90px; }
+
+    /* ── MOBILE RHYTHM ─────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .stats-section, .demos-section, .aria-demo-section, .seo-demo-section,
+      .showcase-section, .proof-section, .about-section, .faq-section,
+      .hiw-section { padding-top: 64px !important; padding-bottom: 64px !important; }
+      .section-title { font-size: clamp(2rem, 8vw, 2.7rem) !important; letter-spacing: -1.5px !important; }
+      .section-desc { font-size: 0.98rem !important; }
     }
   </style>
 </body>
