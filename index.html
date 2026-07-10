@@ -7735,6 +7735,8 @@
       <span>ARIA answering 24/7</span>
       <span class="meta-sep">/</span>
       <a href="#" onclick="if(window.__openCmdk)window.__openCmdk();return false;" style="color:rgba(255,255,255,0.45);letter-spacing:0.1em;">⌘K command menu</a>
+      <span class="meta-sep">/</span>
+      <span id="buildStamp" style="letter-spacing:0.12em;">BUILD GLASS-0710</span>
     </div>
     <div class="container footer-bottom">
       <div>&copy; <span id="year"></span> NeuralFlow.</div>
@@ -12399,12 +12401,16 @@
           0 0 44px -16px rgba(242, 90, 28, 0.22) !important;
       }
 
-      /* Nav: visible glass bar — faint brand sheen + ink hairline */
+      /* Nav: visible glass bar — faint brand sheen + ink hairline.
+         Blur declared here too: the original was desktop-only, so
+         phones had no frost at all */
       #nav {
         background:
           linear-gradient(115deg, rgba(255, 107, 43, 0.05), transparent 30%, transparent 70%, rgba(123, 97, 255, 0.05)),
           rgba(255, 255, 255, 0.36) !important;
         border: 1px solid rgba(16, 16, 20, 0.08) !important;
+        backdrop-filter: blur(28px) saturate(1.9);
+        -webkit-backdrop-filter: blur(28px) saturate(1.9);
       }
       #nav.scrolled {
         background:
@@ -12430,6 +12436,32 @@
 
   <script>
   (function() {
+    // Ink-scrub fallback: engines without scroll timelines (e.g. iOS
+    // Safari) drive the manifesto fill from a scroll listener instead
+    try {
+      if (!CSS.supports('animation-timeline: view()')) {
+        var mani = document.querySelector('.mani-text');
+        if (mani && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          var mTick = false;
+          var scrub = function() {
+            mTick = false;
+            var r = mani.getBoundingClientRect();
+            var vh = window.innerHeight;
+            // progress 0 -> 1 as the text travels from 90% to 35% of viewport
+            var p = (vh * 0.9 - r.top) / (vh * 0.55);
+            p = Math.max(0, Math.min(1, p));
+            mani.style.backgroundPosition = ((1 - p) * 100) + '% 0';
+          };
+          window.addEventListener('scroll', function() {
+            if (mTick) return;
+            mTick = true;
+            requestAnimationFrame(scrub);
+          }, { passive: true });
+          scrub();
+        }
+      }
+    } catch (e) {}
+
     ['#services', '#process', '#faq', '#about', '#contact', '#demos'].forEach(function(sel) {
       var sec = document.querySelector(sel);
       if (!sec) return;
