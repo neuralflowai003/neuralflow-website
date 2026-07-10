@@ -11718,13 +11718,11 @@
           transform-origin: 50% 100%;
         }
         @keyframes secRecede {
-          to {
-            transform: scale(0.93) translateY(-28px);
-            opacity: 0.35;
-            filter: blur(5px);
-          }
+          0% { transform: none; opacity: 1; filter: blur(0); }
+          55% { transform: scale(0.975) translateY(-8px); opacity: 0.88; filter: blur(0); }
+          100% { transform: scale(0.93) translateY(-28px); opacity: 0.35; filter: blur(5px); }
         }
-        .hiw-graphic {
+        .hiw-graphic, .card-viz {
           animation: chorDrift linear both;
           animation-timeline: view();
           animation-range: cover 0% cover 100%;
@@ -11819,6 +11817,122 @@
       // Trigger while elements are visibly on screen so the motion is seen
     }, { rootMargin: '0px 0px -14% 0px', threshold: 0.01 });
     items.forEach(function(el) { io.observe(el); });
+  })();
+  </script>
+
+  <!-- ============================================================
+       REFINEMENT LAYER — the details that make it feel expensive:
+       footer curtain reveal (the page lifts off the dark footer),
+       scroll progress hairline, hero pointer parallax, CTA sheen.
+       ============================================================ -->
+  <style>
+    /* Footer curtain: footer content hangs 44% higher and settles as
+       the footer opens, so the page appears to lift off it */
+    @media (prefers-reduced-motion: no-preference) {
+      @supports (animation-timeline: view()) {
+        footer { view-timeline: --foot block; }
+        /* flow content only — the watermark and glow line center
+           themselves with transforms the curtain must not clobber */
+        footer > .footer-mega, footer > .container {
+          animation: footCurtain linear both;
+          animation-timeline: --foot;
+          animation-range: entry 0% entry 85%;
+        }
+        @keyframes footCurtain {
+          from { transform: translateY(-44%); opacity: 0.4; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+      }
+    }
+
+    /* Scroll progress hairline riding the brand topline */
+    .scroll-progress {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #FF6B2B, #7B61FF);
+      transform-origin: 0 50%;
+      transform: scaleX(0);
+      z-index: 20000;
+      pointer-events: none;
+    }
+    @supports (animation-timeline: scroll()) {
+      .scroll-progress {
+        animation: pageProgress linear both;
+        animation-timeline: scroll();
+      }
+      @keyframes pageProgress {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+      }
+    }
+
+    /* CTA gloss sweep on hover */
+    .btn { position: relative; overflow: hidden; }
+    .btn::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: -80%;
+      width: 55%;
+      background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+      transform: skewX(-18deg);
+      transition: left 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events: none;
+    }
+    .btn:hover::after { left: 130%; }
+  </style>
+
+  <script>
+  (function() {
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Scroll progress element (CSS scroll-timeline drives it; JS fallback
+    // for engines with fixed positioning but no scroll timelines)
+    var prog = document.createElement('div');
+    prog.className = 'scroll-progress';
+    prog.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(prog);
+    if (!CSS.supports('animation-timeline: scroll()')) {
+      var tick = false;
+      var onScroll = function() {
+        if (tick) return;
+        tick = true;
+        requestAnimationFrame(function() {
+          tick = false;
+          var max = document.documentElement.scrollHeight - window.innerHeight;
+          prog.style.transform = 'scaleX(' + (max > 0 ? window.scrollY / max : 0) + ')';
+        });
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
+    // Hero pointer parallax — the headline drifts away from the cursor,
+    // the product card floats toward it (its long transform transition
+    // gives the float a dreamy lag)
+    if (reduced || !window.matchMedia('(pointer: fine)').matches) return;
+    var hero = document.querySelector('.hero');
+    var content = document.querySelector('.hero-content');
+    var card = document.querySelector('.hero-aria-card');
+    if (!hero || !content) return;
+    var px = 0, py = 0, raf = false;
+    function apply() {
+      raf = false;
+      content.style.transform = 'translate3d(' + (-px * 7) + 'px,' + (-py * 5) + 'px,0)';
+      // wait for the entrance to finish so we never hijack it mid-flight
+      if (card && card.classList.contains('visible')) card.style.transform = 'translate3d(' + (px * 13) + 'px,' + (py * 9) + 'px,0)';
+    }
+    hero.addEventListener('mousemove', function(e) {
+      var r = hero.getBoundingClientRect();
+      px = (e.clientX - r.left) / r.width - 0.5;
+      py = (e.clientY - r.top) / r.height - 0.5;
+      if (!raf) { raf = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+    hero.addEventListener('mouseleave', function() {
+      px = 0; py = 0;
+      if (!raf) { raf = true; requestAnimationFrame(apply); }
+    }, { passive: true });
   })();
   </script>
 </body>
