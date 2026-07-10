@@ -11255,6 +11255,10 @@
       transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .flow-seam.seam-in .seam-line { transform: scaleY(1); }
+    /* the contact container is a grid — an in-flow seam would steal the
+       first cell and shove the form into row two */
+    .contact-layout { position: relative; }
+    .contact-layout .seam-line { position: absolute; left: 50%; top: -64px; }
     @media (max-width: 768px) {
       .flow-seam .seam-line { height: 36px; margin-bottom: 20px; }
     }
@@ -11983,7 +11987,7 @@
       }
 
       /* Stat tiles frost over an ambient color field */
-      .stat-box:not(.pop-in) {
+      .stat-box {
         background: linear-gradient(160deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.34)) !important;
         backdrop-filter: blur(20px) saturate(1.6);
         -webkit-backdrop-filter: blur(20px) saturate(1.6);
@@ -11995,7 +11999,7 @@
       }
 
       /* Eyebrow chips */
-      .eyebrow-mono.visible, .eyebrow-mono:not(.reveal) {
+      .eyebrow-mono {
         background: rgba(255, 255, 255, 0.50) !important;
         backdrop-filter: blur(14px) saturate(1.5);
         -webkit-backdrop-filter: blur(14px) saturate(1.5);
@@ -12006,7 +12010,7 @@
       }
 
       /* Hero product card frosts over the neural canvas */
-      .hero-aria-card.visible {
+      .hero-aria-card {
         background: linear-gradient(165deg, rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.40)) !important;
         backdrop-filter: blur(26px) saturate(1.8);
         -webkit-backdrop-filter: blur(26px) saturate(1.8);
@@ -12057,7 +12061,7 @@
       }
 
       /* FAQ accordion becomes glass toggle cards */
-      .faq-item:not(.fx-left):not(.fx-right) {
+      .faq-item {
         background: linear-gradient(160deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.32));
         backdrop-filter: blur(16px) saturate(1.5);
         -webkit-backdrop-filter: blur(16px) saturate(1.5);
@@ -12069,7 +12073,7 @@
                     inset 0 1px 0 rgba(255, 255, 255, 0.92);
         transition: box-shadow 0.3s, border-color 0.3s;
       }
-      .faq-item:not(.fx-left):not(.fx-right):hover {
+      .faq-item:hover {
         border-color: rgba(242, 90, 28, 0.3);
         box-shadow: 0 20px 44px -24px rgba(16, 16, 20, 0.34),
                     0 0 34px -14px rgba(242, 90, 28, 0.14),
@@ -12077,7 +12081,7 @@
       }
 
       /* Process step expanders */
-      .hiw-card:not(.card-in) {
+      .hiw-card {
         background: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.34)) !important;
         backdrop-filter: blur(18px) saturate(1.55);
         -webkit-backdrop-filter: blur(18px) saturate(1.55);
@@ -12087,8 +12091,8 @@
       }
 
       /* Contact: founder chip, availability pill, form panel */
-      .contact-text.visible .talk-to-danny,
-      .contact-text.visible .status-pill {
+      .talk-to-danny,
+      .status-pill {
         background: rgba(255, 255, 255, 0.5) !important;
         backdrop-filter: blur(14px) saturate(1.5);
         -webkit-backdrop-filter: blur(14px) saturate(1.5);
@@ -12096,7 +12100,7 @@
         box-shadow: 0 12px 30px -18px rgba(16, 16, 20, 0.28),
                     inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
       }
-      .form-box.visible {
+      .form-box {
         background: linear-gradient(165deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.4)) !important;
         backdrop-filter: blur(24px) saturate(1.7);
         -webkit-backdrop-filter: blur(24px) saturate(1.7);
@@ -12104,8 +12108,8 @@
         box-shadow: 0 30px 64px -30px rgba(16, 16, 20, 0.34),
                     inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
       }
-      .form-box.visible input,
-      .form-box.visible textarea {
+      .form-box input,
+      .form-box textarea {
         background: rgba(255, 255, 255, 0.55) !important;
         border: 1px solid rgba(255, 255, 255, 0.8) !important;
       }
@@ -12211,9 +12215,9 @@
     /* ── Specular lens edges on every glass panel — the rim-light
        stack that makes the glass read as glass ── */
     @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .stat-box:not(.pop-in),
-      .hiw-card:not(.card-in),
-      .form-box.visible,
+      .stat-box,
+      .hiw-card,
+      .form-box,
       .cred-card {
         box-shadow:
           inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
@@ -12223,7 +12227,7 @@
           0 0 0 1px rgba(255, 255, 255, 0.55),
           0 26px 54px -30px rgba(16, 16, 20, 0.38) !important;
       }
-      .faq-item:not(.fx-left):not(.fx-right) {
+      .faq-item {
         box-shadow:
           inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
           inset 0 -1px 2px rgba(123, 97, 255, 0.10),
@@ -12236,7 +12240,7 @@
         -webkit-backdrop-filter: blur(18px) saturate(1.55);
         border: 1px solid rgba(255, 255, 255, 0.72) !important;
       }
-      .hero-aria-card.visible {
+      .hero-aria-card {
         box-shadow:
           inset 0 2px 1.5px rgba(255, 255, 255, 1),
           inset 0 -1.5px 3px rgba(123, 97, 255, 0.14),
@@ -12352,12 +12356,12 @@
     @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
       /* More transparent tint so the color fields bleed through, and
          an ink hairline so edges hold even over white */
-      .stat-box:not(.pop-in),
-      .hiw-card:not(.card-in),
+      .stat-box,
+      .hiw-card,
       .cred-card,
-      .faq-item:not(.fx-left):not(.fx-right),
-      .form-box.visible,
-      .tilt-card:not(.fx-left):not(.fx-rise):not(.fx-right) {
+      .faq-item,
+      .form-box,
+      .tilt-card {
         background: linear-gradient(160deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22)) !important;
         backdrop-filter: blur(26px) saturate(1.9);
         -webkit-backdrop-filter: blur(26px) saturate(1.9);
@@ -12369,8 +12373,8 @@
           inset -1px 0 1.5px rgba(242, 90, 28, 0.08),
           0 26px 54px -30px rgba(16, 16, 20, 0.4) !important;
       }
-      .tilt-card:not(.fx-left):not(.fx-rise):not(.fx-right):hover,
-      .faq-item:not(.fx-left):not(.fx-right):hover {
+      .tilt-card:hover,
+      .faq-item:hover {
         border-color: rgba(242, 90, 28, 0.3) !important;
         box-shadow:
           inset 0 1.5px 1px rgba(255, 255, 255, 0.98),
@@ -12496,9 +12500,9 @@
        ============================================================ -->
   <style>
     @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .hero-aria-card.visible,
-      .stat-box:not(.pop-in),
-      .tilt-card:not(.fx-left):not(.fx-rise):not(.fx-right),
+      .hero-aria-card,
+      .stat-box,
+      .tilt-card,
       .demo-panel {
         border-radius: 26px !important;
         border: 1px solid rgba(255, 255, 255, 0.8) !important;
@@ -12520,8 +12524,8 @@
       .demo-panel { overflow: hidden; }
       .demo-panel .demo-head { background: transparent !important; }
       /* hover: the bubble brightens and lifts its halo */
-      .tilt-card:not(.fx-left):not(.fx-rise):not(.fx-right):hover,
-      .stat-box:not(.pop-in):hover,
+      .tilt-card:hover,
+      .stat-box:hover,
       .demo-panel:hover {
         border-color: rgba(255, 255, 255, 0.95) !important;
         box-shadow:
@@ -12536,9 +12540,9 @@
     }
     @media (max-width: 768px) {
       @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-        .hero-aria-card.visible,
-        .stat-box:not(.pop-in),
-        .tilt-card:not(.fx-left):not(.fx-rise):not(.fx-right),
+        .hero-aria-card,
+        .stat-box,
+        .tilt-card,
         .demo-panel {
           border-radius: 20px !important;
         }
@@ -12551,14 +12555,14 @@
        the manifesto statement, and the founder block. Same recipe,
        same brand hues, gated on settled entrance states. ── */
     @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-      .rev-in .aria-chat-window,
-      .seo-search-mock:not(.fx-mat),
-      .seo-capture-box.rev-in,
+      .aria-chat-window,
+      .seo-search-mock,
+      .seo-capture-box,
       .build-card,
-      .hiw-card:not(.card-in),
-      .tcard:not(.fx-left):not(.fx-rise):not(.fx-right),
+      .hiw-card,
+      .tcard,
       .mani-inner,
-      .founder-copy.visible {
+      .founder-copy {
         border-radius: 26px !important;
         border: 1px solid rgba(255, 255, 255, 0.8) !important;
         background:
@@ -12576,14 +12580,14 @@
           0 26px 52px -26px rgba(16, 16, 20, 0.38),
           0 0 44px -14px rgba(242, 90, 28, 0.16) !important;
       }
-      .rev-in .aria-chat-window { overflow: hidden; }
-      .seo-search-mock:not(.fx-mat) { overflow: hidden; }
+      .aria-chat-window { overflow: hidden; }
+      .seo-search-mock { overflow: hidden; }
       /* the manifesto statement becomes a proper bubble panel */
       .mani-inner { padding: clamp(36px, 6vw, 72px); }
       /* founder bio reads as a glass panel beside the portrait */
-      .founder-copy.visible { padding: clamp(26px, 3.4vw, 44px); }
+      .founder-copy { padding: clamp(26px, 3.4vw, 44px); }
       /* portrait keeps its photo — ring + halo only */
-      .founder-photo.visible {
+      .founder-photo {
         border-radius: 26px;
         box-shadow:
           0 0 0 1.5px rgba(242, 90, 28, 0.18),
@@ -12593,7 +12597,7 @@
       }
       /* hover lift for the interactive ones */
       .build-card:hover,
-      .tcard:not(.fx-left):not(.fx-rise):not(.fx-right):hover {
+      .tcard:hover {
         border-color: rgba(255, 255, 255, 0.95) !important;
         box-shadow:
           inset 0 2px 1.5px rgba(255, 255, 255, 1),
@@ -12607,14 +12611,14 @@
     }
     @media (max-width: 768px) {
       @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-        .rev-in .aria-chat-window,
-        .seo-search-mock:not(.fx-mat),
-        .seo-capture-box.rev-in,
+        .aria-chat-window,
+        .seo-search-mock,
+        .seo-capture-box,
         .build-card,
-        .hiw-card:not(.card-in),
-        .tcard:not(.fx-left):not(.fx-rise):not(.fx-right),
+        .hiw-card,
+        .tcard,
         .mani-inner,
-        .founder-copy.visible {
+        .founder-copy {
           border-radius: 20px !important;
         }
       }
@@ -12809,6 +12813,87 @@
     }
   </style>
 
+
+  <!-- ============================================================
+       GLASS COMPLETION + CHOREOGRAPHY III — glass on the last
+       holdout surfaces; masked headline reveals; living ambient
+       blobs that drift with the scroll.
+       ============================================================ -->
+  <style>
+    @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .story-stage,
+      .roi-bubble,
+      .aria-nudge-bubble,
+      .chat-window {
+        border-radius: 26px !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        background:
+          radial-gradient(120% 90% at 18% 0%, rgba(255, 107, 43, 0.10), transparent 55%),
+          radial-gradient(130% 100% at 88% 100%, rgba(123, 97, 255, 0.10), transparent 55%),
+          linear-gradient(160deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.30)) !important;
+        backdrop-filter: blur(26px) saturate(1.9);
+        -webkit-backdrop-filter: blur(26px) saturate(1.9);
+        box-shadow:
+          inset 0 2px 1.5px rgba(255, 255, 255, 1),
+          inset 0 -12px 26px -20px rgba(123, 97, 255, 0.30),
+          inset 12px 0 26px -22px rgba(255, 107, 43, 0.22),
+          0 0 0 1.5px rgba(242, 90, 28, 0.16),
+          0 0 0 3.5px rgba(123, 97, 255, 0.08),
+          0 26px 52px -26px rgba(16, 16, 20, 0.38),
+          0 0 44px -14px rgba(242, 90, 28, 0.16) !important;
+      }
+      .aria-nudge-bubble { border-radius: 18px !important; }
+      .chat-window { overflow: hidden; }
+    }
+
+    /* ── Masked headline reveals: titles rise out of an invisible
+       slot, fully inked, instead of fading up ── */
+    .tmask { display: block; overflow: hidden; }
+    .tmask .section-title.reveal {
+      opacity: 1;
+      transform: translateY(112%);
+      transition: transform 1.15s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tmask .section-title.reveal.visible { transform: translateY(0); }
+    @media (prefers-reduced-motion: reduce) {
+      .tmask .section-title.reveal { transform: none !important; }
+    }
+
+    /* ── Ambient blobs drift against the scroll — the background
+       breathes with you ── */
+    @media (prefers-reduced-motion: no-preference) {
+      @supports (animation-timeline: view()) {
+        .glass-field i {
+          animation: blobDrift linear both;
+          animation-timeline: view();
+          animation-range: cover 0% cover 100%;
+        }
+        @keyframes blobDrift {
+          from { transform: translateY(70px) scale(0.96); }
+          to { transform: translateY(-70px) scale(1.04); }
+        }
+      }
+    }
+  </style>
+
+  <script>
+  (function() {
+    // ROI teaser card joins the glass family (it's inline-styled markup)
+    var roiCard = document.querySelector('#roi > div[style*="max-width"]');
+    if (roiCard) roiCard.classList.add('roi-bubble');
+
+    // Wrap each section title in an overflow mask so it rises out of
+    // a slot — skip any title inside a grid-ish parent just in case
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('.section-title.reveal').forEach(function(t) {
+        var mask = document.createElement('div');
+        mask.className = 'tmask';
+        t.parentNode.insertBefore(mask, t);
+        mask.appendChild(t);
+      });
+    }
+  })();
+  </script>
 </body>
 
 </html>
