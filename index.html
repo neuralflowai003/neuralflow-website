@@ -7824,30 +7824,36 @@
     let dotX = mouseX, dotY = mouseY;
     let ringX = mouseX, ringY = mouseY;
 
-    window.addEventListener('mousemove', (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    });
-
+    // Idle-stop follower: only animate while the ring is still chasing,
+    // wake up again on the next mousemove instead of spinning forever.
+    let cursorRafActive = false;
     function animateCursor() {
-      // Instant follow for dot
       dotX = mouseX;
       dotY = mouseY;
       if (cursorDot) {
         cursorDot.style.left = `${dotX}px`;
         cursorDot.style.top = `${dotY}px`;
       }
-
-      // Smooth follow for ring
       ringX += (mouseX - ringX) * 0.15;
       ringY += (mouseY - ringY) * 0.15;
       if (cursorRing) {
         cursorRing.style.left = `${ringX}px`;
         cursorRing.style.top = `${ringY}px`;
       }
-      requestAnimationFrame(animateCursor);
+      if (Math.abs(mouseX - ringX) > 0.3 || Math.abs(mouseY - ringY) > 0.3) {
+        requestAnimationFrame(animateCursor);
+      } else {
+        cursorRafActive = false;
+      }
     }
-    animateCursor();
+    window.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      if (!cursorRafActive && (cursorDot || cursorRing)) {
+        cursorRafActive = true;
+        requestAnimationFrame(animateCursor);
+      }
+    }, { passive: true });
 
     // Hover states for cursor
     document.querySelectorAll('a, button, .btn').forEach(el => {
@@ -8158,17 +8164,25 @@
     (function() {
       var glow = document.getElementById('cursor-glow');
       if (!glow || window.matchMedia('(pointer: coarse)').matches) return; // skip on touch devices
-      var mx = 0, my = 0, cx = 0, cy = 0, raf;
-      document.addEventListener('mousemove', function(e) { mx = e.clientX; my = e.clientY; glow.style.opacity = '1'; });
-      document.addEventListener('mouseleave', function() { glow.style.opacity = '0'; });
+      var mx = 0, my = 0, cx = 0, cy = 0, active = false;
       function tick() {
         cx += (mx - cx) * 0.1;
         cy += (my - cy) * 0.1;
         glow.style.left = cx + 'px';
         glow.style.top  = cy + 'px';
-        raf = requestAnimationFrame(tick);
+        // idle-stop: sleep once settled, wake on next mousemove
+        if (Math.abs(mx - cx) > 0.5 || Math.abs(my - cy) > 0.5) {
+          requestAnimationFrame(tick);
+        } else {
+          active = false;
+        }
       }
-      tick();
+      document.addEventListener('mousemove', function(e) {
+        mx = e.clientX; my = e.clientY;
+        glow.style.opacity = '1';
+        if (!active) { active = true; requestAnimationFrame(tick); }
+      }, { passive: true });
+      document.addEventListener('mouseleave', function() { glow.style.opacity = '0'; });
     })();
 
     // ------------------- AI Chat Widget -------------------

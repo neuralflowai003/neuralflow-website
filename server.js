@@ -18,9 +18,18 @@ const port = process.env.PORT || 8080;
 
 function safeEqual(a, b) {
   if (!a || !b) return false;
-  const ba = Buffer.from(a); const bb = Buffer.from(b);
-  if (ba.length !== bb.length) return crypto.timingSafeEqual(Buffer.alloc(ba.length), Buffer.alloc(ba.length)) && false;
-  return crypto.timingSafeEqual(ba, bb);
+  // Compare fixed-size SHA-256 digests so timing never depends on input length
+  const ha = crypto.createHash('sha256').update(String(a)).digest();
+  const hb = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+// Trusted client IP. `trust proxy` is set to 1 (Railway's single hop), so
+// Express resolves req.ip from the RIGHTMOST X-Forwarded-For entry — the one
+// the proxy appended and the client cannot spoof. Never parse the raw header:
+// its left-most value is fully client-controlled and defeats every limiter.
+function clientIp(req) {
+  return req.ip || req.socket.remoteAddress || 'unknown';
 }
 
 // ─── Startup: Validate required env vars ──────────────────────────────────────
@@ -340,9 +349,38 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000);
 
+// ── Outbound-mail abuse guard ──────────────────────────────────────────────
+// Confirmation emails go to a caller-supplied address, so a bot could bomb a
+// victim's inbox (and burn Resend quota / sender reputation). Cap per-recipient
+// and global daily volume. Alerts to Danny's own inbox are never gated.
+const mailCounts = new Map(); // recipient(lowercased) -> { count, resetAt }
+let mailGlobalCount = 0, mailGlobalReset = Date.now() + 24 * 60 * 60 * 1000;
+const MAIL_PER_RECIPIENT_DAY = 5;
+const MAIL_GLOBAL_DAY = 500;
+function canSendMail(recipient) {
+  const now = Date.now();
+  if (now > mailGlobalReset) { mailGlobalCount = 0; mailGlobalReset = now + 24 * 60 * 60 * 1000; }
+  if (mailGlobalCount >= MAIL_GLOBAL_DAY) return false;
+  const key = String(recipient || '').toLowerCase().trim();
+  if (process.env.GMAIL_USER && key === process.env.GMAIL_USER.toLowerCase()) return true; // never gate owner alerts
+  const entry = mailCounts.get(key);
+  if (!entry || now > entry.resetAt) {
+    if (mailCounts.size >= 5000) {
+      for (const [k, v] of mailCounts.entries()) { if (now > v.resetAt) { mailCounts.delete(k); break; } }
+    }
+    mailCounts.set(key, { count: 1, resetAt: now + 24 * 60 * 60 * 1000 });
+    mailGlobalCount++;
+    return true;
+  }
+  if (entry.count >= MAIL_PER_RECIPIENT_DAY) return false;
+  entry.count++;
+  mailGlobalCount++;
+  return true;
+}
+
 const MAX_RATE_LIMIT_ENTRIES = 5000;
 function chatRateLimit(req, res, next) {
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+  const ip = clientIp(req);
   const now = Date.now();
   const windowMs = 60 * 1000;
   const maxRequests = 30;
@@ -367,7 +405,7 @@ function chatRateLimit(req, res, next) {
 // Stricter rate limit for admin/auth endpoints — 10 attempts per 15 minutes per IP
 const adminRateLimits = new Map();
 function adminRateLimit(req, res, next) {
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+  const ip = clientIp(req);
   const now = Date.now();
   const windowMs = 15 * 60 * 1000;
   const maxAttempts = 10;
@@ -1477,7 +1515,7 @@ Industry: [their likely industry]
     sendTelegramAlert(`🚨 ARIA EMAIL FAILED\n${label} failed after 3 attempts.\nBooking: ${name} (${email}) — ${slotLabel}`);
   }
 
-  sendWithResend(email, `Your NeuralFlow AI Consultation is Confirmed ✅`, clientHtml, `Client email to ${email}`, 'danny@neuralflowai.io');
+  if (canSendMail(email)) sendWithResend(email, `Your NeuralFlow AI Consultation is Confirmed ✅`, clientHtml, `Client email to ${email}`, 'danny@neuralflowai.io');
   sendWithResend(process.env.GMAIL_USER, `${urgencyEmoji} ${dealValueStr} | ${name}${company ? ` @ ${company}` : ''} — ${slotLabel}`, dannyHtml, `Danny notification email`);
 
   // ── Booking success Telegram alert ───────────────────────────────────────────
@@ -1692,12 +1730,26 @@ setInterval(async () => { try {
 }, 15 * 60 * 1000);
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
+// Short-lived CSRF state tokens for the OAuth round-trip. Without this, an
+// attacker could complete the callback with THEIR OWN Google account and
+// overwrite our stored refresh token — hijacking calendar booking/availability.
+const oauthStates = new Map(); // state -> expiresAt
+setInterval(() => {
+  const now = Date.now();
+  for (const [s, exp] of oauthStates.entries()) if (now > exp) oauthStates.delete(s);
+}, 5 * 60 * 1000);
+
 app.get('/oauth/start', adminRateLimit, (req, res) => {
   if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).send('Unauthorized');
-  res.redirect(oauth2Client.generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: ['https://www.googleapis.com/auth/calendar'] }));
+  const state = crypto.randomBytes(24).toString('hex');
+  oauthStates.set(state, Date.now() + 10 * 60 * 1000); // 10 min to complete
+  res.redirect(oauth2Client.generateAuthUrl({ access_type: 'offline', prompt: 'consent', state, scope: ['https://www.googleapis.com/auth/calendar'] }));
 });
 
-app.get('/oauth/callback', async (req, res) => {
+app.get('/oauth/callback', adminRateLimit, async (req, res) => {
+  const state = String(req.query.state || '');
+  if (!state || !oauthStates.has(state)) return res.status(403).send('Invalid or expired auth request. Restart from /oauth/start.');
+  oauthStates.delete(state); // single-use
   try {
     const { tokens } = await oauth2Client.getToken(req.query.code);
     fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens), { mode: 0o600 });
@@ -1860,7 +1912,7 @@ app.post('/api/contact', chatRateLimit, async (req, res) => {
         subject: `🔥 New Contact Form — ${name}`,
         html: `<p>Name: ${escapeHtml(name)}<br/>Email: ${escapeHtml(email)}<br/>Scope: ${escapeHtml(scope)}</p>`,
       });
-      await resend.emails.send({
+      if (canSendMail(email)) await resend.emails.send({
         from: "Danny @ NeuralFlow <danny@neuralflowai.io>",
         to: email,
         subject: `Thanks for reaching out, ${name.split(' ')[0]}! 🚀`,
@@ -1970,7 +2022,7 @@ app.post('/api/accept-proposal', chatRateLimit, async (req, res) => {
           if (i < 2) await new Promise(r => setTimeout(r, 3000 * (i + 1)));
         }
       }
-      sendTelegramAlert(`🚨 ACCEPT-PROPOSAL EMAIL FAILED\n${label} failed after 3 attempts.\nClient: ${name} (${email})\nBusiness: ${businessName}`);
+      sendTelegramAlert(`🚨 ACCEPT-PROPOSAL EMAIL FAILED\n${label} failed after 3 attempts.\nClient: ${sanitizeTg(name)} (${sanitizeTg(email)})\nBusiness: ${sanitizeTg(businessName)}`);
     }
 
     sendAcceptWithResend('danny@neuralflowai.io', dannyMailOptions.subject, dannyMailOptions.html, `Accept-proposal Danny email`);
@@ -2872,7 +2924,7 @@ ${slotsText}`;
 
       if (!slot) {
         console.error(`❌ No slot matched for convId: ${convId}`, bookData);
-        sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nNo slot matched.\nClient: ${bookData.name} (${bookData.email})\nRequested: ${bookData.slotLabel}`);
+        sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nNo slot matched.\nClient: ${sanitizeTg(bookData.name)} (${sanitizeTg(bookData.email)})\nRequested: ${sanitizeTg(bookData.slotLabel)}`);
         aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
         return res.json({ reply: aiReplyText || "I'm sorry, I couldn't find that time slot. Could you pick another time?", booked: false });
       }
@@ -2927,7 +2979,7 @@ ${slotsText}`;
           });
         } catch (err) {
           console.error('Booking failed:', err.message);
-          sendTelegramAlert(`🚨 BOOKING FAILED\n${bookData.name} (${bookData.email}) — ${slot.label}\nError: ${err.message}`);
+          sendTelegramAlert(`🚨 BOOKING FAILED\n${sanitizeTg(bookData.name)} (${sanitizeTg(bookData.email)}) — ${slot.label}\nError: ${err.message}`);
           return res.json({ reply: "I'm sorry, there was a problem completing your booking. Could you try again in a moment?", booked: false });
         }
         conversationSlots.delete(convId);
@@ -3178,8 +3230,8 @@ app.post('/api/seo-audit', chatRateLimit, (req, res) => {
     `📊 Free SEO audit requested from website`
   );
 
-  // Send confirmation email
-  fetch('https://api.resend.com/emails', {
+  // Send confirmation email (skip if this recipient is being flooded)
+  if (canSendMail(email)) fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -3290,8 +3342,21 @@ async function runHealthCheck() {
   return `${allOk ? '🟢 ALL SYSTEMS GO' : '🔴 ISSUES DETECTED'}\n\n${results.join('\n')}\n\n🕐 ${now} ET`;
 }
 
+// Secret proving a webhook call really came from Telegram. Derived from the
+// bot token so no extra env var is needed; override with TG_WEBHOOK_SECRET.
+// Telegram echoes it in the X-Telegram-Bot-Api-Secret-Token header.
+const TG_WEBHOOK_SECRET = process.env.TG_WEBHOOK_SECRET ||
+  (process.env.TELEGRAM_BOT_TOKEN
+    ? crypto.createHash('sha256').update(process.env.TELEGRAM_BOT_TOKEN + ':webhook').digest('hex')
+    : '');
+
 // ─── Telegram Bot Webhook (text /test or /status to get a health check) ───────
 app.post('/telegram-webhook', chatRateLimit, async (req, res) => {
+  // Reject forged calls: chat.id in the body is attacker-controlled, so the
+  // only real proof of origin is this secret header set by Telegram itself.
+  if (!TG_WEBHOOK_SECRET || !safeEqual(TG_WEBHOOK_SECRET, req.headers['x-telegram-bot-api-secret-token'])) {
+    return res.status(403).json({ ok: false });
+  }
   res.json({ ok: true }); // respond immediately — Telegram requires fast ACK
 
   const message = req.body?.message;
@@ -3369,7 +3434,7 @@ async function registerTelegramWebhook() {
     const r = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, allowed_updates: ['message'] })
+      body: JSON.stringify({ url, allowed_updates: ['message'], secret_token: TG_WEBHOOK_SECRET })
     });
     const whText = await r.text();
     let data; try { data = JSON.parse(whText); } catch { data = { ok: false, description: whText.slice(0, 200) }; }
