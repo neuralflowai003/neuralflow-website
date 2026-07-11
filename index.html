@@ -8124,10 +8124,12 @@
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
+        // Bidirectional: reveal on enter, reset on leave so the motion
+        // replays every time the element scrolls into view — up OR down.
+        entry.target.classList.toggle('visible', entry.isIntersecting);
 
-          // Stats Animation
+        if (entry.isIntersecting) {
+          // Stats Animation — count up only the first time (never resets)
           if (entry.target.classList.contains('stat-box') && !entry.target.dataset.counted) {
             entry.target.dataset.counted = true;
             const numEl = entry.target.querySelector('.stat-number');
@@ -11384,10 +11386,9 @@
     if (reduced) return;
     var io = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
-        if (!entry.isIntersecting) return;
-        if (entry.target.classList.contains('flow-seam')) entry.target.classList.add('seam-in');
-        else entry.target.classList.add('rev-in');
-        io.unobserve(entry.target);
+        // Bidirectional: draw in on enter, retract on leave — replays each pass
+        var cls = entry.target.classList.contains('flow-seam') ? 'seam-in' : 'rev-in';
+        entry.target.classList.toggle(cls, entry.isIntersecting);
       });
     }, { rootMargin: '0px 0px -10% 0px', threshold: 0 });
     seamEls.forEach(function(el) { io.observe(el); });
@@ -11620,6 +11621,14 @@
     }
     .fx-left.chor-in, .fx-right.chor-in, .fx-rise.chor-in,
     .fx-pop.chor-in, .fx-mat.chor-in { opacity: 1; transform: none; filter: none; }
+    /* The reveal transition stays on these elements permanently now (so the
+       animation can replay on every scroll pass). Cards that lift on hover
+       would inherit the slow 1.1s reveal timing — give hover a snappy
+       transition so the interaction still feels immediate. */
+    .fx-left:hover, .fx-right:hover, .fx-rise:hover, .fx-pop:hover, .fx-mat:hover {
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.3s ease, border-color 0.3s ease;
+    }
     @media (max-width: 768px) {
       /* phones: sideways travel becomes a rise so nothing clips */
       .fx-left, .fx-right { transform: translateY(44px); }
@@ -11761,33 +11770,13 @@
       items.push(el);
     });
 
-    var FX = ['fx-left', 'fx-right', 'fx-rise', 'fx-pop', 'fx-mat', 'chor-in'];
-    function finish(el) {
-      // Strip entrance machinery so hover transforms rule afterwards.
-      // Same computed state before/after removal — no visual jump.
-      el.style.transitionDelay = '';
-      FX.forEach(function(c) { el.classList.remove(c); });
-    }
-
+    // Bidirectional: cards animate in when they enter and reset when they
+    // leave, so the choreography replays every time — scrolling up or down.
+    // The per-item transitionDelay stays on the element, preserving the
+    // staggered cascade in both directions.
     var io = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
-        if (!entry.isIntersecting) return;
-        var el = entry.target;
-        io.unobserve(el);
-        var delay = parseFloat(el.style.transitionDelay || '0') * 1000;
-        el.classList.add('chor-in');
-        var cleaned = false;
-        var done = function() {
-          if (cleaned) return;
-          cleaned = true;
-          finish(el);
-        };
-        el.addEventListener('transitionend', function onEnd(e) {
-          if (e.target !== el || e.propertyName !== 'transform') return;
-          el.removeEventListener('transitionend', onEnd);
-          done();
-        });
-        setTimeout(done, delay + 1700); // fallback if transitionend is missed
+        entry.target.classList.toggle('chor-in', entry.isIntersecting);
       });
       // Trigger while elements are visibly on screen so the motion is seen
     }, { rootMargin: '0px 0px -14% 0px', threshold: 0.01 });
