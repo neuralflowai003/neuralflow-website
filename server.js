@@ -148,7 +148,9 @@ function escapeHtml(str) {
 }
 
 function sanitizeTg(str) {
-  return String(str || '').substring(0, 500);
+  // Collapse newlines/control chars so a user-supplied field can't inject
+  // extra lines into an alert (e.g. a forged "✅ NEW BOOKING" block).
+  return String(str || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').substring(0, 500);
 }
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
@@ -379,6 +381,17 @@ function canSendMail(recipient) {
 }
 
 const MAX_RATE_LIMIT_ENTRIES = 5000;
+// Bound a rate-limit map: prefer any expired entry, else drop the single
+// oldest (smallest resetAt). Guarantees the map can't grow past its cap even
+// under a flood of unique IPs where nothing has expired yet (memory-DoS).
+function evictOldest(map, now) {
+  let oldestKey = null, oldestReset = Infinity;
+  for (const [key, val] of map.entries()) {
+    if (now > val.resetAt) { map.delete(key); return; }
+    if (val.resetAt < oldestReset) { oldestReset = val.resetAt; oldestKey = key; }
+  }
+  if (oldestKey !== null) map.delete(oldestKey);
+}
 function chatRateLimit(req, res, next) {
   const ip = clientIp(req);
   const now = Date.now();
@@ -387,10 +400,7 @@ function chatRateLimit(req, res, next) {
   const entry = chatRateLimits.get(ip);
   if (!entry || now > entry.resetAt) {
     if (chatRateLimits.size >= MAX_RATE_LIMIT_ENTRIES) {
-      // Evict oldest expired entry to prevent unbounded growth
-      for (const [key, val] of chatRateLimits.entries()) {
-        if (now > val.resetAt) { chatRateLimits.delete(key); break; }
-      }
+      evictOldest(chatRateLimits, now);
     }
     chatRateLimits.set(ip, { count: 1, resetAt: now + windowMs });
     return next();
@@ -412,9 +422,7 @@ function adminRateLimit(req, res, next) {
   const entry = adminRateLimits.get(ip);
   if (!entry || now > entry.resetAt) {
     if (adminRateLimits.size >= 2000) {
-      for (const [key, val] of adminRateLimits.entries()) {
-        if (now > val.resetAt) { adminRateLimits.delete(key); break; }
-      }
+      evictOldest(adminRateLimits, now);
     }
     adminRateLimits.set(ip, { count: 1, resetAt: now + windowMs });
     return next();
@@ -466,7 +474,11 @@ function savePendingLeads() {
   try {
     const obj = {};
     for (const [k, v] of pendingLeads.entries()) obj[k] = v;
-    fs.writeFileSync(PENDING_LEADS_FILE, JSON.stringify(obj, null, 2));
+    // Atomic write (temp + rename) so a crash mid-write can't truncate the
+    // file — mirrors writeBookingsSafe.
+    const tmp = PENDING_LEADS_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(obj, null, 2));
+    fs.renameSync(tmp, PENDING_LEADS_FILE);
   } catch (e) { console.error('⚠️ Could not save pending-leads.json:', e.message); }
 }
 
@@ -1545,8 +1557,8 @@ Industry: [their likely industry]
     <!-- BODY -->
     <tr><td style="background:${bg};padding:48px 40px 36px;">
       <div style="font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:${accent};margin-bottom:14px;">✦ See You Tomorrow</div>
-      <h1 style="margin:0 0 20px;font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2;">Quick note ahead<br>of our call, ${firstName}.</h1>
-      <p style="margin:0 0 24px;font-size:15px;color:#a0a0b0;line-height:1.7;">Hey ${firstName}, just a quick note ahead of our call tomorrow. Danny is looking forward to it and wanted to share what he'll be covering.</p>
+      <h1 style="margin:0 0 20px;font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1.2;">Quick note ahead<br>of our call, ${escapeHtml(firstName)}.</h1>
+      <p style="margin:0 0 24px;font-size:15px;color:#a0a0b0;line-height:1.7;">Hey ${escapeHtml(firstName)}, just a quick note ahead of our call tomorrow. Danny is looking forward to it and wanted to share what he'll be covering.</p>
 
       <!-- AGENDA CARD -->
       <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${accent};margin-bottom:28px;">
@@ -1657,7 +1669,7 @@ async function sendNoShowRecoveryEmail({ name, email, slotLabel }) {
       <div style="font-size:26px;font-weight:800;"><span style="color:#fff;">Neural</span><span style="color:${accent};">Flow</span></div>
     </td></tr>
     <tr><td style="background:#0a0a0f;padding:40px 40px 28px;">
-      <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#fff;">Missed you, ${firstName} 👋</h1>
+      <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#fff;">Missed you, ${escapeHtml(firstName)} 👋</h1>
       <p style="margin:0;font-size:15px;color:#a0a0b0;line-height:1.6;">It looks like we missed each other for our call today (${slotLabel}). No worries — these things happen. Here are a few open spots to reschedule:</p>
     </td></tr>
     <tr><td style="background:#13131a;padding:0 40px 28px;">
@@ -1779,7 +1791,7 @@ SERVICE_PAGES.forEach(slug => {
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-app.get('/api/test-email', chatRateLimit, async (req, res) => {
+app.get('/api/test-email', adminRateLimit, async (req, res) => {
   if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
   const results = { RESEND_API_KEY: process.env.RESEND_API_KEY ? 'SET' : 'MISSING' };
   try {
@@ -3132,6 +3144,11 @@ setInterval(async () => { try {
     if (idle > 7 * 24 * 3600000) { pendingLeads.delete(convId); continue; }
     // Follow up if idle > 1 hour, < 48 hours, not yet followed up, has email
     if (!lead.followedUp && lead.email && idle > 3600000 && idle < 48 * 3600000) {
+      // The lead email is whatever a visitor typed into the chat — unverified.
+      // Gate it through canSendMail (per-recipient + global daily caps) so this
+      // path can't be abused to email an arbitrary address repeatedly. Mark it
+      // followed-up when suppressed so a capped recipient isn't retried forever.
+      if (!canSendMail(lead.email)) { lead.followedUp = true; savePendingLeads(); continue; }
       const firstName = (lead.name || '').split(' ')[0] || 'there';
       const subject = `Still looking for a time, ${firstName}?`;
       const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
@@ -3144,7 +3161,7 @@ setInterval(async () => { try {
       <div style="margin-top:6px;padding-left:10px;border-left:2px solid #FF6B2B;font-size:10px;font-weight:700;letter-spacing:2px;color:#FF6B2B;text-transform:uppercase;">AI Consulting &amp; Automation</div>
     </td></tr>
     <tr><td style="background:#0a0a0f;padding:40px;">
-      <p style="margin:0 0 16px;font-size:16px;color:#fff;">Hey ${firstName},</p>
+      <p style="margin:0 0 16px;font-size:16px;color:#fff;">Hey ${escapeHtml(firstName)},</p>
       <p style="margin:0 0 16px;font-size:15px;color:#a0a0b0;line-height:1.6;">I noticed you were checking out our consultation booking but didn't get a time locked in — totally fine, life gets busy!</p>
       <p style="margin:0 0 24px;font-size:15px;color:#a0a0b0;line-height:1.6;">If you're still interested in exploring how NeuralFlow can automate the repetitive parts of your business, I'd love to find a time that works for you.</p>
       <a href="https://neuralflowai.io" style="display:inline-block;background:#FF6B2B;color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:13px 28px;border-radius:8px;">Book a Free Consultation →</a>
