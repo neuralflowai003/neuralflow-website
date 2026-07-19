@@ -25,48 +25,58 @@ interface IndustryPreset {
   serviceDuration: number;
 }
 
+// Defaults are deliberately CONSERVATIVE and grounded in real small-business
+// norms — the typical NeuralFlow client is a local shop, not an enterprise.
+// "missedCallsPerWeek" counts genuinely-missed NEW-customer opportunities
+// (not existing clients or spam), and only ~20% of those convert (see
+// CALL_CONVERSION). Every number here is meant to survive an owner saying
+// "that's about right," not to produce an eye-popping headline.
 const INDUSTRY_PRESETS: Record<Industry, IndustryPreset> = {
   nail_salon: {
     label: 'Nail Salon / Med Spa', emoji: '💅',
-    prompt: "I own a nail salon. My techs stop mid-service to answer the phone, we miss bookings constantly, and our no-show rate is around 15%. I spend 2+ hours a week on scheduling, reminder calls, and chasing down clients. We miss 6–10 calls a day when everyone is with clients.",
-    avgJobValue: 65, missedCallsPerWeek: 35, workerType: 'revenue', revenuePerClient: 65, serviceDuration: 60,
+    prompt: "I own a nail salon. My techs stop mid-service to answer the phone, we miss a few bookings, and our no-show rate is around 15%. I spend 2+ hours a week on scheduling, reminder calls, and chasing down clients. We miss a couple of new-client calls a day when everyone is with clients.",
+    avgJobValue: 50, missedCallsPerWeek: 10, workerType: 'revenue', revenuePerClient: 50, serviceDuration: 60,
   },
   dental: {
     label: 'Dental / Medical', emoji: '🦷',
-    prompt: "I run a dental practice. My front desk spends 3+ hours a day on appointment reminders, rescheduling no-shows, and insurance follow-up calls. We miss 5–10 calls per day when staff are busy with patients.",
-    avgJobValue: 280, missedCallsPerWeek: 25, workerType: 'revenue', revenuePerClient: 280, serviceDuration: 60,
+    prompt: "I run a dental practice. My front desk spends 3+ hours a day on appointment reminders, rescheduling no-shows, and insurance follow-up calls. We miss a few new-patient calls a week when staff are busy with patients.",
+    avgJobValue: 150, missedCallsPerWeek: 6, workerType: 'revenue', revenuePerClient: 150, serviceDuration: 60,
   },
   real_estate: {
     label: 'Real Estate', emoji: '🏠',
-    prompt: "I'm a real estate agent. I spend 10+ hours a week manually following up with leads, scheduling showings, and sending listing updates. I lose potential clients because I can't respond fast enough — if I don't answer within 5 minutes, they call someone else.",
-    avgJobValue: 8500, missedCallsPerWeek: 15, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    prompt: "I'm a real estate agent. I spend 10+ hours a week manually following up with leads, scheduling showings, and sending listing updates. I lose the occasional lead because I can't respond fast enough — if I don't answer quickly, they call someone else.",
+    avgJobValue: 2500, missedCallsPerWeek: 2, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   restaurant: {
     label: 'Restaurant', emoji: '🍽',
     prompt: "I own a restaurant. We handle reservations and takeout orders over the phone. Staff miss calls during rush hours and spend significant time taking orders. I also need to send review follow-up messages manually after each visit.",
-    avgJobValue: 45, missedCallsPerWeek: 40, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    avgJobValue: 40, missedCallsPerWeek: 20, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   plumber: {
     label: 'Plumber', emoji: '🔧',
-    prompt: "I run a plumbing business. I miss calls constantly when I'm on job sites and lose jobs to competitors who answer first. I spend my evenings calling back leads, scheduling jobs, and sending quotes manually. Takes 2–3 hours a night.",
-    avgJobValue: 350, missedCallsPerWeek: 20, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    prompt: "I run a plumbing business. I miss calls when I'm on job sites and lose some jobs to competitors who answer first. I spend my evenings calling back leads, scheduling jobs, and sending quotes manually. Takes 2–3 hours a night.",
+    avgJobValue: 300, missedCallsPerWeek: 7, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   electrician: {
     label: 'Electrician', emoji: '⚡',
-    prompt: "I'm an electrician. I miss incoming calls all day while on job sites — by the time I call back, the customer already hired someone else. I also spend 2–3 hours a week on scheduling and sending estimates.",
-    avgJobValue: 420, missedCallsPerWeek: 18, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    prompt: "I'm an electrician. I miss incoming calls while on job sites — by the time I call back, some customers already hired someone else. I also spend 2–3 hours a week on scheduling and sending estimates.",
+    avgJobValue: 320, missedCallsPerWeek: 6, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   contractor: {
     label: 'General Contractor', emoji: '🏗',
-    prompt: "I run a general contracting business. I miss calls while on job sites and lose bids because I'm slow to respond. I spend 5+ hours a week manually following up with leads, scheduling estimates, and sending invoices.",
-    avgJobValue: 1200, missedCallsPerWeek: 12, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    prompt: "I run a general contracting business. I miss calls while on job sites and lose the occasional bid because I'm slow to respond. I spend 5+ hours a week manually following up with leads, scheduling estimates, and sending invoices.",
+    avgJobValue: 900, missedCallsPerWeek: 3, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   general: {
     label: 'General Business', emoji: '💼',
     prompt: '',
-    avgJobValue: 200, missedCallsPerWeek: 10, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    avgJobValue: 150, missedCallsPerWeek: 5, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
 };
+
+// Only ~1 in 5 genuinely-missed new-customer calls would have converted —
+// the rest reschedule, call back, or weren't buyers. Conservative on purpose.
+const CALL_CONVERSION = 0.2;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -302,7 +312,7 @@ function ResultsPanel({
     workerType === 'revenue' ? revenuePerClient / (serviceDuration / 60) : rate;
 
   const missedRevenueMonthly = includeMissed
-    ? Math.round(missedCalls * 4.33 * avgJobValue * 0.30)
+    ? Math.round(missedCalls * 4.33 * avgJobValue * CALL_CONVERSION)
     : 0;
 
   const live = calculateROI({
@@ -702,7 +712,7 @@ function ResultsPanel({
             {includeMissed && (
               <motion.div id="missed-revenue-section" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                 <p className="text-xs" style={{ color: '#9a9890' }}>
-                  Estimate revenue you're losing from missed calls or slow follow-up. We assume 30% of those calls convert if answered instantly.
+                  Estimate revenue you're losing from missed calls or slow follow-up. We assume just 20% of those calls convert if answered instantly — a deliberately conservative estimate.
                 </p>
                 <SliderRow
                   label="Missed calls / leads per week"
@@ -803,7 +813,7 @@ function ResultsPanel({
                     { label: 'Labor Savings', color: '#FF6B2B', bg: 'rgba(255,107,43,0.05)', border: 'rgba(255,107,43,0.15)', formula: '(minutes × runs/week × 52) ÷ 60 × effective hourly rate × automation potential' },
                     { label: 'Error Reduction', color: '#7B61FF', bg: 'rgba(123,97,255,0.05)', border: 'rgba(123,97,255,0.15)', formula: 'error rate × cost per error × annual runs × automation potential' },
                     { label: 'Opportunity Cost', color: 'rgba(255,107,43,0.8)', bg: 'rgba(255,107,43,0.03)', border: 'rgba(255,107,43,0.1)', formula: 'hours freed × effective rate × 0.5 reallocation premium' },
-                    { label: 'Missed Lead Revenue', color: '#a78bfa', bg: 'rgba(167,139,250,0.05)', border: 'rgba(167,139,250,0.15)', formula: 'missed calls/week × 4.33 × avg job value × 30% recovery rate × 12 months' },
+                    { label: 'Missed Lead Revenue', color: '#a78bfa', bg: 'rgba(167,139,250,0.05)', border: 'rgba(167,139,250,0.15)', formula: 'missed calls/week × 4.33 × avg job value × 20% recovery rate × 12 months' },
                     { label: 'Net Savings', color: '#0B9E5E', bg: 'rgba(16,185,129,0.05)', border: 'rgba(16,185,129,0.15)', formula: 'Gross savings − (monthly fee × 12). Year 1 also subtracts one-time setup cost.' },
                     { label: 'Breakeven', color: '#f97316', bg: 'rgba(249,115,22,0.05)', border: 'rgba(249,115,22,0.15)', formula: 'Setup cost ÷ (monthly gross savings − monthly fee), rounded up. Shown in weeks if under 12.' },
                   ].map((card) => (
