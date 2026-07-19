@@ -377,6 +377,21 @@ function ResultsPanel({
     ? `Automating "${live.inputs.taskName}" frees up ${Math.round(live.hoursPerYear)} hours a year and nets you ${fmt(live.netOngoing)}/yr after all NeuralFlow fees. Setup pays for itself in ${pitchBreakeven}.`
     : `Your workflow takes ${Math.round(live.hoursPerYear)} hours/yr to run manually. With current pricing, adjust the fee sliders below to see when automation becomes net positive.`;
 
+  // ── Smart insight: surface the single biggest savings lever + ROI multiple ──
+  const levers = [
+    { label: 'reclaimed labor time', value: live.laborSavingsAnnual },
+    { label: 'recovered missed-lead revenue', value: live.missedRevenueAnnual },
+    { label: 'eliminating costly errors', value: live.errorReductionAnnual },
+    { label: 'redeployed team capacity', value: live.opportunityCostAnnual },
+  ].sort((a, b) => b.value - a.value);
+  const topLever = levers[0];
+  const topLeverShare = live.totalAnnualSavings > 0 ? Math.round((topLever.value / live.totalAnnualSavings) * 100) : 0;
+  const roiX = (live.roiMultiple ?? 0) >= 1 ? `${live.roiMultiple.toFixed(1)}×` : `${Math.round((live.roiMultiple ?? 0) * 100)}%`;
+  const insightLine =
+    live.netOngoing > 0 && topLever.value > 0
+      ? `Biggest lever: ${topLever.label} — ${fmt(topLever.value)}/yr (${topLeverShare}% of the total). Every $1 invested returns ${roiX} in steady-state savings.`
+      : '';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -412,10 +427,21 @@ function ResultsPanel({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
           className="rounded-2xl px-5 py-4"
-          style={{ background: 'rgba(255,107,43,0.06)', border: '1px solid rgba(255,107,43,0.2)' }}
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,107,43,0.10), rgba(123,97,255,0.08))',
+            backdropFilter: 'blur(16px) saturate(1.5)',
+            WebkitBackdropFilter: 'blur(16px) saturate(1.5)',
+            border: '1px solid rgba(255,107,43,0.22)',
+            boxShadow: '0 20px 44px -30px rgba(16,16,20,0.30), inset 0 1px 0 rgba(255,255,255,0.6)',
+          }}
         >
-          <p className="text-[10px] font-mono uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,107,43,0.6)' }}>Your ROI Summary</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,107,43,0.7)' }}>Your ROI Summary</p>
           <p className="text-sm leading-relaxed" style={{ color: 'rgba(16,16,20,0.92)' }}>{pitchLine}</p>
+          {insightLine && (
+            <p className="text-sm leading-relaxed mt-2 pt-2.5" style={{ color: '#55555F', borderTop: '1px solid rgba(16,16,20,0.08)' }}>
+              <span aria-hidden="true">💡 </span>{insightLine}
+            </p>
+          )}
         </motion.div>
       )}
 
@@ -435,9 +461,13 @@ function ResultsPanel({
             transition={{ delay: 0.1 + i * 0.06 }}
             className="rounded-2xl p-4 text-center"
             style={{
-              background: card.accent ? 'rgba(255,107,43,0.06)' : '#FFFFFF',
-              border: card.accent ? '1px solid rgba(242,90,28,0.3)' : '1px solid #E6E4DE',
-              boxShadow: '0 24px 50px -32px rgba(16,16,20,0.25)',
+              background: card.accent
+                ? 'linear-gradient(140deg, rgba(255,107,43,0.14), rgba(123,97,255,0.08))'
+                : 'rgba(255,255,255,0.55)',
+              backdropFilter: 'blur(14px) saturate(1.5)',
+              WebkitBackdropFilter: 'blur(14px) saturate(1.5)',
+              border: card.accent ? '1px solid rgba(242,90,28,0.3)' : '1px solid rgba(255,255,255,0.7)',
+              boxShadow: '0 24px 50px -32px rgba(16,16,20,0.25), inset 0 1px 0 rgba(255,255,255,0.85)',
             }}
           >
             <p className="text-[9px] uppercase tracking-widest mb-1.5" style={{ color: '#9a9890' }}>{card.label}</p>
@@ -959,19 +989,42 @@ export default function ROICalculatorPage() {
         <div className="absolute rounded-full" style={{ width: 400, height: 400, bottom: '10%', left: '20%', background: 'radial-gradient(circle, rgba(255,107,43,0.04) 0%, transparent 70%)', filter: 'blur(60px)' }} />
       </div>
 
-      {/* Nav */}
-      <div className="relative z-10" style={{ borderBottom: '1px solid rgba(16,16,20,0.08)' }}>
-        <div className="px-6 py-4 flex items-center justify-between max-w-5xl mx-auto">
-          <a href="https://neuralflowai.io" className="text-lg font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>
-            <span style={{ color: '#101014' }}>Neural</span>
-            <span style={{ color: '#FF6B2B' }}>Flow</span>
+      {/* Nav — liquid glass, sticky */}
+      <div
+        className="sticky top-0 z-30"
+        style={{
+          background: 'rgba(255,255,255,0.62)',
+          backdropFilter: 'blur(22px) saturate(1.7)',
+          WebkitBackdropFilter: 'blur(22px) saturate(1.7)',
+          borderBottom: '1px solid rgba(255,255,255,0.6)',
+          boxShadow: '0 8px 32px -24px rgba(16,16,20,0.35)',
+        }}
+      >
+        <div className="px-6 py-3 flex items-center justify-between max-w-5xl mx-auto">
+          <a href="https://neuralflowai.io" className="flex items-center gap-2.5" style={{ fontFamily: 'var(--font-display)' }}>
+            {/* Logomark — gradient node badge */}
+            <span
+              className="inline-flex items-center justify-center flex-shrink-0"
+              style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #FF6B2B, #7B61FF)', boxShadow: '0 6px 16px -6px rgba(242,90,28,0.55), inset 0 1px 0 rgba(255,255,255,0.4)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 7 L18 12 M6 17 L18 12 M6 7 L6 17" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" opacity="0.9" />
+                <circle cx="6" cy="7" r="2.1" fill="#fff" />
+                <circle cx="6" cy="17" r="2.1" fill="#fff" />
+                <circle cx="18" cy="12" r="2.6" fill="#fff" />
+              </svg>
+            </span>
+            <span className="text-lg font-bold tracking-tight" style={{ letterSpacing: '-0.5px' }}>
+              <span style={{ color: '#101014' }}>Neural</span>
+              <span style={{ background: 'linear-gradient(135deg, #FF6B2B, #7B61FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Flow</span>
+            </span>
           </a>
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono tracking-widest uppercase hidden sm:block" style={{ color: '#9a9890' }}>ROI Calculator</span>
             <a
               href="https://neuralflowai.io/#contact"
               className="text-xs font-semibold py-2 px-4 rounded-xl transition-all"
-              style={{ background: 'rgba(255,107,43,0.1)', border: '1px solid rgba(255,107,43,0.25)', color: '#FF6B2B' }}
+              style={{ background: 'rgba(255,107,43,0.1)', border: '1px solid rgba(255,107,43,0.25)', color: '#F25A1C' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,107,43,0.18)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,107,43,0.1)')}
             >
