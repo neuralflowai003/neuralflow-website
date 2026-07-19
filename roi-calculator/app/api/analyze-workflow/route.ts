@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const SYSTEM_PROMPT = `You are a Senior Operations Consultant at an AI automation firm. A potential client has described their business pain points or workflow. Your job is to extract structured ROI data.
+const SYSTEM_PROMPT = `You are a Senior Operations Consultant at an AI automation firm whose clients are SMALL LOCAL BUSINESSES — nail salons, dental offices, plumbers, restaurants, small agencies. Your job is to extract structured ROI data from a client's description.
+
+Be REALISTIC and CONSERVATIVE. These are small owner-operated businesses, not enterprises. Estimate at the low-to-middle end of what's plausible — a credible number an owner nods at beats an inflated one that makes them distrust the whole analysis. When unsure, round DOWN. Never estimate time or frequency that implies more hours than a small team actually has.
+
+Grounding guidance:
+- estimated_minutes: realistic minutes for ONE occurrence of the task (a reminder call ~3–5 min, an invoice ~10–15 min, a data-entry batch ~20–45 min). Rarely above 60.
+- frequency_per_week: how often it genuinely happens. A small shop does most tasks a handful of times a day at most.
+- automation_potential: what share AI can realistically take off their plate. Most real workflows land 0.55–0.85. Never above 0.9 — a human still handles exceptions.
+- complexity: 1–10, honest.
 
 CRITICAL: Respond ONLY with a single valid JSON object. No markdown fences, no prose, no explanation — just the raw JSON object and nothing else.
 
@@ -31,10 +39,10 @@ interface AnalysisResult {
 
 const MOCK_RESPONSE: AnalysisResult = {
   task_name: 'Manual Data Entry & Sync',
-  estimated_minutes: 45,
+  estimated_minutes: 30,
   frequency_per_week: 5,
   complexity: 4,
-  automation_potential: 0.87,
+  automation_potential: 0.8,
   suggested_phases: [
     'Phase 1: Build automated data extraction from source systems',
     'Phase 2: Deploy validation layer with error flagging',

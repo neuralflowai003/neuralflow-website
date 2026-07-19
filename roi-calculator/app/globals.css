@@ -8,51 +8,62 @@ html {
 }
 
 :root {
-  --accent: #FF6B2B;
-  --accent-glow: rgba(255,107,43,0.5);
+  --accent: #F25A1C;
+  --accent-glow: rgba(242, 90, 28, 0.35);
   --purple: #7B61FF;
-  --bg: #050508;
-  --bg-alt: #060a14;
+  --bg: #FAFAF7;
+  --bg-alt: #F3F2EE;
+  --ink: #101014;
+  --muted: #55555F;
+  --hairline: #E6E4DE;
   --font-display: var(--font-space), 'Space Grotesk', sans-serif;
 }
 
-/* ── Scrollbar ── */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,107,43,0.2); border-radius: 4px; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
 
-/* ── Range slider — orange thumb ── */
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(242, 90, 28, 0.28); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(242, 90, 28, 0.45); }
+
+/* ── Range slider — orange thumb on a light track ── */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
-  height: 4px;
+  height: 5px;
   border-radius: 9999px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(16, 16, 20, 0.10);
   outline: none;
   cursor: pointer;
 }
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
-  background: #FF6B2B;
+  background: #F25A1C;
   cursor: pointer;
-  box-shadow: 0 0 8px rgba(255,107,43,0.5);
-  transition: box-shadow 0.2s;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(242, 90, 28, 0.4);
+  transition: box-shadow 0.2s, transform 0.15s;
 }
 input[type='range']::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 14px rgba(255,107,43,0.7);
+  box-shadow: 0 3px 14px rgba(242, 90, 28, 0.55);
+  transform: scale(1.08);
 }
 input[type='range']::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
-  background: #FF6B2B;
+  background: #F25A1C;
   cursor: pointer;
-  border: none;
-  box-shadow: 0 0 8px rgba(255,107,43,0.5);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(242, 90, 28, 0.4);
 }
 
 /* ── Recharts tooltip override ── */
@@ -60,6 +71,6 @@ input[type='range']::-moz-range-thumb {
 
 /* ── Selection ── */
 ::selection {
-  background: var(--accent);
-  color: #000;
+  background: rgba(242, 90, 28, 0.22);
+  color: #101014;
 }

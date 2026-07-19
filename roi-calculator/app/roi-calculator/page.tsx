@@ -25,48 +25,58 @@ interface IndustryPreset {
   serviceDuration: number;
 }
 
+// Defaults are deliberately CONSERVATIVE and grounded in real small-business
+// norms — the typical NeuralFlow client is a local shop, not an enterprise.
+// "missedCallsPerWeek" counts genuinely-missed NEW-customer opportunities
+// (not existing clients or spam), and only ~20% of those convert (see
+// CALL_CONVERSION). Every number here is meant to survive an owner saying
+// "that's about right," not to produce an eye-popping headline.
 const INDUSTRY_PRESETS: Record<Industry, IndustryPreset> = {
   nail_salon: {
     label: 'Nail Salon / Med Spa', emoji: '💅',
-    prompt: "I own a nail salon. My techs stop mid-service to answer the phone, we miss bookings constantly, and our no-show rate is around 15%. I spend 2+ hours a week on scheduling, reminder calls, and chasing down clients. We miss 6–10 calls a day when everyone is with clients.",
-    avgJobValue: 65, missedCallsPerWeek: 35, workerType: 'revenue', revenuePerClient: 65, serviceDuration: 60,
+    prompt: "I own a nail salon. My techs stop mid-service to answer the phone, we miss a few bookings, and our no-show rate is around 15%. I spend 2+ hours a week on scheduling, reminder calls, and chasing down clients. We miss a couple of new-client calls a day when everyone is with clients.",
+    avgJobValue: 50, missedCallsPerWeek: 10, workerType: 'revenue', revenuePerClient: 50, serviceDuration: 60,
   },
   dental: {
     label: 'Dental / Medical', emoji: '🦷',
-    prompt: "I run a dental practice. My front desk spends 3+ hours a day on appointment reminders, rescheduling no-shows, and insurance follow-up calls. We miss 5–10 calls per day when staff are busy with patients.",
-    avgJobValue: 280, missedCallsPerWeek: 25, workerType: 'revenue', revenuePerClient: 280, serviceDuration: 60,
+    prompt: "I run a dental practice. My front desk spends 3+ hours a day on appointment reminders, rescheduling no-shows, and insurance follow-up calls. We miss a few new-patient calls a week when staff are busy with patients.",
+    avgJobValue: 150, missedCallsPerWeek: 6, workerType: 'revenue', revenuePerClient: 150, serviceDuration: 60,
   },
   real_estate: {
     label: 'Real Estate', emoji: '🏠',
-    prompt: "I'm a real estate agent. I spend 10+ hours a week manually following up with leads, scheduling showings, and sending listing updates. I lose potential clients because I can't respond fast enough — if I don't answer within 5 minutes, they call someone else.",
-    avgJobValue: 8500, missedCallsPerWeek: 15, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    prompt: "I'm a real estate agent. I spend 10+ hours a week manually following up with leads, scheduling showings, and sending listing updates. I lose the occasional lead because I can't respond fast enough — if I don't answer quickly, they call someone else.",
+    avgJobValue: 2500, missedCallsPerWeek: 2, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   restaurant: {
     label: 'Restaurant', emoji: '🍽',
     prompt: "I own a restaurant. We handle reservations and takeout orders over the phone. Staff miss calls during rush hours and spend significant time taking orders. I also need to send review follow-up messages manually after each visit.",
-    avgJobValue: 45, missedCallsPerWeek: 40, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    avgJobValue: 40, missedCallsPerWeek: 20, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   plumber: {
     label: 'Plumber', emoji: '🔧',
-    prompt: "I run a plumbing business. I miss calls constantly when I'm on job sites and lose jobs to competitors who answer first. I spend my evenings calling back leads, scheduling jobs, and sending quotes manually. Takes 2–3 hours a night.",
-    avgJobValue: 350, missedCallsPerWeek: 20, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    prompt: "I run a plumbing business. I miss calls when I'm on job sites and lose some jobs to competitors who answer first. I spend my evenings calling back leads, scheduling jobs, and sending quotes manually. Takes 2–3 hours a night.",
+    avgJobValue: 300, missedCallsPerWeek: 7, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   electrician: {
     label: 'Electrician', emoji: '⚡',
-    prompt: "I'm an electrician. I miss incoming calls all day while on job sites — by the time I call back, the customer already hired someone else. I also spend 2–3 hours a week on scheduling and sending estimates.",
-    avgJobValue: 420, missedCallsPerWeek: 18, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    prompt: "I'm an electrician. I miss incoming calls while on job sites — by the time I call back, some customers already hired someone else. I also spend 2–3 hours a week on scheduling and sending estimates.",
+    avgJobValue: 320, missedCallsPerWeek: 6, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   contractor: {
     label: 'General Contractor', emoji: '🏗',
-    prompt: "I run a general contracting business. I miss calls while on job sites and lose bids because I'm slow to respond. I spend 5+ hours a week manually following up with leads, scheduling estimates, and sending invoices.",
-    avgJobValue: 1200, missedCallsPerWeek: 12, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    prompt: "I run a general contracting business. I miss calls while on job sites and lose the occasional bid because I'm slow to respond. I spend 5+ hours a week manually following up with leads, scheduling estimates, and sending invoices.",
+    avgJobValue: 900, missedCallsPerWeek: 3, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
   general: {
     label: 'General Business', emoji: '💼',
     prompt: '',
-    avgJobValue: 200, missedCallsPerWeek: 10, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
+    avgJobValue: 150, missedCallsPerWeek: 5, workerType: 'hourly', revenuePerClient: 0, serviceDuration: 60,
   },
 };
+
+// Only ~1 in 5 genuinely-missed new-customer calls would have converted —
+// the rest reschedule, call back, or weren't buyers. Conservative on purpose.
+const CALL_CONVERSION = 0.2;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
@@ -140,7 +150,7 @@ function ScanningState() {
       </AnimatePresence>
 
       {/* Progress bar */}
-      <div className="w-64 h-px rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+      <div className="w-64 h-px rounded-full overflow-hidden" style={{ background: 'rgba(16,16,20,0.08)' }}>
         <motion.div
           className="h-full rounded-full"
           style={{ background: 'linear-gradient(90deg, #FF6B2B, #7B61FF)' }}
@@ -149,7 +159,7 @@ function ScanningState() {
         />
       </div>
 
-      <p className="text-xs text-white/25 tracking-wider">Analyzing your workflow with AI…</p>
+      <p className="text-xs tracking-wider" style={{ color: '#9a9890' }}>Analyzing your workflow with AI…</p>
     </div>
   );
 }
@@ -164,7 +174,7 @@ function SliderRow({
   const [showTip, setShowTip] = useState(false);
   return (
     <div className="space-y-1.5">
-      <div className="flex justify-between text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
+      <div className="flex justify-between text-xs" style={{ color: '#55555F' }}>
         <span className="flex items-center gap-1.5">
           {label}
           {tooltip && (
@@ -176,13 +186,13 @@ function SliderRow({
                 onBlur={() => setShowTip(false)}
                 aria-label={`More info about ${label}`}
                 className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold leading-none transition-colors"
-                style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.3)' }}
+                style={{ border: '1px solid rgba(16,16,20,0.10)', color: '#9a9890' }}
               >?</button>
               {showTip && (
                 <div
                   role="tooltip"
                   className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 rounded-xl px-3 py-2.5 text-[11px] leading-relaxed z-10 pointer-events-none shadow-2xl"
-                  style={{ background: 'rgba(8,14,24,0.95)', border: '1px solid rgba(255,107,43,0.15)', color: 'rgba(255,255,255,0.65)' }}
+                  style={{ background: '#FFFFFF', border: '1px solid #E6E4DE', color: 'rgba(16,16,20,0.92)', boxShadow: '0 24px 50px -32px rgba(16,16,20,0.25)' }}
                 >
                   {tooltip}
                 </div>
@@ -192,7 +202,7 @@ function SliderRow({
         </span>
         <span className="font-mono font-semibold" style={{ color: '#FF6B2B' }}>{format(value)}</span>
       </div>
-      {description && <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>{description}</p>}
+      {description && <p className="text-xs mt-1" style={{ color: '#9a9890' }}>{description}</p>}
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
@@ -211,8 +221,8 @@ function SliderRow({
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl px-3 py-2.5 text-xs shadow-xl" style={{ background: 'rgba(8,14,24,0.95)', border: '1px solid rgba(255,107,43,0.15)' }}>
-      <p className="mb-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</p>
+    <div className="rounded-xl px-3 py-2.5 text-xs shadow-xl" style={{ background: '#FFFFFF', border: '1px solid #E6E4DE', boxShadow: '0 24px 50px -32px rgba(16,16,20,0.25)' }}>
+      <p className="mb-1" style={{ color: '#9a9890' }}>{label}</p>
       <p className="font-mono font-semibold" style={{ color: '#FF6B2B' }}>{fmt(payload[0].value)}</p>
     </div>
   );
@@ -224,9 +234,9 @@ function GlassCard({ children, className = '', accent = false }: { children: Rea
     <div
       className={`rounded-2xl p-5 ${className}`}
       style={{
-        background: 'rgba(8,14,24,0.7)',
-        border: accent ? '1px solid rgba(255,107,43,0.25)' : '1px solid rgba(255,255,255,0.06)',
-        backdropFilter: 'blur(12px)',
+        background: '#FFFFFF',
+        border: accent ? '1px solid rgba(242,90,28,0.22)' : '1px solid #E6E4DE',
+        boxShadow: '0 24px 50px -32px rgba(16,16,20,0.25)',
       }}
     >
       {children}
@@ -240,6 +250,60 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <p className="text-[10px] uppercase tracking-widest font-semibold mb-3" style={{ color: 'rgba(255,107,43,0.7)' }}>
       {children}
     </p>
+  );
+}
+
+// ── Collapsible section (detail on demand) ──────────────────────────────────────
+function CollapsibleSection({
+  label, open, onToggle, children,
+}: {
+  label: string; open: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: '#FFFFFF',
+        border: '1px solid #E6E4DE',
+        boxShadow: open ? '0 24px 50px -32px rgba(16,16,20,0.25)' : 'none',
+      }}
+    >
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left transition-colors"
+      >
+        <span className="text-sm font-semibold" style={{ fontFamily: 'var(--font-display)', color: '#101014' }}>
+          {label}
+        </span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          aria-hidden="true"
+          className="inline-flex shrink-0"
+          style={{ color: '#F25A1C' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5" style={{ borderTop: '1px solid #E6E4DE' }}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -274,6 +338,8 @@ function ResultsPanel({
   const [avgJobValue, setAvgJobValue] = useState(initialJobValue ?? 200);
   const [includeMissed, setIncludeMissed] = useState(!!(initialMissedCalls && initialJobValue));
   const [showMethod, setShowMethod] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showTune, setShowTune] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [emailError, setEmailError] = useState('');
@@ -302,7 +368,7 @@ function ResultsPanel({
     workerType === 'revenue' ? revenuePerClient / (serviceDuration / 60) : rate;
 
   const missedRevenueMonthly = includeMissed
-    ? Math.round(missedCalls * 4.33 * avgJobValue * 0.30)
+    ? Math.round(missedCalls * 4.33 * avgJobValue * CALL_CONVERSION)
     : 0;
 
   const live = calculateROI({
@@ -377,56 +443,85 @@ function ResultsPanel({
     ? `Automating "${live.inputs.taskName}" frees up ${Math.round(live.hoursPerYear)} hours a year and nets you ${fmt(live.netOngoing)}/yr after all NeuralFlow fees. Setup pays for itself in ${pitchBreakeven}.`
     : `Your workflow takes ${Math.round(live.hoursPerYear)} hours/yr to run manually. With current pricing, adjust the fee sliders below to see when automation becomes net positive.`;
 
+  // ── Smart insight: surface the single biggest savings lever + ROI multiple ──
+  const levers = [
+    { label: 'reclaimed labor time', value: live.laborSavingsAnnual },
+    { label: 'recovered missed-lead revenue', value: live.missedRevenueAnnual },
+    { label: 'eliminating costly errors', value: live.errorReductionAnnual },
+    { label: 'redeployed team capacity', value: live.opportunityCostAnnual },
+  ].sort((a, b) => b.value - a.value);
+  const topLever = levers[0];
+  const topLeverShare = live.totalAnnualSavings > 0 ? Math.round((topLever.value / live.totalAnnualSavings) * 100) : 0;
+  const roiX = (live.roiMultiple ?? 0) >= 1 ? `${live.roiMultiple.toFixed(1)}×` : `${Math.round((live.roiMultiple ?? 0) * 100)}%`;
+  const insightLine =
+    live.netOngoing > 0 && topLever.value > 0
+      ? `Biggest lever: ${topLever.label} — ${fmt(topLever.value)}/yr (${topLeverShare}% of the total). Every $1 invested returns ${roiX} in steady-state savings.`
+      : '';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-4xl mx-auto space-y-5"
+      className="w-full max-w-4xl mx-auto space-y-6"
     >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-mono tracking-widest uppercase mb-1.5" style={{ color: 'rgba(255,107,43,0.6)' }}>
-            Analysis Complete
-          </p>
-          <h2 className="text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-display)' }}>
-            {live.inputs.taskName}
-          </h2>
-        </div>
+      {/* Eyebrow + reset */}
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-[10px] font-mono tracking-widest uppercase" style={{ color: 'rgba(255,107,43,0.6)' }}>
+          Analysis Complete
+        </p>
         <button
           onClick={onReset}
-          className="text-xs transition-colors mt-1 whitespace-nowrap"
-          style={{ color: 'rgba(255,255,255,0.25)' }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.25)')}
+          className="text-xs transition-colors whitespace-nowrap"
+          style={{ color: '#9a9890' }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#55555F')}
+          onMouseLeave={e => (e.currentTarget.style.color = '#9a9890')}
         >
           ← New analysis
         </button>
       </div>
 
-      {/* Pitch banner */}
-      {live.netOngoing > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="rounded-2xl px-5 py-4"
-          style={{ background: 'rgba(255,107,43,0.06)', border: '1px solid rgba(255,107,43,0.2)' }}
-        >
-          <p className="text-[10px] font-mono uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,107,43,0.6)' }}>Your ROI Summary</p>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>{pitchLine}</p>
-        </motion.div>
-      )}
+      {/* Hero outcome — the single focal number */}
+      <div
+        className="rounded-[20px] p-6 sm:p-9"
+        style={{ background: '#FFFFFF', border: '1px solid #E6E4DE', boxShadow: '0 24px 50px -32px rgba(16,16,20,0.25)' }}
+      >
+        <h2 className="text-xl sm:text-2xl font-bold" style={{ fontFamily: 'var(--font-display)', color: '#101014' }}>
+          {live.inputs.taskName}
+        </h2>
+
+        <div className="mt-7">
+          <p className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: '#9a9890' }}>
+            Net annual savings <span style={{ color: '#c9c6bd' }}>· Year 2+, after all NeuralFlow fees</span>
+          </p>
+          <motion.p
+            key={live.netOngoing}
+            initial={{ scale: 0.92, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+            className="text-5xl sm:text-6xl font-bold leading-none"
+            style={{ color: netPositive ? '#0B9E5E' : '#C42348', fontFamily: 'var(--font-display)' }}
+          >
+            {fmt(live.netOngoing)}
+          </motion.p>
+          <p className="mt-5 text-sm sm:text-[15px] leading-relaxed max-w-2xl" style={{ color: 'rgba(16,16,20,0.82)' }}>
+            {pitchLine}
+          </p>
+          {insightLine && (
+            <p className="mt-3 pt-3 text-sm leading-relaxed max-w-2xl" style={{ color: '#55555F', borderTop: '1px solid #E6E4DE' }}>
+              <span aria-hidden="true">💡 </span>{insightLine}
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* Top stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Gross Savings', value: fmt(live.totalAnnualSavings), sub: 'what it costs now', color: 'rgba(255,255,255,0.85)', accent: false },
-          { label: 'Net Year 2+', value: fmt(live.netOngoing), sub: 'after NeuralFlow fees', color: netPositive ? '#10b981' : '#ef4444', accent: true },
-          { label: 'Hours Freed', value: `${Math.round(live.hoursPerYear)}`, sub: `${hoursFreedPerWeek} hrs/wk`, color: 'rgba(255,255,255,0.85)', accent: false },
-          { label: 'Automatable', value: `${Math.round(live.automationPotential * 100)}%`, sub: 'of this workflow', color: 'rgba(255,255,255,0.85)', accent: false },
-          { label: 'Breakeven', value: breakevenDisplay(live.breakevenMonth), sub: 'to recoup setup', color: 'rgba(255,255,255,0.85)', accent: false },
+          { label: 'Hours Freed', value: `${Math.round(live.hoursPerYear)}`, sub: `${hoursFreedPerWeek} hrs/wk`, color: 'rgba(16,16,20,0.92)', accent: false },
+          { label: 'Automatable', value: `${Math.round(live.automationPotential * 100)}%`, sub: 'of this workflow', color: 'rgba(16,16,20,0.92)', accent: false },
+          { label: 'Breakeven', value: breakevenDisplay(live.breakevenMonth), sub: 'to recoup setup', color: 'rgba(16,16,20,0.92)', accent: false },
+          { label: 'Gross Savings', value: fmt(live.totalAnnualSavings), sub: 'before fees', color: 'rgba(16,16,20,0.92)', accent: false },
         ].map((card, i) => (
           <motion.div
             key={card.label}
@@ -435,11 +530,16 @@ function ResultsPanel({
             transition={{ delay: 0.1 + i * 0.06 }}
             className="rounded-2xl p-4 text-center"
             style={{
-              background: card.accent ? 'rgba(255,107,43,0.06)' : 'rgba(8,14,24,0.7)',
-              border: card.accent ? '1px solid rgba(255,107,43,0.3)' : '1px solid rgba(255,255,255,0.06)',
+              background: card.accent
+                ? 'linear-gradient(140deg, rgba(255,107,43,0.14), rgba(123,97,255,0.08))'
+                : 'rgba(255,255,255,0.55)',
+              backdropFilter: 'blur(14px) saturate(1.5)',
+              WebkitBackdropFilter: 'blur(14px) saturate(1.5)',
+              border: card.accent ? '1px solid rgba(242,90,28,0.3)' : '1px solid rgba(255,255,255,0.7)',
+              boxShadow: '0 24px 50px -32px rgba(16,16,20,0.25), inset 0 1px 0 rgba(255,255,255,0.85)',
             }}
           >
-            <p className="text-[9px] uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{card.label}</p>
+            <p className="text-[9px] uppercase tracking-widest mb-1.5" style={{ color: '#9a9890' }}>{card.label}</p>
             <motion.p
               key={card.value}
               initial={{ scale: 0.9, opacity: 0 }}
@@ -449,28 +549,86 @@ function ResultsPanel({
             >
               {card.value}
             </motion.p>
-            <p className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>{card.sub}</p>
+            <p className="text-[9px] mt-0.5" style={{ color: '#9a9890' }}>{card.sub}</p>
           </motion.div>
         ))}
       </div>
 
-      {/* Before vs After */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="rounded-2xl p-5" style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}>
-          <p className="text-[10px] uppercase tracking-widest font-semibold mb-4" style={{ color: 'rgba(239,68,68,0.6)' }}>Without Automation</p>
+      {/* 3-Year net projection chart */}
+      <GlassCard>
+        <div className="flex items-center justify-between mb-5">
+          <SectionLabel>3-Year Net Projection</SectionLabel>
+          <p className="text-[10px]" style={{ color: '#9a9890' }}>After all NeuralFlow fees</p>
+        </div>
+        <ResponsiveContainer width="100%" height={180}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#FF6B2B" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#FF6B2B" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,16,20,0.08)" />
+            <XAxis dataKey="year" tick={{ fill: '#9a9890', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#9a9890', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+            <Tooltip content={<CustomTooltip />} />
+            <Area type="monotone" dataKey="savings" stroke="#FF6B2B" strokeWidth={2} fill="url(#savingsGrad)" dot={{ fill: '#FF6B2B', r: 4, strokeWidth: 0 }} activeDot={{ fill: '#FF6B2B', r: 5, strokeWidth: 2, stroke: 'rgba(255,107,43,0.4)' }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </GlassCard>
+
+      {/* Implementation roadmap */}
+      {live.suggestedPhases.length > 0 && (
+        <GlassCard accent>
+          <SectionLabel>Implementation Roadmap</SectionLabel>
+          <div className="space-y-3 mt-1">
+            {live.suggestedPhases.map((phase, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + i * 0.08 }}
+                className="flex gap-3 items-start"
+              >
+                <span
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5"
+                  style={{ background: 'linear-gradient(135deg, #FF6B2B, #7B61FF)', color: '#fff' }}
+                >
+                  {i + 1}
+                </span>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(16,16,20,0.92)' }}>
+                  {phase.replace(/^Phase \d+:\s*/, '')}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── Detail on demand: full breakdown (collapsed by default) ── */}
+      <CollapsibleSection
+        label="See the full breakdown"
+        open={showBreakdown}
+        onToggle={() => setShowBreakdown((v) => !v)}
+      >
+        <div className="space-y-5 pt-5">
+          {/* Before vs After */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl p-5" style={{ background: 'rgba(196,35,72,0.05)', border: '1px solid rgba(196,35,72,0.18)' }}>
+          <p className="text-[10px] uppercase tracking-widest font-semibold mb-4" style={{ color: '#C42348' }}>Without Automation</p>
           <div className="space-y-2.5">
             <div className="flex justify-between text-sm">
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>Annual labor cost</span>
-              <span className="font-mono" style={{ color: '#ef4444' }}>{fmt(live.laborSavingsAnnual / live.automationPotential)}</span>
+              <span style={{ color: '#55555F' }}>Annual labor cost</span>
+              <span className="font-mono" style={{ color: '#C42348' }}>{fmt(live.laborSavingsAnnual / live.automationPotential)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>Hours lost per year</span>
-              <span className="font-mono" style={{ color: '#ef4444' }}>{Math.round(live.hoursPerYear)} hrs</span>
+              <span style={{ color: '#55555F' }}>Hours lost per year</span>
+              <span className="font-mono" style={{ color: '#C42348' }}>{Math.round(live.hoursPerYear)} hrs</span>
             </div>
             {live.missedRevenueAnnual > 0 && (
               <div className="flex justify-between text-sm">
-                <span style={{ color: 'rgba(255,255,255,0.45)' }}>Missed lead revenue</span>
-                <span className="font-mono" style={{ color: '#ef4444' }}>{fmt(live.missedRevenueAnnual)}</span>
+                <span style={{ color: '#55555F' }}>Missed lead revenue</span>
+                <span className="font-mono" style={{ color: '#C42348' }}>{fmt(live.missedRevenueAnnual)}</span>
               </div>
             )}
           </div>
@@ -479,24 +637,24 @@ function ResultsPanel({
           <p className="text-[10px] uppercase tracking-widest font-semibold mb-4" style={{ color: 'rgba(255,107,43,0.7)' }}>With NeuralFlow</p>
           <div className="space-y-2.5">
             <div className="flex justify-between text-sm">
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>Net savings (Year 2+)</span>
-              <span className="font-mono font-semibold" style={{ color: netPositive ? '#10b981' : '#ef4444' }}>{fmt(live.netOngoing)}</span>
+              <span style={{ color: '#55555F' }}>Net savings (Year 2+)</span>
+              <span className="font-mono font-semibold" style={{ color: netPositive ? '#0B9E5E' : '#C42348' }}>{fmt(live.netOngoing)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>Hours reclaimed/yr</span>
+              <span style={{ color: '#55555F' }}>Hours reclaimed/yr</span>
               <span className="font-mono" style={{ color: '#FF6B2B' }}>{Math.round(live.hoursPerYear * live.automationPotential)} hrs</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span style={{ color: 'rgba(255,255,255,0.45)' }}>Breakeven</span>
+              <span style={{ color: '#55555F' }}>Breakeven</span>
               <span className="font-mono" style={{ color: '#FF6B2B' }}>{breakevenDisplay(live.breakevenMonth)}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Savings breakdown */}
-      <GlassCard>
-        <SectionLabel>Full Savings Breakdown</SectionLabel>
+          {/* Full savings breakdown */}
+          <div>
+            <SectionLabel>Full Savings Breakdown</SectionLabel>
         <div className="space-y-0">
           {[
             { label: 'Labor Savings', value: live.laborSavingsAnnual, color: '#FF6B2B' },
@@ -504,82 +662,65 @@ function ResultsPanel({
             { label: 'Opportunity Cost Recovery', value: live.opportunityCostAnnual, color: 'rgba(255,107,43,0.7)' },
             ...(live.missedRevenueAnnual > 0 ? [{ label: 'Missed Lead Revenue Recovery', value: live.missedRevenueAnnual, color: '#a78bfa' }] : []),
           ].map((row) => (
-            <div key={row.label} className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-              <span className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>{row.label}</span>
+            <div key={row.label} className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(16,16,20,0.08)' }}>
+              <span className="text-sm" style={{ color: '#55555F' }}>{row.label}</span>
               <span className="font-mono font-semibold text-sm" style={{ color: row.color }}>{fmt(row.value)}</span>
             </div>
           ))}
-          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.65)' }}>Gross Annual Savings</span>
-            <span className="font-mono font-semibold text-sm text-white">{fmt(live.totalAnnualSavings)}</span>
+          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(16,16,20,0.08)' }}>
+            <span className="text-sm font-medium" style={{ color: 'rgba(16,16,20,0.92)' }}>Gross Annual Savings</span>
+            <span className="font-mono font-semibold text-sm" style={{ color: '#101014' }}>{fmt(live.totalAnnualSavings)}</span>
           </div>
 
-          <p className="text-[9px] uppercase tracking-widest pt-3 pb-1" style={{ color: 'rgba(255,255,255,0.25)' }}>NeuralFlow Investment</p>
-          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Monthly Service Fee (×12)</span>
-            <span className="font-mono font-semibold text-sm" style={{ color: 'rgba(239,68,68,0.8)' }}>−{fmt(live.neuralflowMonthlyCost)}</span>
+          <p className="text-[9px] uppercase tracking-widest pt-3 pb-1" style={{ color: '#9a9890' }}>NeuralFlow Investment</p>
+          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(16,16,20,0.08)' }}>
+            <span className="text-sm" style={{ color: '#55555F' }}>Monthly Service Fee (×12)</span>
+            <span className="font-mono font-semibold text-sm" style={{ color: '#C42348' }}>−{fmt(live.neuralflowMonthlyCost)}</span>
           </div>
-          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid rgba(16,16,20,0.08)' }}>
+            <span className="text-sm" style={{ color: '#55555F' }}>
               One-time Setup Fee{' '}
-              <span className="text-[10px] ml-1" style={{ color: 'rgba(255,255,255,0.2)' }}>(Year 1 only)</span>
+              <span className="text-[10px] ml-1" style={{ color: '#9a9890' }}>(Year 1 only)</span>
             </span>
-            <span className="font-mono font-semibold text-sm" style={{ color: 'rgba(239,68,68,0.8)' }}>−{fmt(setupFee)}</span>
+            <span className="font-mono font-semibold text-sm" style={{ color: '#C42348' }}>−{fmt(setupFee)}</span>
           </div>
 
-          <div className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-            <span className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Net Year 1 <span className="text-[10px] ml-1" style={{ color: 'rgba(255,255,255,0.25)' }}>(includes setup)</span>
+          <div className="flex items-center justify-between py-3" style={{ borderBottom: '1px solid rgba(16,16,20,0.08)' }}>
+            <span className="text-sm" style={{ color: '#55555F' }}>
+              Net Year 1 <span className="text-[10px] ml-1" style={{ color: '#9a9890' }}>(includes setup)</span>
             </span>
-            <span className="font-mono font-bold text-base" style={{ color: net1Positive ? '#10b981' : '#f97316' }}>{fmt(live.netYear1)}</span>
+            <span className="font-mono font-bold text-base" style={{ color: net1Positive ? '#0B9E5E' : '#f97316' }}>{fmt(live.netYear1)}</span>
           </div>
           <div className="flex items-center justify-between py-3">
-            <span className="text-sm font-semibold text-white">Net Annual Savings (Year 2+)</span>
+            <span className="text-sm font-semibold" style={{ color: '#101014' }}>Net Annual Savings (Year 2+)</span>
             <motion.span
               key={live.netOngoing}
               initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               className="font-mono font-bold text-2xl"
-              style={{ color: netPositive ? '#10b981' : '#ef4444', fontFamily: 'var(--font-display)' }}
+              style={{ color: netPositive ? '#0B9E5E' : '#C42348', fontFamily: 'var(--font-display)' }}
             >
               {fmt(live.netOngoing)}
             </motion.span>
           </div>
         </div>
-      </GlassCard>
-
-      {/* Chart */}
-      <GlassCard>
-        <div className="flex items-center justify-between mb-5">
-          <SectionLabel>3-Year Net Projection</SectionLabel>
-          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>After all NeuralFlow fees</p>
+          </div>
         </div>
-        <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-            <defs>
-              <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#FF6B2B" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#7B61FF" stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
-            <XAxis dataKey="year" tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="savings" stroke="#FF6B2B" strokeWidth={2} fill="url(#savingsGrad)" dot={{ fill: '#FF6B2B', r: 4, strokeWidth: 0 }} activeDot={{ fill: '#FF6B2B', r: 5, strokeWidth: 2, stroke: 'rgba(255,107,43,0.4)' }} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </GlassCard>
+      </CollapsibleSection>
 
-      {/* Sliders */}
-      <GlassCard>
-        <SectionLabel>Fine-tune your numbers</SectionLabel>
-        <p className="text-xs mb-5" style={{ color: 'rgba(255,255,255,0.3)' }}>AI estimated these from your description — drag to correct them and everything recalculates instantly.</p>
+      {/* ── Detail on demand: fine-tune the assumptions (collapsed by default) ── */}
+      <CollapsibleSection
+        label="Fine-tune the assumptions"
+        open={showTune}
+        onToggle={() => setShowTune((v) => !v)}
+      >
+        <div className="pt-5">
+          <p className="text-xs mb-5" style={{ color: '#9a9890' }}>AI estimated these from your description — drag to correct them and everything recalculates instantly.</p>
 
         {/* Worker type toggle */}
         <div className="mb-5">
-          <p className="text-xs mb-2.5" style={{ color: 'rgba(255,255,255,0.35)' }}>How does the person doing this task get paid?</p>
+          <p className="text-xs mb-2.5" style={{ color: '#9a9890' }}>How does the person doing this task get paid?</p>
           <div className="flex gap-2" role="group" aria-label="Worker payment type">
             {(['hourly', 'revenue'] as WorkerType[]).map((t) => (
               <button
@@ -589,7 +730,7 @@ function ResultsPanel({
                 className="flex-1 py-2 px-3 rounded-xl text-xs font-medium transition-all"
                 style={workerType === t
                   ? { background: 'rgba(255,107,43,0.1)', border: '1px solid rgba(255,107,43,0.35)', color: '#FF6B2B' }
-                  : { background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.35)' }
+                  : { background: 'transparent', border: '1px solid rgba(16,16,20,0.08)', color: '#9a9890' }
                 }
               >
                 {t === 'hourly' ? '💼 Hourly / Salary' : '💅 Revenue per Client'}
@@ -643,7 +784,7 @@ function ResultsPanel({
                 tooltip="How long does serving one client take? Determines your effective hourly earning rate."
               />
               <div className="flex items-center justify-between text-xs py-2 px-3 rounded-xl" style={{ background: 'rgba(255,107,43,0.05)', border: '1px solid rgba(255,107,43,0.15)' }}>
-                <span style={{ color: 'rgba(255,255,255,0.4)' }}>Effective hourly value</span>
+                <span style={{ color: '#9a9890' }}>Effective hourly value</span>
                 <span className="font-mono font-semibold" style={{ color: '#FF6B2B' }}>
                   ${Math.round(revenuePerClient / (serviceDuration / 60))}/hr
                 </span>
@@ -652,7 +793,7 @@ function ResultsPanel({
           )}
 
           {/* Missed revenue */}
-          <div className="pt-4 space-y-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="pt-4 space-y-4" style={{ borderTop: '1px solid rgba(16,16,20,0.08)' }}>
             <div className="flex items-center justify-between">
               <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(123,97,255,0.7)' }}>Missed Lead Revenue</p>
               <button
@@ -662,7 +803,7 @@ function ResultsPanel({
                 className="text-xs px-3 py-1 rounded-full transition-all"
                 style={includeMissed
                   ? { background: 'rgba(123,97,255,0.1)', border: '1px solid rgba(123,97,255,0.35)', color: '#7B61FF' }
-                  : { background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)' }
+                  : { background: 'transparent', border: '1px solid rgba(16,16,20,0.08)', color: '#9a9890' }
                 }
               >
                 {includeMissed ? 'Included ✓' : 'Add this'}
@@ -670,8 +811,8 @@ function ResultsPanel({
             </div>
             {includeMissed && (
               <motion.div id="missed-revenue-section" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.28)' }}>
-                  Estimate revenue you're losing from missed calls or slow follow-up. We assume 30% of those calls convert if answered instantly.
+                <p className="text-xs" style={{ color: '#9a9890' }}>
+                  Estimate revenue you're losing from missed calls or slow follow-up. We assume just 20% of those calls convert if answered instantly — a deliberately conservative estimate.
                 </p>
                 <SliderRow
                   label="Missed calls / leads per week"
@@ -688,7 +829,7 @@ function ResultsPanel({
                   tooltip="What's the average revenue from a single job, appointment, or client?"
                 />
                 <div className="flex items-center justify-between text-xs py-2 px-3 rounded-xl" style={{ background: 'rgba(123,97,255,0.05)', border: '1px solid rgba(123,97,255,0.15)' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)' }}>Recoverable monthly revenue</span>
+                  <span style={{ color: '#9a9890' }}>Recoverable monthly revenue</span>
                   <span className="font-mono font-semibold" style={{ color: '#7B61FF' }}>{fmt(missedRevenueMonthly)}/mo</span>
                 </div>
               </motion.div>
@@ -696,7 +837,7 @@ function ResultsPanel({
           </div>
 
           {/* NeuralFlow investment */}
-          <div className="pt-4 space-y-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="pt-4 space-y-4" style={{ borderTop: '1px solid rgba(16,16,20,0.08)' }}>
             <SectionLabel>NeuralFlow Investment</SectionLabel>
             <SliderRow
               label="Monthly service fee"
@@ -714,44 +855,17 @@ function ResultsPanel({
             />
           </div>
         </div>
-      </GlassCard>
-
-      {/* Phases / Roadmap */}
-      {live.suggestedPhases.length > 0 && (
-        <GlassCard accent>
-          <SectionLabel>Implementation Roadmap</SectionLabel>
-          <div className="space-y-3 mt-1">
-            {live.suggestedPhases.map((phase, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + i * 0.08 }}
-                className="flex gap-3 items-start"
-              >
-                <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5"
-                  style={{ background: 'linear-gradient(135deg, #FF6B2B, #7B61FF)', color: '#fff' }}
-                >
-                  {i + 1}
-                </span>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
-                  {phase.replace(/^Phase \d+:\s*/, '')}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </GlassCard>
-      )}
+        </div>
+      </CollapsibleSection>
 
       {/* Methodology accordion */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(16,16,20,0.08)' }}>
         <button
           onClick={() => setShowMethod((v) => !v)}
           aria-expanded={showMethod}
           aria-controls="methodology-content"
           className="w-full flex items-center justify-between px-5 py-3.5 text-xs transition-colors"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: '#9a9890' }}
         >
           <span className="uppercase tracking-widest">How we calculate this</span>
           <span aria-hidden="true" style={{ color: '#FF6B2B' }}>{showMethod ? '−' : '+'}</span>
@@ -766,19 +880,19 @@ function ResultsPanel({
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="px-5 pb-5" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="px-5 pb-5" style={{ borderTop: '1px solid rgba(16,16,20,0.08)' }}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
                   {[
                     { label: 'Labor Savings', color: '#FF6B2B', bg: 'rgba(255,107,43,0.05)', border: 'rgba(255,107,43,0.15)', formula: '(minutes × runs/week × 52) ÷ 60 × effective hourly rate × automation potential' },
                     { label: 'Error Reduction', color: '#7B61FF', bg: 'rgba(123,97,255,0.05)', border: 'rgba(123,97,255,0.15)', formula: 'error rate × cost per error × annual runs × automation potential' },
                     { label: 'Opportunity Cost', color: 'rgba(255,107,43,0.8)', bg: 'rgba(255,107,43,0.03)', border: 'rgba(255,107,43,0.1)', formula: 'hours freed × effective rate × 0.5 reallocation premium' },
-                    { label: 'Missed Lead Revenue', color: '#a78bfa', bg: 'rgba(167,139,250,0.05)', border: 'rgba(167,139,250,0.15)', formula: 'missed calls/week × 4.33 × avg job value × 30% recovery rate × 12 months' },
-                    { label: 'Net Savings', color: '#10b981', bg: 'rgba(16,185,129,0.05)', border: 'rgba(16,185,129,0.15)', formula: 'Gross savings − (monthly fee × 12). Year 1 also subtracts one-time setup cost.' },
+                    { label: 'Missed Lead Revenue', color: '#a78bfa', bg: 'rgba(167,139,250,0.05)', border: 'rgba(167,139,250,0.15)', formula: 'missed calls/week × 4.33 × avg job value × 20% recovery rate × 12 months' },
+                    { label: 'Net Savings', color: '#0B9E5E', bg: 'rgba(16,185,129,0.05)', border: 'rgba(16,185,129,0.15)', formula: 'Gross savings − (monthly fee × 12). Year 1 also subtracts one-time setup cost.' },
                     { label: 'Breakeven', color: '#f97316', bg: 'rgba(249,115,22,0.05)', border: 'rgba(249,115,22,0.15)', formula: 'Setup cost ÷ (monthly gross savings − monthly fee), rounded up. Shown in weeks if under 12.' },
                   ].map((card) => (
                     <div key={card.label} className="rounded-xl p-3.5" style={{ background: card.bg, border: `1px solid ${card.border}` }}>
                       <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: card.color }}>{card.label}</p>
-                      <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>{card.formula}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: '#55555F' }}>{card.formula}</p>
                     </div>
                   ))}
                 </div>
@@ -808,26 +922,26 @@ function ResultsPanel({
         </a>
         <a href={linkedInUrl} target="_blank" rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 text-sm py-3.5 px-6 rounded-xl transition-all"
-          style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = '#fff'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+          style={{ border: '1px solid rgba(16,16,20,0.08)', color: '#55555F' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(16,16,20,0.18)'; e.currentTarget.style.color = '#101014'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(16,16,20,0.08)'; e.currentTarget.style.color = '#55555F'; }}
         >
           Share on LinkedIn
         </a>
         <a href={xUrl} target="_blank" rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 text-sm py-3.5 px-6 rounded-xl transition-all"
-          style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; e.currentTarget.style.color = '#fff'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+          style={{ border: '1px solid rgba(16,16,20,0.08)', color: '#55555F' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(16,16,20,0.18)'; e.currentTarget.style.color = '#101014'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(16,16,20,0.08)'; e.currentTarget.style.color = '#55555F'; }}
         >
           Share on X
         </a>
       </div>
 
       {/* Email report */}
-      <div className="pt-6 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="pt-6 space-y-3" style={{ borderTop: '1px solid rgba(16,16,20,0.08)' }}>
         {emailStatus === 'sent' ? (
-          <p className="text-sm font-mono text-center" style={{ color: '#10b981' }}>Report sent! Check your inbox.</p>
+          <p className="text-sm font-mono text-center" style={{ color: '#0B9E5E' }}>Report sent! Check your inbox.</p>
         ) : (
           <>
             <SectionLabel>Email me this report</SectionLabel>
@@ -837,10 +951,10 @@ function ResultsPanel({
                 onChange={(e) => { setEmailInput(e.target.value); setEmailError(''); setEmailStatus('idle'); }}
                 placeholder="Enter your email"
                 aria-label="Email address for report"
-                className="flex-1 rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' }}
+                className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+                style={{ background: '#F3F2EE', border: '1px solid #E6E4DE', color: '#101014' }}
                 onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,107,43,0.4)')}
-                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(16,16,20,0.08)')}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleEmailSubmit(); }}
               />
               <button
@@ -854,7 +968,7 @@ function ResultsPanel({
                 {emailStatus === 'sending' ? 'Sending…' : 'Email me this report'}
               </button>
             </div>
-            {emailError && <p className="text-xs" style={{ color: '#ef4444' }}>{emailError}</p>}
+            {emailError && <p className="text-xs" style={{ color: '#C42348' }}>{emailError}</p>}
           </>
         )}
       </div>
@@ -949,7 +1063,7 @@ export default function ROICalculatorPage() {
   const canAnalyze = input.trim().length >= 10 && leadName.trim() && leadEmail.trim() && leadPhone.trim();
 
   return (
-    <main className="min-h-screen text-white relative overflow-x-hidden" style={{ background: '#050508' }}>
+    <main className="min-h-screen relative overflow-x-hidden" style={{ background: '#FAFAF7', color: '#101014' }}>
 
       {/* Ambient background orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
@@ -958,19 +1072,42 @@ export default function ROICalculatorPage() {
         <div className="absolute rounded-full" style={{ width: 400, height: 400, bottom: '10%', left: '20%', background: 'radial-gradient(circle, rgba(255,107,43,0.04) 0%, transparent 70%)', filter: 'blur(60px)' }} />
       </div>
 
-      {/* Nav */}
-      <div className="relative z-10" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <div className="px-6 py-4 flex items-center justify-between max-w-5xl mx-auto">
-          <a href="https://neuralflowai.io" className="text-lg font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', letterSpacing: '-0.5px' }}>
-            <span className="text-white">Neural</span>
-            <span style={{ color: '#FF6B2B' }}>Flow</span>
+      {/* Nav — liquid glass, sticky */}
+      <div
+        className="sticky top-0 z-30"
+        style={{
+          background: 'rgba(255,255,255,0.62)',
+          backdropFilter: 'blur(22px) saturate(1.7)',
+          WebkitBackdropFilter: 'blur(22px) saturate(1.7)',
+          borderBottom: '1px solid rgba(255,255,255,0.6)',
+          boxShadow: '0 8px 32px -24px rgba(16,16,20,0.35)',
+        }}
+      >
+        <div className="px-6 py-3 flex items-center justify-between max-w-5xl mx-auto">
+          <a href="https://neuralflowai.io" className="flex items-center gap-2.5" style={{ fontFamily: 'var(--font-display)' }}>
+            {/* Logomark — gradient node badge */}
+            <span
+              className="inline-flex items-center justify-center flex-shrink-0"
+              style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #FF6B2B, #7B61FF)', boxShadow: '0 6px 16px -6px rgba(242,90,28,0.55), inset 0 1px 0 rgba(255,255,255,0.4)' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 7 L18 12 M6 17 L18 12 M6 7 L6 17" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" opacity="0.9" />
+                <circle cx="6" cy="7" r="2.1" fill="#fff" />
+                <circle cx="6" cy="17" r="2.1" fill="#fff" />
+                <circle cx="18" cy="12" r="2.6" fill="#fff" />
+              </svg>
+            </span>
+            <span className="text-lg font-bold tracking-tight" style={{ letterSpacing: '-0.5px' }}>
+              <span style={{ color: '#101014' }}>Neural</span>
+              <span style={{ background: 'linear-gradient(135deg, #FF6B2B, #7B61FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Flow</span>
+            </span>
           </a>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono tracking-widest uppercase hidden sm:block" style={{ color: 'rgba(255,255,255,0.2)' }}>ROI Calculator</span>
+            <span className="text-xs font-mono tracking-widest uppercase hidden sm:block" style={{ color: '#9a9890' }}>ROI Calculator</span>
             <a
               href="https://neuralflowai.io/#contact"
               className="text-xs font-semibold py-2 px-4 rounded-xl transition-all"
-              style={{ background: 'rgba(255,107,43,0.1)', border: '1px solid rgba(255,107,43,0.25)', color: '#FF6B2B' }}
+              style={{ background: 'rgba(255,107,43,0.1)', border: '1px solid rgba(255,107,43,0.25)', color: '#F25A1C' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,107,43,0.18)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,107,43,0.1)')}
             >
@@ -1021,7 +1158,7 @@ export default function ROICalculatorPage() {
                     actually costing you?
                   </span>
                 </h1>
-                <p className="text-lg" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                <p className="text-lg" style={{ color: '#55555F' }}>
                   Describe a repetitive task your team handles. Our AI calculates the real net savings after paying for NeuralFlow — no inflated numbers.
                 </p>
               </motion.div>
@@ -1033,7 +1170,7 @@ export default function ROICalculatorPage() {
                 transition={{ delay: 0.2 }}
                 className="text-left space-y-3"
               >
-                <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: '#9a9890' }}>
                   Select your industry — pre-fills a description
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" role="group" aria-label="Select your industry">
@@ -1057,10 +1194,10 @@ export default function ROICalculatorPage() {
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-medium transition-all"
                         style={selectedIndustry === key
                           ? { background: 'rgba(255,107,43,0.1)', border: '1px solid rgba(255,107,43,0.4)', color: '#FF6B2B', boxShadow: '0 0 20px rgba(255,107,43,0.12)' }
-                          : { background: 'rgba(8,14,24,0.6)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.45)' }
+                          : { background: '#FFFFFF', border: '1px solid #E6E4DE', color: '#55555F' }
                         }
-                        onMouseEnter={e => { if (selectedIndustry !== key) { e.currentTarget.style.borderColor = 'rgba(255,107,43,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; } }}
-                        onMouseLeave={e => { if (selectedIndustry !== key) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)'; } }}
+                        onMouseEnter={e => { if (selectedIndustry !== key) { e.currentTarget.style.borderColor = 'rgba(255,107,43,0.2)'; e.currentTarget.style.color = 'rgba(16,16,20,0.92)'; } }}
+                        onMouseLeave={e => { if (selectedIndustry !== key) { e.currentTarget.style.borderColor = 'rgba(16,16,20,0.08)'; e.currentTarget.style.color = '#55555F'; } }}
                       >
                         <span className="text-xl">{p.emoji}</span>
                         <span className="text-center leading-tight">{p.label}</span>
@@ -1078,10 +1215,10 @@ export default function ROICalculatorPage() {
                 onChange={(e) => setInput(e.target.value)}
                 aria-label="Describe your workflow situation"
                 placeholder={`Describe your situation in plain English...\n\nExamples:\n"I own a nail salon. My techs stop mid-service to answer the phone, we miss bookings, and our no-show rate kills us."\n\n"Every Monday we pull sales data from three spreadsheets, reconcile it, and email leadership. Takes 2 hours."`}
-                className="w-full h-48 rounded-2xl px-5 py-4 text-sm text-white resize-none outline-none transition-all text-left"
-                style={{ background: 'rgba(8,14,24,0.7)', border: '1px solid rgba(255,255,255,0.07)', color: '#fff' }}
+                className="w-full h-48 rounded-2xl px-5 py-4 text-sm resize-none outline-none transition-all text-left"
+                style={{ background: '#FFFFFF', border: '1px solid #E6E4DE', color: '#101014' }}
                 onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,107,43,0.35)')}
-                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(16,16,20,0.08)')}
                 onKeyDown={(e) => { if (e.key === 'Enter' && e.metaKey) handleAnalyze(); }}
               />
 
@@ -1092,7 +1229,7 @@ export default function ROICalculatorPage() {
                 transition={{ delay: 0.32 }}
                 className="space-y-2.5 text-left"
               >
-                <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>Where should we send your results?</p>
+                <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: '#9a9890' }}>Where should we send your results?</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {[
                     { type: 'text', placeholder: 'Your name', value: leadName, onChange: (v: string) => { setLeadName(v); setLeadError(''); } },
@@ -1106,15 +1243,15 @@ export default function ROICalculatorPage() {
                       aria-label={field.placeholder}
                       value={field.value}
                       onChange={(e) => field.onChange(e.target.value)}
-                      className="rounded-xl px-4 py-2.5 text-sm text-white outline-none transition-all"
-                      style={{ background: 'rgba(8,14,24,0.7)', border: '1px solid rgba(255,255,255,0.07)', color: '#fff' }}
+                      className="rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
+                      style={{ background: '#FFFFFF', border: '1px solid #E6E4DE', color: '#101014' }}
                       onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,107,43,0.35)')}
-                      onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+                      onBlur={e => (e.currentTarget.style.borderColor = 'rgba(16,16,20,0.08)')}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleAnalyze(); }}
                     />
                   ))}
                 </div>
-                {leadError && <p className="text-xs pl-1" style={{ color: '#ef4444' }}>{leadError}</p>}
+                {leadError && <p className="text-xs pl-1" style={{ color: '#C42348' }}>{leadError}</p>}
               </motion.div>
 
               {/* CTA button */}
@@ -1129,8 +1266,8 @@ export default function ROICalculatorPage() {
                   disabled={!canAnalyze}
                   className="w-full sm:w-auto font-bold text-base py-4 px-12 rounded-xl transition-all relative overflow-hidden"
                   style={{
-                    background: canAnalyze ? 'linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%)' : 'rgba(255,255,255,0.05)',
-                    color: canAnalyze ? '#fff' : 'rgba(255,255,255,0.2)',
+                    background: canAnalyze ? 'linear-gradient(135deg, #FF6B2B 0%, #7B61FF 100%)' : '#F3F2EE',
+                    color: canAnalyze ? '#fff' : '#9a9890',
                     cursor: canAnalyze ? 'pointer' : 'not-allowed',
                     fontFamily: 'var(--font-display)',
                     letterSpacing: '-0.3px',
@@ -1141,7 +1278,7 @@ export default function ROICalculatorPage() {
                 >
                   Analyze My Workflow →
                 </button>
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.18)' }}>Net savings shown after NeuralFlow fees · We never spam</p>
+                <p className="text-xs" style={{ color: '#9a9890' }}>Net savings shown after NeuralFlow fees · We never spam</p>
               </motion.div>
             </motion.div>
           )}
@@ -1182,17 +1319,17 @@ export default function ROICalculatorPage() {
               exit={{ opacity: 0 }}
               className="max-w-lg mx-auto text-center space-y-6"
             >
-              <div className="rounded-2xl p-8 space-y-3" style={{ border: '1px solid rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.04)' }}>
+              <div className="rounded-2xl p-8 space-y-3" style={{ border: '1px solid rgba(196,35,72,0.18)', background: 'rgba(196,35,72,0.05)' }}>
                 <p className="text-3xl">⚠️</p>
-                <p className="font-semibold text-white">Couldn&apos;t analyze that workflow</p>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>{errorMsg}</p>
+                <p className="font-semibold" style={{ color: '#101014' }}>Couldn&apos;t analyze that workflow</p>
+                <p className="text-sm" style={{ color: '#55555F' }}>{errorMsg}</p>
               </div>
               <button
                 onClick={() => setState('idle')}
                 className="text-sm py-2.5 px-6 rounded-xl transition-all"
-                style={{ border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = '#fff'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+                style={{ border: '1px solid rgba(16,16,20,0.08)', color: '#55555F' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(16,16,20,0.2)'; e.currentTarget.style.color = '#101014'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(16,16,20,0.08)'; e.currentTarget.style.color = '#55555F'; }}
               >
                 Try Again
               </button>
