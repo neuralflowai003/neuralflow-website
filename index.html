@@ -2194,6 +2194,18 @@
       color: white;
     }
 
+    .chat-mute-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      line-height: 1;
+      padding: 2px 4px;
+      opacity: 0.65;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .chat-mute-btn:hover { opacity: 1; transform: scale(1.1); }
+
     .chat-messages {
       flex: 1;
       overflow-y: auto;
@@ -7733,6 +7745,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <div class="chat-online-dot"></div>
+        <button class="chat-mute-btn" id="chatMuteBtn" aria-label="Mute chat sounds" title="Mute sounds">🔊</button>
         <button class="chat-expand-btn" id="chatExpandBtn" aria-label="Expand chat" title="Expand chat">&#x26F6;</button>
         <button class="chat-close" id="chatCloseBtn" aria-label="Close chat">&times;</button>
       </div>
@@ -8183,8 +8196,11 @@
     //    AudioContext is created lazily on the first message and resumed;
     //    the send/open is always a user gesture, so autoplay policy is met.
     let _chatAudioCtx = null;
+    let chatMuted = false;
+    try { chatMuted = localStorage.getItem('ariaChatMuted') === '1'; } catch (e) {}
     function chatSound(kind) {
       try {
+        if (chatMuted) return;
         const AC = window.AudioContext || window.webkitAudioContext;
         if (!AC) return;
         if (!_chatAudioCtx) _chatAudioCtx = new AC();
@@ -8260,6 +8276,26 @@
 
     chatBtn.addEventListener('click', toggleChat);
     chatCloseBtn.addEventListener('click', toggleChat);
+
+    // ── Chat sound mute toggle (persists across visits) ──
+    const chatMuteBtn = document.getElementById('chatMuteBtn');
+    function renderMute() {
+      if (!chatMuteBtn) return;
+      chatMuteBtn.textContent = chatMuted ? '🔇' : '🔊';
+      const label = chatMuted ? 'Unmute chat sounds' : 'Mute chat sounds';
+      chatMuteBtn.title = chatMuted ? 'Unmute sounds' : 'Mute sounds';
+      chatMuteBtn.setAttribute('aria-label', label);
+      chatMuteBtn.setAttribute('aria-pressed', String(chatMuted));
+    }
+    if (chatMuteBtn) {
+      renderMute();
+      chatMuteBtn.addEventListener('click', () => {
+        chatMuted = !chatMuted;
+        try { localStorage.setItem('ariaChatMuted', chatMuted ? '1' : '0'); } catch (e) {}
+        renderMute();
+        if (!chatMuted) chatSound('receive'); // little preview when turning sound back on
+      });
+    }
 
     // ── ROI Calculator handoff ──────────────────────────────────────────────────
     // When a visitor clicks "Talk to ARIA About This" on the ROI calculator they
@@ -11703,58 +11739,18 @@
       .story-stage-wrap { top: 34px; height: calc(100vh - 34px); }
     }
 
-    /* ── DEPTH RECEDE (Chromium) — the signature transition. As a
-       section exits through the top it shrinks toward its seam, dims
-       and falls out of focus, like the page folding back into depth
-       while the next section flows forward. Compositor-driven; other
-       browsers just scroll normally. #story60 is excluded — an active
-       transform would re-anchor its sticky stage. */
-    @media (prefers-reduced-motion: no-preference) {
-      @supports (animation-timeline: view()) {
-        .hero, .stats-section, #services, #demos, #aria-demo, #seo,
-        #roi, #work, #process, #clients, #manifesto,
-        #about, #faq, #contact {
-          animation: secRecede linear both;
-          animation-timeline: view();
-          animation-range: exit 0% exit 100%;
-          transform-origin: 50% 100%;
-        }
-        @keyframes secRecede {
-          /* no filter here: blurring a whole section forces every glass
-             card behind it to re-composite each frame — scale + dim
-             carries the depth without the paint tax */
-          0% { transform: none; opacity: 1; }
-          55% { transform: scale(0.975) translateY(-8px); opacity: 0.88; }
-          100% { transform: scale(0.93) translateY(-28px); opacity: 0.35; }
-        }
-        .hiw-graphic, .card-viz {
-          animation: chorDrift linear both;
-          animation-timeline: view();
-          animation-range: cover 0% cover 100%;
-        }
-        @keyframes chorDrift {
-          from { transform: translateY(16px); }
-          to { transform: translateY(-16px); }
-        }
-      }
-    }
+    /* Depth-recede removed for smoothness: it ran a scale + OPACITY
+       view-timeline animation on 13 full-viewport sections at once,
+       forcing each into a continuously-composited layer as it scrolled
+       — the main source of GPU-bound scroll jank on integrated graphics,
+       even while the main thread was idle. The sticky layer-stack
+       already carries the housing.cloud-style layering; this flourish
+       sat on top of it. (chorDrift parallax removed with it.) */
 
-    /* Mobile: gentler depth-recede + shorter parallax so the page doesn't
-       feel like it's collapsing on every scroll, and story swaps drop the
-       costly blur (transform + fade carry it fine on a phone). */
-    @media (max-width: 768px) and (prefers-reduced-motion: no-preference) {
-      @supports (animation-timeline: view()) {
-        @keyframes secRecede {
-          0% { transform: none; opacity: 1; }
-          100% { transform: scale(0.965) translateY(-14px); opacity: 0.6; }
-        }
-        @keyframes chorDrift {
-          from { transform: translateY(9px); }
-          to { transform: translateY(-9px); }
-        }
-      }
-      .st-state { filter: none; }
-      .st-state.bye { filter: none; }
+    /* Mobile: story scene swaps drop the costly blur — transform + fade
+       carry it fine on a phone. */
+    @media (max-width: 768px) {
+      .st-state, .st-state.bye { filter: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
