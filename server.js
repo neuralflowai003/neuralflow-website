@@ -1745,6 +1745,11 @@ app.get('/booked', (req, res) => res.sendFile(path.join(__dirname, 'booked.html'
 app.get('/brand', (req, res) => res.sendFile(path.join(__dirname, 'brand', 'index.html')));
 app.get('/book', (req, res) => res.sendFile(path.join(__dirname, 'book.html')));
 
+// /seo (and the legacy /seo.html) consolidate to the current, on-brand SEO
+// service page — the old standalone seo.html predated the light redesign and
+// duplicated this content. 301 keeps any external links / ranking signals.
+app.get(['/seo', '/seo.html'], (req, res) => res.redirect(301, '/services/seo-optimization'));
+
 // Service landing pages
 const SERVICE_PAGES = ['ai-consulting', 'ai-receptionist', 'workflow-automation', 'seo-optimization', 'custom-development'];
 app.get('/services', (req, res) => {
