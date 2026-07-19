@@ -253,6 +253,60 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── Collapsible section (detail on demand) ──────────────────────────────────────
+function CollapsibleSection({
+  label, open, onToggle, children,
+}: {
+  label: string; open: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{
+        background: '#FFFFFF',
+        border: '1px solid #E6E4DE',
+        boxShadow: open ? '0 24px 50px -32px rgba(16,16,20,0.25)' : 'none',
+      }}
+    >
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left transition-colors"
+      >
+        <span className="text-sm font-semibold" style={{ fontFamily: 'var(--font-display)', color: '#101014' }}>
+          {label}
+        </span>
+        <motion.span
+          animate={{ rotate: open ? 180 : 0 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          aria-hidden="true"
+          className="inline-flex shrink-0"
+          style={{ color: '#F25A1C' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </motion.span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5" style={{ borderTop: '1px solid #E6E4DE' }}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── Results panel ──────────────────────────────────────────────────────────────
 function ResultsPanel({
   roi, onReset, industry, initialMissedCalls, initialJobValue, leadName, leadEmail, leadPhone,
@@ -284,6 +338,8 @@ function ResultsPanel({
   const [avgJobValue, setAvgJobValue] = useState(initialJobValue ?? 200);
   const [includeMissed, setIncludeMissed] = useState(!!(initialMissedCalls && initialJobValue));
   const [showMethod, setShowMethod] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showTune, setShowTune] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [emailError, setEmailError] = useState('');
@@ -407,21 +463,16 @@ function ResultsPanel({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full max-w-4xl mx-auto space-y-5"
+      className="w-full max-w-4xl mx-auto space-y-6"
     >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-mono tracking-widest uppercase mb-1.5" style={{ color: 'rgba(255,107,43,0.6)' }}>
-            Analysis Complete
-          </p>
-          <h2 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)', color: '#101014' }}>
-            {live.inputs.taskName}
-          </h2>
-        </div>
+      {/* Eyebrow + reset */}
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-[10px] font-mono tracking-widest uppercase" style={{ color: 'rgba(255,107,43,0.6)' }}>
+          Analysis Complete
+        </p>
         <button
           onClick={onReset}
-          className="text-xs transition-colors mt-1 whitespace-nowrap"
+          className="text-xs transition-colors whitespace-nowrap"
           style={{ color: '#9a9890' }}
           onMouseEnter={e => (e.currentTarget.style.color = '#55555F')}
           onMouseLeave={e => (e.currentTarget.style.color = '#9a9890')}
@@ -430,39 +481,47 @@ function ResultsPanel({
         </button>
       </div>
 
-      {/* Pitch banner */}
-      {live.netOngoing > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="rounded-2xl px-5 py-4"
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,107,43,0.10), rgba(123,97,255,0.08))',
-            backdropFilter: 'blur(16px) saturate(1.5)',
-            WebkitBackdropFilter: 'blur(16px) saturate(1.5)',
-            border: '1px solid rgba(255,107,43,0.22)',
-            boxShadow: '0 20px 44px -30px rgba(16,16,20,0.30), inset 0 1px 0 rgba(255,255,255,0.6)',
-          }}
-        >
-          <p className="text-[10px] font-mono uppercase tracking-widest mb-1.5" style={{ color: 'rgba(255,107,43,0.7)' }}>Your ROI Summary</p>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(16,16,20,0.92)' }}>{pitchLine}</p>
+      {/* Hero outcome — the single focal number */}
+      <div
+        className="rounded-[20px] p-6 sm:p-9"
+        style={{ background: '#FFFFFF', border: '1px solid #E6E4DE', boxShadow: '0 24px 50px -32px rgba(16,16,20,0.25)' }}
+      >
+        <h2 className="text-xl sm:text-2xl font-bold" style={{ fontFamily: 'var(--font-display)', color: '#101014' }}>
+          {live.inputs.taskName}
+        </h2>
+
+        <div className="mt-7">
+          <p className="text-[10px] font-mono uppercase tracking-widest mb-2" style={{ color: '#9a9890' }}>
+            Net annual savings <span style={{ color: '#c9c6bd' }}>· Year 2+, after all NeuralFlow fees</span>
+          </p>
+          <motion.p
+            key={live.netOngoing}
+            initial={{ scale: 0.92, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+            className="text-5xl sm:text-6xl font-bold leading-none"
+            style={{ color: netPositive ? '#0B9E5E' : '#C42348', fontFamily: 'var(--font-display)' }}
+          >
+            {fmt(live.netOngoing)}
+          </motion.p>
+          <p className="mt-5 text-sm sm:text-[15px] leading-relaxed max-w-2xl" style={{ color: 'rgba(16,16,20,0.82)' }}>
+            {pitchLine}
+          </p>
           {insightLine && (
-            <p className="text-sm leading-relaxed mt-2 pt-2.5" style={{ color: '#55555F', borderTop: '1px solid rgba(16,16,20,0.08)' }}>
+            <p className="mt-3 pt-3 text-sm leading-relaxed max-w-2xl" style={{ color: '#55555F', borderTop: '1px solid #E6E4DE' }}>
               <span aria-hidden="true">💡 </span>{insightLine}
             </p>
           )}
-        </motion.div>
-      )}
+        </div>
+      </div>
 
       {/* Top stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Gross Savings', value: fmt(live.totalAnnualSavings), sub: 'what it costs now', color: 'rgba(16,16,20,0.92)', accent: false },
-          { label: 'Net Year 2+', value: fmt(live.netOngoing), sub: 'after NeuralFlow fees', color: netPositive ? '#0B9E5E' : '#C42348', accent: true },
           { label: 'Hours Freed', value: `${Math.round(live.hoursPerYear)}`, sub: `${hoursFreedPerWeek} hrs/wk`, color: 'rgba(16,16,20,0.92)', accent: false },
           { label: 'Automatable', value: `${Math.round(live.automationPotential * 100)}%`, sub: 'of this workflow', color: 'rgba(16,16,20,0.92)', accent: false },
           { label: 'Breakeven', value: breakevenDisplay(live.breakevenMonth), sub: 'to recoup setup', color: 'rgba(16,16,20,0.92)', accent: false },
+          { label: 'Gross Savings', value: fmt(live.totalAnnualSavings), sub: 'before fees', color: 'rgba(16,16,20,0.92)', accent: false },
         ].map((card, i) => (
           <motion.div
             key={card.label}
@@ -495,8 +554,66 @@ function ResultsPanel({
         ))}
       </div>
 
-      {/* Before vs After */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* 3-Year net projection chart */}
+      <GlassCard>
+        <div className="flex items-center justify-between mb-5">
+          <SectionLabel>3-Year Net Projection</SectionLabel>
+          <p className="text-[10px]" style={{ color: '#9a9890' }}>After all NeuralFlow fees</p>
+        </div>
+        <ResponsiveContainer width="100%" height={180}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#FF6B2B" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#FF6B2B" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,16,20,0.08)" />
+            <XAxis dataKey="year" tick={{ fill: '#9a9890', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#9a9890', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+            <Tooltip content={<CustomTooltip />} />
+            <Area type="monotone" dataKey="savings" stroke="#FF6B2B" strokeWidth={2} fill="url(#savingsGrad)" dot={{ fill: '#FF6B2B', r: 4, strokeWidth: 0 }} activeDot={{ fill: '#FF6B2B', r: 5, strokeWidth: 2, stroke: 'rgba(255,107,43,0.4)' }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </GlassCard>
+
+      {/* Implementation roadmap */}
+      {live.suggestedPhases.length > 0 && (
+        <GlassCard accent>
+          <SectionLabel>Implementation Roadmap</SectionLabel>
+          <div className="space-y-3 mt-1">
+            {live.suggestedPhases.map((phase, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + i * 0.08 }}
+                className="flex gap-3 items-start"
+              >
+                <span
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5"
+                  style={{ background: 'linear-gradient(135deg, #FF6B2B, #7B61FF)', color: '#fff' }}
+                >
+                  {i + 1}
+                </span>
+                <p className="text-sm leading-relaxed" style={{ color: 'rgba(16,16,20,0.92)' }}>
+                  {phase.replace(/^Phase \d+:\s*/, '')}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── Detail on demand: full breakdown (collapsed by default) ── */}
+      <CollapsibleSection
+        label="See the full breakdown"
+        open={showBreakdown}
+        onToggle={() => setShowBreakdown((v) => !v)}
+      >
+        <div className="space-y-5 pt-5">
+          {/* Before vs After */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-2xl p-5" style={{ background: 'rgba(196,35,72,0.05)', border: '1px solid rgba(196,35,72,0.18)' }}>
           <p className="text-[10px] uppercase tracking-widest font-semibold mb-4" style={{ color: '#C42348' }}>Without Automation</p>
           <div className="space-y-2.5">
@@ -535,9 +652,9 @@ function ResultsPanel({
         </div>
       </div>
 
-      {/* Savings breakdown */}
-      <GlassCard>
-        <SectionLabel>Full Savings Breakdown</SectionLabel>
+          {/* Full savings breakdown */}
+          <div>
+            <SectionLabel>Full Savings Breakdown</SectionLabel>
         <div className="space-y-0">
           {[
             { label: 'Labor Savings', value: live.laborSavingsAnnual, color: '#FF6B2B' },
@@ -588,35 +705,18 @@ function ResultsPanel({
             </motion.span>
           </div>
         </div>
-      </GlassCard>
-
-      {/* Chart */}
-      <GlassCard>
-        <div className="flex items-center justify-between mb-5">
-          <SectionLabel>3-Year Net Projection</SectionLabel>
-          <p className="text-[10px]" style={{ color: '#9a9890' }}>After all NeuralFlow fees</p>
+          </div>
         </div>
-        <ResponsiveContainer width="100%" height={180}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-            <defs>
-              <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#FF6B2B" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#FF6B2B" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,16,20,0.08)" />
-            <XAxis dataKey="year" tick={{ fill: '#9a9890', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#9a9890', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="savings" stroke="#FF6B2B" strokeWidth={2} fill="url(#savingsGrad)" dot={{ fill: '#FF6B2B', r: 4, strokeWidth: 0 }} activeDot={{ fill: '#FF6B2B', r: 5, strokeWidth: 2, stroke: 'rgba(255,107,43,0.4)' }} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </GlassCard>
+      </CollapsibleSection>
 
-      {/* Sliders */}
-      <GlassCard>
-        <SectionLabel>Fine-tune your numbers</SectionLabel>
-        <p className="text-xs mb-5" style={{ color: '#9a9890' }}>AI estimated these from your description — drag to correct them and everything recalculates instantly.</p>
+      {/* ── Detail on demand: fine-tune the assumptions (collapsed by default) ── */}
+      <CollapsibleSection
+        label="Fine-tune the assumptions"
+        open={showTune}
+        onToggle={() => setShowTune((v) => !v)}
+      >
+        <div className="pt-5">
+          <p className="text-xs mb-5" style={{ color: '#9a9890' }}>AI estimated these from your description — drag to correct them and everything recalculates instantly.</p>
 
         {/* Worker type toggle */}
         <div className="mb-5">
@@ -755,35 +855,8 @@ function ResultsPanel({
             />
           </div>
         </div>
-      </GlassCard>
-
-      {/* Phases / Roadmap */}
-      {live.suggestedPhases.length > 0 && (
-        <GlassCard accent>
-          <SectionLabel>Implementation Roadmap</SectionLabel>
-          <div className="space-y-3 mt-1">
-            {live.suggestedPhases.map((phase, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + i * 0.08 }}
-                className="flex gap-3 items-start"
-              >
-                <span
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-mono font-bold shrink-0 mt-0.5"
-                  style={{ background: 'linear-gradient(135deg, #FF6B2B, #7B61FF)', color: '#fff' }}
-                >
-                  {i + 1}
-                </span>
-                <p className="text-sm leading-relaxed" style={{ color: 'rgba(16,16,20,0.92)' }}>
-                  {phase.replace(/^Phase \d+:\s*/, '')}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </GlassCard>
-      )}
+        </div>
+      </CollapsibleSection>
 
       {/* Methodology accordion */}
       <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(16,16,20,0.08)' }}>
