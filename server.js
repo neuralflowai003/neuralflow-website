@@ -101,6 +101,11 @@ app.use(compression()); // Gzip compress all responses
 // HSTS + Cache headers
 app.use((req, res, next) => {
   res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  // Lock down powerful browser features the site never uses, and opt out of
+  // interest-cohort/Topics tracking. Helmet v8 no longer sets this header.
+  res.set('Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(), payment=(), usb=(), ' +
+    'magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()');
   if (req.url.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf)$/)) {
     res.set('Cache-Control', 'public, max-age=31536000, immutable');
   } else if (req.url === '/robots.txt' || req.url === '/sitemap.xml') {
