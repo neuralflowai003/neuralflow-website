@@ -7761,14 +7761,21 @@
     // ------------------- Scroll Progress -------------------
     const scrollProgress = document.getElementById('scrollProgress');
     const backToTopBtn = document.getElementById('backToTop');
+    // rAF-throttle: batch the layout read + style write into one frame
+    // instead of thrashing layout on every scroll event.
+    let spTicking = false;
     window.addEventListener('scroll', () => {
-      const scrollPx = document.documentElement.scrollTop;
-      const winHeightPx = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-      if (backToTopBtn) backToTopBtn.classList.toggle('show', scrollPx > 700);
-      if (!winHeightPx) return;
-      const scrolled = `${scrollPx / winHeightPx * 100}%`;
-      scrollProgress.style.width = scrolled;
-    });
+      if (spTicking) return;
+      spTicking = true;
+      requestAnimationFrame(() => {
+        spTicking = false;
+        const scrollPx = document.documentElement.scrollTop;
+        const winHeightPx = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        if (backToTopBtn) backToTopBtn.classList.toggle('show', scrollPx > 700);
+        if (!winHeightPx) return;
+        scrollProgress.style.width = `${scrollPx / winHeightPx * 100}%`;
+      });
+    }, { passive: true });
 
     if (backToTopBtn) {
       backToTopBtn.addEventListener('click', () => {
@@ -7980,9 +7987,11 @@
         // Respawn particles to fill new dimensions
         particles = [];
         const isMobile = window.innerWidth < 768;
-        const hubCount = isMobile ? 1 : 4;
+        const hubCount = isMobile ? 1 : 3;
         for (let i = 0; i < hubCount; i++) particles.push(new Particle(true));
-        const particleCount = isMobile ? 26 : 230;
+        // Fewer nodes → far fewer O(n²) connection-line strokes per frame,
+        // the heaviest cost while the hero is on screen.
+        const particleCount = isMobile ? 22 : 140;
         for (let i = 0; i < particleCount; i++) particles.push(new Particle());
       }
       window.addEventListener('resize', resizeCanvas);
@@ -8169,6 +8178,43 @@
       return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
     }
 
+    // ── Chat sounds: subtle synthesized send/receive cues (no audio
+    //    files — Web Audio, so nothing extra to load and CSP-safe). The
+    //    AudioContext is created lazily on the first message and resumed;
+    //    the send/open is always a user gesture, so autoplay policy is met.
+    let _chatAudioCtx = null;
+    function chatSound(kind) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        if (!_chatAudioCtx) _chatAudioCtx = new AC();
+        const ctx = _chatAudioCtx;
+        if (ctx.state === 'suspended') ctx.resume();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        if (kind === 'sent') {
+          // outgoing: a quick, bright rising blip
+          osc.frequency.setValueAtTime(520, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.11);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.085, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.17);
+          osc.start(now); osc.stop(now + 0.19);
+        } else {
+          // incoming: a softer, gentle falling pop
+          osc.frequency.setValueAtTime(680, now);
+          osc.frequency.exponentialRampToValueAtTime(430, now + 0.14);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.06, now + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+          osc.start(now); osc.stop(now + 0.26);
+        }
+      } catch (e) { /* audio unavailable — silent, never blocks chat */ }
+    }
+
     function appendMessage(role, text) {
       const msgDiv = document.createElement('div');
       msgDiv.className = `message ${role}`;
@@ -8182,6 +8228,7 @@
       msgDiv.innerHTML = html;
       chatMessages.insertBefore(msgDiv, typingIndicator);
       chatMessages.scrollTop = chatMessages.scrollHeight;
+      chatSound(role === 'user' ? 'sent' : 'receive');
     }
 
     function toggleChat() {
@@ -12188,6 +12235,39 @@
       background: radial-gradient(circle at 60% 60%, rgba(123, 97, 255, 0.15), transparent 65%);
     }
     .stats-section .container, .stats-section .stats-grid { position: relative; z-index: 1; }
+  </style>
+
+  <!-- ============================================================
+       SCROLL PERFORMANCE — backdrop-filter is the #1 scroll-jank
+       source: the GPU re-blurs everything behind each frosted surface
+       every frame. On a light theme these near-white surfaces look
+       virtually identical with a solid background, so we drop the blur
+       on everything that scrolls past (nav, tiles, chips, cards, forms)
+       and keep real blur only where it shows over the neural canvas
+       (hero card) or over page content (modals/command palette).
+       The glass LOOK — borders, specular highlights, depth shadows —
+       is untouched; only the expensive live blur is removed.
+       ============================================================ -->
+  <style>
+    #nav, #nav.scrolled, .stat-box, .eyebrow-mono, .btn-ghost, .seo-toggle,
+    .faq-item, .faq-item:hover, .hiw-card, .status-pill, .form-box,
+    .back-to-top, .chat-toggle {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    /* Bump surface opacity so they read as solid frosted white now that
+       there's no live blur behind them. */
+    #nav { background: rgba(255, 255, 255, 0.90) !important; }
+    #nav.scrolled { background: rgba(255, 255, 255, 0.95) !important; }
+    .stat-box { background: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(255,255,255,0.90)) !important; }
+    .eyebrow-mono { background: rgba(255, 255, 255, 0.92) !important; }
+    .btn-ghost { background: rgba(255, 255, 255, 0.78) !important; }
+    .seo-toggle { background: rgba(255, 255, 255, 0.88) !important; }
+    .faq-item { background: rgba(255, 255, 255, 0.90) !important; }
+    .hiw-card { background: rgba(255, 255, 255, 0.92) !important; }
+    .status-pill { background: rgba(255, 255, 255, 0.90) !important; }
+    .form-box { background: rgba(255, 255, 255, 0.95) !important; }
+    .back-to-top { background: rgba(255, 255, 255, 0.92) !important; }
   </style>
 
   <!-- ============================================================
