@@ -186,12 +186,19 @@
       }
     }
   
-    /* ── Editorial serif accent ── */
+    /* ── Editorial serif accent ──
+       Re-brand the accent word: the parent h1 sheen sets
+       -webkit-text-fill-color:transparent, so without its own gradient this
+       span inherits the dark sheen instead of the brand colors. */
     h1 .accent-serif {
       font-family: 'Instrument Serif', Georgia, serif;
       font-style: italic;
       font-weight: 400;
       letter-spacing: 0;
+      background: linear-gradient(120deg, #F25A1C 0%, #FF8A5C 42%, #7B61FF 92%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
   </style>
 </body>

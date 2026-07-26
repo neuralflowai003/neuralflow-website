@@ -7,6 +7,12 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
   <meta name="robots" content="noindex, nofollow">
   <meta name="description" content="Book a free 30-minute strategy call with Danny Boehmer. Walk away with a custom AI automation roadmap for your business.">
+
+  <!-- GA4 — /book is linked from the homepage and is a primary conversion
+       page; without this the click-to-submit funnel is invisible -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PGWCHZ95J9"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-PGWCHZ95J9');</script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
@@ -373,7 +379,7 @@
 
     .form-group input::placeholder,
     .form-group textarea::placeholder {
-      color: #9a9890;
+      color: #6f6d66;
     }
 
     .form-row {
@@ -689,7 +695,7 @@
       <div class="expect-col">
         <div style="display:inline-flex;align-items:center;gap:14px;margin-bottom:22px;background:#fff;border:1px solid #E6E4DE;border-radius:100px;padding:8px 20px 8px 8px;box-shadow:0 10px 24px -14px rgba(16,16,20,0.25);">
           <img src="/danny.jpg" alt="Danny Boehmer" width="52" height="52" style="width:52px;height:52px;border-radius:50%;object-fit:cover;" loading="lazy">
-          <span style="font-size:14px;color:#55555F;line-height:1.4;">Your call is with <b style="color:#101014;">Danny Boehmer</b><br><span style="font-size:11.5px;color:#9a9890;">Founder — he builds every system personally</span></span>
+          <span style="font-size:14px;color:#55555F;line-height:1.4;">Your call is with <b style="color:#101014;">Danny Boehmer</b><br><span style="font-size:11.5px;color:#6f6d66;">Founder — he builds every system personally</span></span>
         </div>
         <div class="section-label">✦ What we'll cover</div>
         <h2 class="expect-title">Make the most of<br>your 30 minutes</h2>
@@ -817,9 +823,9 @@
       <p class="footer-copy">© 2026 NeuralFlow AI. All rights reserved.</p>
       <a href="mailto:danny@neuralflowai.io" class="footer-link">danny@neuralflowai.io</a>
     </div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#9a9890;padding:14px 24px;border-top:1px solid rgba(16,16,20,0.08);">
-      <span style="display:inline-flex;align-items:center;gap:7px;color:#9a9890;"><span style="width:6px;height:6px;border-radius:50%;background:#0B9E5E;box-shadow:0 0 8px rgba(11,158,94,0.35);display:inline-block;"></span>All systems operational</span>
-      <span style="color:#9a9890;">/</span>
+    <div style="display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#6f6d66;padding:14px 24px;border-top:1px solid rgba(16,16,20,0.08);">
+      <span style="display:inline-flex;align-items:center;gap:7px;color:#6f6d66;"><span style="width:6px;height:6px;border-radius:50%;background:#0B9E5E;box-shadow:0 0 8px rgba(11,158,94,0.35);display:inline-block;"></span>All systems operational</span>
+      <span style="color:#6f6d66;">/</span>
       <span>ARIA answering 24/7</span>
     </div>
   </footer>
@@ -850,9 +856,16 @@
           body: JSON.stringify({ name, email, scope })
         });
 
-        if (!res.ok) throw new Error('Server error ' + res.status);
+        // /api/contact returns HTTP 200 with {success:false} on validation
+        // or send failures — checking res.ok alone silently loses the lead.
+        let data = {};
+        try { data = await res.json(); } catch (_) {}
+        if (!res.ok || data.success === false) {
+          throw new Error(data.error || ('Server error ' + res.status));
+        }
 
         // Show success
+        if (typeof gtag === 'function') gtag('event', 'strategy_call_requested', { method: 'book_page_form' });
         document.getElementById('formWrapper').style.display = 'none';
         document.getElementById('formSuccess').style.display = 'block';
       } catch (err) {
