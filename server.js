@@ -542,6 +542,43 @@ async function isTimeRangeFree(startISO, endISO) {
   }
 }
 
+// Extract the JSON object following a `BOOK:` command by counting braces, so a
+// brace inside any value (notes are free-form) doesn't defeat the parser and
+// leak the raw BOOK:{...} blob into ARIA's reply. Returns {json, raw} or null.
+function extractBookCommand(text) {
+  const at = text.indexOf('BOOK:{');
+  if (at === -1) return null;
+  const start = at + 'BOOK:'.length;
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < text.length; i++) {
+    const c = text[i];
+    if (esc) { esc = false; continue; }
+    if (c === '\\') { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{') depth++;
+    else if (c === '}') {
+      depth--;
+      if (depth === 0) return { json: text.slice(start, i + 1), raw: text.slice(at, i + 1) };
+    }
+  }
+  return null;
+}
+
+// Capitalized words that commonly follow "I'm"/"this is" but are never names.
+const NON_NAME_WORDS = /^(Looking|Interested|Just|Not|Trying|Hoping|Wondering|Thinking|Ready|Here|Good|Great|Fine|Okay|Sure|Still|Very|Really|Actually|Currently|Definitely|Probably|The|A|An|My|Your|Our|We|They|It|Yes|No|Hi|Hey|Hello|Thanks|Sorry)\b/;
+
+// Future-dated slots from the global cache, falling back to a live fetch.
+// NOTE: a bare `cache?.filter(...) || fetch()` never falls back, because an
+// empty array is truthy — once every cached slot expired, ARIA would tell
+// every visitor "no openings" instead of using the calendar-offline path.
+async function freshCachedSlots() {
+  const now = Date.now();
+  const fresh = globalSlotCache?.filter(s => new Date(s.start).getTime() > now);
+  if (fresh && fresh.length > 0) return fresh;
+  return await getAvailableSlots(14, null);
+}
+
 async function refreshGlobalSlotCache() {
   try {
     // Use allHours=true to find ALL available hours, then pare down with pickDaySlots
@@ -2403,12 +2440,12 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         }
         // Original fallback if inference failed
         if (!slots || slots.length === 0) {
-          slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
+          slots = await freshCachedSlots();
         }
       }
     } else if (userIsFlexible) {
       console.log('📦 Flexible user — using global cache');
-      slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
+      slots = await freshCachedSlots();
       if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
     } else {
       // Default — use conversation cache if fresh, else global cache
@@ -2418,7 +2455,7 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         slots = validCached;
         console.log('📦 Using conversation cache:', slots.length, 'slots');
       } else {
-        slots = globalSlotCache?.filter(s => new Date(s.start) > new Date()) || await getAvailableSlots(14, null);
+        slots = await freshCachedSlots();
         if (slots?.length > 0) conversationSlots.set(convId, { slots, fetchedAt: Date.now() });
       }
     }
@@ -2802,12 +2839,15 @@ ${slotsText}`;
             if (em) { confirmedEmail = em[0]; break; }
           }
         }
-        // Fallback: scan user messages for name patterns
+        // Fallback: scan user messages for name patterns.
+        // Capture is deliberately case-SENSITIVE — the old /i flag defeated the
+        // [A-Z] anchors, so "I'm looking for help" booked a client literally
+        // named "looking for help". Trigger words spell out both cases instead.
         if (!confirmedName) {
           for (const m of messages) {
             if (m.role === 'user') {
-              const nm = m.content.match(/(?:i'?m|my name is|this is|i am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
-              if (nm) { confirmedName = nm[1]; break; }
+              const nm = m.content.match(/(?:[Ii]'?[Mm]|[Mm]y name is|[Tt]his is|[Ii] am)\s+([A-Z][a-z]{1,15}(?:\s+[A-Z][a-z]{1,15}){0,2})/);
+              if (nm && !NON_NAME_WORDS.test(nm[1].trim())) { confirmedName = nm[1].trim(); break; }
             }
           }
         }
@@ -2850,11 +2890,11 @@ ${slotsText}`;
     }
 
     // ── 9. BOOK command parser ────────────────────────────────────────────────
-    const bookMatch = aiReplyText.match(/BOOK:(\{[^{}]*\})/);
+    const bookMatch = extractBookCommand(aiReplyText);
     if (bookMatch) {
       let bookData;
       try {
-        bookData = JSON.parse(bookMatch[1]);
+        bookData = JSON.parse(bookMatch.json);
       } catch (e) {
         console.error('Failed to parse BOOK JSON:', e.message);
         return res.json({ reply: 'Sorry, I had trouble with that. Could you confirm the email address again?', booked: false });
@@ -2911,10 +2951,13 @@ ${slotsText}`;
       if (!slot) {
         console.error(`❌ No slot matched for convId: ${convId}`, bookData);
         sendTelegramAlert(`🚨 ARIA BOOKING MISSED\nNo slot matched.\nClient: ${sanitizeTg(bookData.name)} (${sanitizeTg(bookData.email)})\nRequested: ${sanitizeTg(bookData.slotLabel)}`);
-        aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
+        aiReplyText = aiReplyText.split(bookMatch.raw).join('').replace(/\[start:[^\]]+\]/g, '').trim();
         return res.json({ reply: aiReplyText || "I'm sorry, I couldn't find that time slot. Could you pick another time?", booked: false });
       }
 
+      // Declared out here: the duplicate check below runs after this block,
+      // and a block-scoped `let` would be a ReferenceError at that point.
+      let bookResult;
       if (slot) {
         // Fresh fetch to verify slot is still available
         const exactDate = slot.start.split('T')[0];
@@ -2957,7 +3000,6 @@ ${slotsText}`;
 
         console.log(`📌 Booking confirmed: ${slot.label} | method: ${matchMethod} (Fresh Confirmed)`);
         // Await booking so we know it succeeded before telling the client
-        let bookResult;
         try {
           bookResult = await bookAppointment({
             name: bookData.name, email: bookData.email, company: bookData.company,
@@ -2973,7 +3015,7 @@ ${slotsText}`;
         pendingLeads.delete(convId); savePendingLeads(); // booked — no follow-up needed
       }
 
-      aiReplyText = aiReplyText.replace(/BOOK:\{.*?\}/s, '').replace(/\[start:[^\]]+\]/g, '').trim();
+      aiReplyText = aiReplyText.split(bookMatch.raw).join('').replace(/\[start:[^\]]+\]/g, '').trim();
       if (bookResult?.duplicate) {
         return res.json({ reply: `Good news — you're already booked for that time! Your original calendar invite was sent to ${bookData.email}. Check your inbox (and spam folder). See you then!`, booked: true });
       }
@@ -3199,6 +3241,14 @@ app.post('/api/seo-audit', chatRateLimit, (req, res) => {
 
   if (!website || !name || !email) {
     return res.status(400).json({ error: 'Website, name, and email are required.' });
+  }
+  // Type-check before length: a numeric/object `name` makes `name.length > 200`
+  // undefined>200 === false, passing validation and then throwing on
+  // name.split() AFTER the 200 response was already sent (socket destroyed,
+  // confirmation email never sent).
+  if (typeof website !== 'string' || typeof name !== 'string' || typeof email !== 'string' ||
+      (phone !== undefined && phone !== null && typeof phone !== 'string')) {
+    return res.status(400).json({ error: 'Invalid input.' });
   }
   if (name.length > 200 || email.length > 254 || website.length > 2000 || (phone && phone.length > 30)) {
     return res.status(400).json({ error: 'Input too long.' });
