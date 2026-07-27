@@ -68,6 +68,7 @@ if (process.env.GOOGLE_REFRESH_TOKEN) {
 }
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
+const IS_PROD = process.env.NODE_ENV === 'production';
 const allowedOrigins = [
   'https://neuralflowai.io',
   'https://www.neuralflowai.io',
@@ -76,23 +77,32 @@ const allowedOrigins = [
 if (process.env.NODE_ENV !== 'production') {
   allowedOrigins.push('http://localhost:3000', 'http://localhost:8080');
 }
+// CSP is ENFORCING (was report-only with no report-uri, which neither blocked
+// anything nor collected violations — the policy was inert). Inline script is
+// still allowed because the pages carry substantial inline JS, so this does not
+// stop injected inline handlers; what it does buy is blocking script/frame/
+// object loads from unapproved origins, locking <base> and form targets, and
+// preventing cross-origin framing.
 app.use(helmet({
   contentSecurityPolicy: {
-    reportOnly: true,
+    useDefaults: false,
     directives: {
-      // upgrade-insecure-requests is meaningless in report-only mode and logs a
-      // browser console warning — explicitly disable it
-      upgradeInsecureRequests: null,
+      // Only meaningful over TLS; enabling it locally would break http://localhost
+      ...(IS_PROD ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com", "https://*.googletagmanager.com"],
+      scriptSrcAttr: ["'unsafe-inline'"], // inline on* handlers are used throughout the markup
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https://www.google-analytics.com", "https://images.unsplash.com"],
-      connectSrc: ["'self'", "https://www.google-analytics.com", "https://roi.neuralflowai.io"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://*.google-analytics.com", "https://*.googletagmanager.com", "https://images.unsplash.com"],
+      connectSrc: ["'self'", "https://*.google-analytics.com", "https://*.googletagmanager.com", "https://*.analytics.google.com", "https://roi.neuralflowai.io"],
       frameSrc: ["'none'"],
+      frameAncestors: ["'none'"], // stricter than the X-Frame-Options fallback
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       formAction: ["'self'"],
+      manifestSrc: ["'self'"],
+      workerSrc: ["'self'", "blob:"],
     },
   },
 }));
@@ -150,6 +160,15 @@ app.use((req, res, next) => {
 
 function escapeHtml(str) {
   return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Reject non-strings BEFORE any .length check. An array like ["<300KB blob>"]
+// has .length === 1, so it slips past every size cap and reaches the mail and
+// LLM layers with an arbitrarily large payload (verified: a 300KB `scope`
+// passed a 2000-char limit). Returns true when the value is unusable.
+function badStr(v, max, required) {
+  if (v === undefined || v === null || v === '') return !!required;
+  return typeof v !== 'string' || v.length > max;
 }
 
 function sanitizeTg(str) {
@@ -328,10 +347,27 @@ const mailCounts = new Map(); // recipient(lowercased) -> { count, resetAt }
 let mailGlobalCount = 0, mailGlobalReset = Date.now() + 24 * 60 * 60 * 1000;
 const MAIL_PER_RECIPIENT_DAY = 5;
 const MAIL_GLOBAL_DAY = 500;
+// True when the shared daily budget is spent — distinct from a single
+// recipient hitting their own cap. Callers must not treat this as a permanent
+// suppression, or an attacker who burns the global budget can permanently
+// cancel every queued follow-up.
+let mailGlobalAlerted = false;
+function mailGlobalExhausted() {
+  const now = Date.now();
+  if (now > mailGlobalReset) { mailGlobalCount = 0; mailGlobalReset = now + 24 * 60 * 60 * 1000; mailGlobalAlerted = false; }
+  return mailGlobalCount >= MAIL_GLOBAL_DAY;
+}
 function canSendMail(recipient) {
   const now = Date.now();
-  if (now > mailGlobalReset) { mailGlobalCount = 0; mailGlobalReset = now + 24 * 60 * 60 * 1000; }
-  if (mailGlobalCount >= MAIL_GLOBAL_DAY) return false;
+  if (now > mailGlobalReset) { mailGlobalCount = 0; mailGlobalReset = now + 24 * 60 * 60 * 1000; mailGlobalAlerted = false; }
+  if (mailGlobalCount >= MAIL_GLOBAL_DAY) {
+    // Owner alerts are never gated, so this always reaches Danny.
+    if (!mailGlobalAlerted) {
+      mailGlobalAlerted = true;
+      try { sendTelegramAlert(`🚨 DAILY EMAIL CAP REACHED (${MAIL_GLOBAL_DAY})\nOutgoing client email is suppressed until the counter resets. If this was not expected, the send endpoints may be under abuse.`); } catch (_) {}
+    }
+    return false;
+  }
   const key = String(recipient || '').toLowerCase().trim();
   if (process.env.GMAIL_USER && key === process.env.GMAIL_USER.toLowerCase()) return true; // never gate owner alerts
   const entry = mailCounts.get(key);
@@ -1865,8 +1901,45 @@ app.get('/api/availability', chatRateLimit, async (req, res) => {
   res.json({ slots: await getAvailableSlots(90, date) });
 });
 
+// Booking is unauthenticated by design (visitors book without an account), but
+// each call puts a real event on Danny's calendar and makes his Google account
+// email an invite to a self-declared address. Unbounded, that lets anyone fill
+// the entire bookable window and relay invites to arbitrary third parties.
+const bookingCounts = new Map(); // ip -> { count, resetAt }
+const BOOKINGS_PER_IP_DAY = 3;
+const BOOKINGS_GLOBAL_DAY = 40;
+let bookingGlobalCount = 0, bookingGlobalReset = Date.now() + 24 * 60 * 60 * 1000;
+function bookingQuotaExceeded(ip) {
+  const now = Date.now();
+  if (now > bookingGlobalReset) { bookingGlobalCount = 0; bookingGlobalReset = now + 24 * 60 * 60 * 1000; }
+  if (bookingGlobalCount >= BOOKINGS_GLOBAL_DAY) return 'global';
+  const entry = bookingCounts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    if (bookingCounts.size >= 5000) {
+      for (const [k, v] of bookingCounts.entries()) { if (now > v.resetAt) { bookingCounts.delete(k); break; } }
+    }
+    bookingCounts.set(ip, { count: 0, resetAt: now + 24 * 60 * 60 * 1000 });
+    return null;
+  }
+  if (entry.count >= BOOKINGS_PER_IP_DAY) return 'ip';
+  return null;
+}
+function recordBooking(ip) {
+  const entry = bookingCounts.get(ip);
+  if (entry) entry.count++;
+  bookingGlobalCount++;
+}
+
 app.post('/api/book', chatRateLimit, async (req, res) => {
   const { name, email, slotStart, slotEnd, slotLabel, company, phone, notes } = req.body;
+  const bookIp = clientIp(req);
+  const quota = bookingQuotaExceeded(bookIp);
+  if (quota) {
+    if (quota === 'global') {
+      sendTelegramAlert(`🚨 DAILY BOOKING CAP REACHED (${BOOKINGS_GLOBAL_DAY})\nFurther bookings are blocked until reset. If unexpected, /api/book may be under abuse.`);
+    }
+    return res.status(429).json({ success: false, error: "We've hit today's booking limit. Please email danny@neuralflowai.io and we'll get you scheduled." });
+  }
   if (!name || !email || !slotStart) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
@@ -1877,7 +1950,7 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
   if (isNaN(Date.parse(slotStart))) {
     return res.status(400).json({ success: false, error: 'Invalid slot time.' });
   }
-  if (name.length > 200 || email.length > 254 || (notes && notes.length > 2000)) {
+  if (badStr(name, 200, true) || badStr(email, 254, true) || badStr(notes, 2000, false)) {
     return res.status(400).json({ success: false, error: 'Input too long.' });
   }
   // Enforce the same scheduling rules ARIA follows — without these, a direct
@@ -1899,8 +1972,10 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
   try {
     const result = await bookAppointment({ name, email, slotStart, slotEnd, slotLabel, company: company || '', phone: phone || '', notes: notes || '' });
     if (result?.duplicate) {
+      // Not counted against quota — no new event or invite was created.
       return res.json({ success: true, duplicate: true, message: 'You already have a booking at this time — check your inbox for the original invite.' });
     }
+    recordBooking(bookIp);
     res.json({ success: true });
   } catch (err) {
     console.error('Book endpoint error:', err.message);
@@ -1917,7 +1992,7 @@ app.post('/api/contact', chatRateLimit, async (req, res) => {
   if (!name || !email || !scope) {
     return res.json({ success: false, error: 'Please fill in all fields.' });
   }
-  if (name.length > 200 || scope.length > 2000 || email.length > 254) {
+  if (badStr(name, 200, true) || badStr(scope, 2000, true) || badStr(email, 254, true)) {
     return res.json({ success: false, error: 'Input too long.' });
   }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -1966,7 +2041,7 @@ app.post('/api/accept-proposal', chatRateLimit, async (req, res) => {
   if (!name || !businessName || !email) {
     return res.status(400).json({ ok: false, error: 'Name, Business Name, and Email are required.' });
   }
-  if (name.length > 200 || businessName.length > 300 || email.length > 254 || (phone && phone.length > 30)) {
+  if (badStr(name, 200, true) || badStr(businessName, 300, true) || badStr(email, 254, true) || badStr(phone, 30, false)) {
     return res.status(400).json({ ok: false, error: 'Input too long.' });
   }
 
@@ -3164,6 +3239,11 @@ setInterval(async () => { try {
       // Gate it through canSendMail (per-recipient + global daily caps) so this
       // path can't be abused to email an arbitrary address repeatedly. Mark it
       // followed-up when suppressed so a capped recipient isn't retried forever.
+      // Distinguish the two suppression reasons: a GLOBAL cap is a temporary,
+      // site-wide condition (and is attacker-inducible), so leave the lead
+      // queued for a later pass. Only a per-RECIPIENT cap justifies giving up,
+      // otherwise burning the daily budget permanently kills every follow-up.
+      if (mailGlobalExhausted()) continue;
       if (!canSendMail(lead.email)) { lead.followedUp = true; savePendingLeads(); continue; }
       const firstName = (lead.name || '').split(' ')[0] || 'there';
       const subject = `Still looking for a time, ${firstName}?`;
@@ -3214,7 +3294,7 @@ app.post('/api/roi-lead', chatRateLimit, (req, res) => {
   if (!name || !email || !phone) {
     return res.status(400).json({ error: 'Name, email, and phone are required.' });
   }
-  if (name.length > 200 || email.length > 254 || phone.length > 30 || (industry && industry.length > 100)) {
+  if (badStr(name, 200, true) || badStr(email, 254, true) || badStr(phone, 30, true) || badStr(industry, 100, false)) {
     return res.status(400).json({ error: 'Input too long.' });
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
