@@ -194,60 +194,47 @@ app.get('/robots.txt', (req, res) => {
   );
 });
 
+// Sitemap. lastmod reflects each page's real modification time — stamping
+// today's date on every URL (the previous behaviour) tells Google the whole
+// site changed every single day, which makes it distrust and ignore the
+// signal entirely, wasting crawl budget.
+const SITEMAP_PAGES = [
+  { loc: 'https://neuralflowai.io',                                file: 'index.html',                            changefreq: 'weekly',  priority: '1.0' },
+  { loc: 'https://neuralflowai.io/services',                       file: 'services/index.html',                   changefreq: 'monthly', priority: '0.9' },
+  { loc: 'https://neuralflowai.io/services/ai-consulting',         file: 'services/ai-consulting.html',           changefreq: 'monthly', priority: '0.9' },
+  { loc: 'https://neuralflowai.io/services/ai-receptionist',       file: 'services/ai-receptionist.html',         changefreq: 'monthly', priority: '0.9' },
+  { loc: 'https://neuralflowai.io/services/workflow-automation',   file: 'services/workflow-automation.html',     changefreq: 'monthly', priority: '0.9' },
+  { loc: 'https://neuralflowai.io/services/seo-optimization',      file: 'services/seo-optimization.html',        changefreq: 'monthly', priority: '0.9' },
+  { loc: 'https://neuralflowai.io/services/custom-development',    file: 'services/custom-development.html',      changefreq: 'monthly', priority: '0.9' },
+  { loc: 'https://roi.neuralflowai.io/roi-calculator',             file: null,                                    changefreq: 'monthly', priority: '0.8' },
+];
+// Deploys rewrite mtimes, so fall back to the newest page we can stat rather
+// than to "now" — still honest, and stable between deploys.
+function pageLastmod(file, fallback) {
+  if (!file) return fallback;
+  try {
+    return fs.statSync(path.join(__dirname, file)).mtime.toISOString().split('T')[0];
+  } catch (_) {
+    return fallback;
+  }
+}
+
 app.get('/sitemap.xml', (req, res) => {
-  const now = new Date().toISOString().split('T')[0];
+  const fallback = new Date().toISOString().split('T')[0];
+  const body = SITEMAP_PAGES.map(p =>
+    `  <url>\n` +
+    `    <loc>${p.loc}</loc>\n` +
+    `    <lastmod>${pageLastmod(p.file, fallback)}</lastmod>\n` +
+    `    <changefreq>${p.changefreq}</changefreq>\n` +
+    `    <priority>${p.priority}</priority>\n` +
+    `  </url>\n`
+  ).join('');
   res.type('application/xml');
+  res.set('Cache-Control', 'public, max-age=3600');
   res.send(
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    `  <url>\n` +
-    `    <loc>https://neuralflowai.io</loc>\n` +
-    `    <lastmod>${now}</lastmod>\n` +
-    `    <changefreq>weekly</changefreq>\n` +
-    `    <priority>1.0</priority>\n` +
-    `  </url>\n` +
-    `  <url>\n` +
-    `    <loc>https://neuralflowai.io/services</loc>\n` +
-    `    <lastmod>${now}</lastmod>\n` +
-    `    <changefreq>monthly</changefreq>\n` +
-    `    <priority>0.9</priority>\n` +
-    `  </url>\n` +
-    `  <url>\n` +
-    `    <loc>https://neuralflowai.io/services/ai-consulting</loc>\n` +
-    `    <lastmod>${now}</lastmod>\n` +
-    `    <changefreq>monthly</changefreq>\n` +
-    `    <priority>0.9</priority>\n` +
-    `  </url>\n` +
-    `  <url>\n` +
-    `    <loc>https://neuralflowai.io/services/ai-receptionist</loc>\n` +
-    `    <lastmod>${now}</lastmod>\n` +
-    `    <changefreq>monthly</changefreq>\n` +
-    `    <priority>0.9</priority>\n` +
-    `  </url>\n` +
-    `  <url>\n` +
-    `    <loc>https://neuralflowai.io/services/workflow-automation</loc>\n` +
-    `    <lastmod>${now}</lastmod>\n` +
-    `    <changefreq>monthly</changefreq>\n` +
-    `    <priority>0.9</priority>\n` +
-    `  </url>\n` +
-    `  <url>\n` +
-    `    <loc>https://neuralflowai.io/services/seo-optimization</loc>\n` +
-    `    <lastmod>${now}</lastmod>\n` +
-    `    <changefreq>monthly</changefreq>\n` +
-    `    <priority>0.9</priority>\n` +
-    `  </url>\n` +
-    `  <url>\n` +
-    `    <loc>https://neuralflowai.io/services/custom-development</loc>\n` +
-    `    <lastmod>${now}</lastmod>\n` +
-    `    <changefreq>monthly</changefreq>\n` +
-    `    <priority>0.9</priority>\n` +
-    `  </url>\n` +
-    `  <url>\n` +
-    `    <loc>https://roi.neuralflowai.io/roi-calculator</loc>\n` +
-    `    <lastmod>${now}</lastmod>\n` +
-    `    <changefreq>monthly</changefreq>\n` +
-    `    <priority>0.8</priority>\n` +
-    `  </url>\n` +
+    body +
     `</urlset>\n`
   );
 });
