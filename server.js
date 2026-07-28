@@ -206,6 +206,8 @@ const SITEMAP_PAGES = [
   { loc: 'https://neuralflowai.io/services/workflow-automation',   file: 'services/workflow-automation.html',     changefreq: 'monthly', priority: '0.9' },
   { loc: 'https://neuralflowai.io/services/seo-optimization',      file: 'services/seo-optimization.html',        changefreq: 'monthly', priority: '0.9' },
   { loc: 'https://neuralflowai.io/services/custom-development',    file: 'services/custom-development.html',      changefreq: 'monthly', priority: '0.9' },
+  { loc: 'https://neuralflowai.io/services/ai-receptionist-for-law-firms', file: 'services/ai-receptionist-for-law-firms.html', changefreq: 'monthly', priority: '0.8' },
+  { loc: 'https://neuralflowai.io/ai-consultant-jersey-city-nj',   file: 'ai-consultant-jersey-city-nj.html',      changefreq: 'monthly', priority: '0.8' },
   { loc: 'https://roi.neuralflowai.io/roi-calculator',             file: null,                                    changefreq: 'monthly', priority: '0.8' },
 ];
 // Deploys rewrite mtimes, so fall back to the newest page we can stat rather
@@ -1811,7 +1813,7 @@ app.get('/book', (req, res) => res.sendFile(path.join(__dirname, 'book.html')));
 app.get(['/seo', '/seo.html'], (req, res) => res.redirect(301, '/services/seo-optimization'));
 
 // Service landing pages
-const SERVICE_PAGES = ['ai-consulting', 'ai-receptionist', 'workflow-automation', 'seo-optimization', 'custom-development'];
+const SERVICE_PAGES = ['ai-consulting', 'ai-receptionist', 'workflow-automation', 'seo-optimization', 'custom-development', 'ai-receptionist-for-law-firms'];
 app.get('/services', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(__dirname, 'services', 'index.html'));
@@ -1820,6 +1822,15 @@ SERVICE_PAGES.forEach(slug => {
   app.get(`/services/${slug}`, (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(__dirname, 'services', `${slug}.html`));
+  });
+});
+
+// Local landing pages — top-level slugs so the city and state stay in the URL
+const LOCAL_PAGES = ['ai-consultant-jersey-city-nj'];
+LOCAL_PAGES.forEach(slug => {
+  app.get(`/${slug}`, (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(__dirname, `${slug}.html`));
   });
 });
 
