@@ -134,6 +134,31 @@
     .lp-footer a:hover{color:#101014}
 
     @media(max-width:768px){
+      /* Sub-44px touch targets: breadcrumb, logo, nav CTA, row CTAs, footer. */
+      .crumbs a, .lp-logo, .lp-nav-cta, .service-row-cta, .lp-footer a {
+        min-height: 44px; display: inline-flex; align-items: center;
+      }
+      .crumbs a, .lp-footer a { margin-top: -11px; margin-bottom: -11px; }
+
+      /* Mobile nav: links were hidden below 768px with nothing to replace
+         them, so a phone visitor could only reach the CTA — every other page
+         was unreachable without going home first. Real drawer instead. */
+      .lp-burger{display:flex !important;flex-direction:column;justify-content:center;gap:5px;width:44px;height:44px;background:none;border:none;cursor:pointer;padding:10px;margin-right:-10px}
+      .lp-burger span{display:block;height:2px;width:100%;background:#101014;border-radius:2px;transition:transform .3s,opacity .3s}
+      .lp-burger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+      .lp-burger.open span:nth-child(2){opacity:0}
+      .lp-burger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+      .lp-drawer{position:fixed;inset:0;z-index:200;display:none}
+      .lp-drawer.open{display:block}
+      .lp-drawer-veil{position:absolute;inset:0;background:rgba(250,250,247,.55);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+      .lp-drawer-panel{position:absolute;top:0;right:0;height:100%;width:min(300px,84vw);background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-left:1px solid var(--border);box-shadow:-24px 0 60px -30px rgba(16,16,20,.35);padding:22px 22px 32px;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.16,1,.3,1)}
+      .lp-drawer.open .lp-drawer-panel{transform:translateX(0)}
+      .lp-drawer-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}
+      .lp-drawer-close{width:44px;height:44px;margin-right:-10px;background:none;border:none;font-size:22px;line-height:1;color:#55555F;cursor:pointer}
+      .lp-drawer-panel a.dl{display:flex;align-items:center;min-height:52px;font-family:'Space Grotesk',sans-serif;font-size:1.02rem;font-weight:600;color:#101014;border-bottom:1px solid rgba(16,16,20,.07)}
+      .lp-drawer-panel a.dl:active{color:#F25A1C}
+      .lp-drawer-cta{margin-top:auto;display:flex;align-items:center;justify-content:center;min-height:52px;background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;border-radius:14px;box-shadow:0 14px 30px -12px rgba(242,90,28,.5)}
+
       .features-grid,.for-grid{grid-template-columns:1fr}
       .lp-nav-links a:not(.lp-nav-cta){display:none}
       .lp-ctas{flex-direction:column;align-items:stretch}
@@ -150,12 +175,13 @@
         <a href="/#seo">SEO</a>
         <a href="/#about">About</a>
         <a href="/#contact" class="lp-nav-cta">Get a Free SEO Audit</a>
+        <button class="lp-burger" id="lpBurger" aria-label="Open menu" style="display:none"><span></span><span></span><span></span></button>
       </div>
     </div>
   </nav>
 
   <div style="padding:12px 0;border-bottom:1px solid #E6E4DE;background:rgba(255,255,255,0.6);">
-    <div class="container" style="font-size:0.78rem;color:#6f6d66;display:flex;align-items:center;gap:6px;">
+    <div class="container crumbs" style="font-size:0.78rem;color:#6f6d66;display:flex;align-items:center;gap:6px;">
       <a href="/" style="color:#55555F;transition:color 0.2s;" onmouseover="this.style.color='#F25A1C'" onmouseout="this.style.color='#55555F'">Home</a>
       <span style="color:rgba(16,16,20,0.2);">/</span>
       <a href="/services" style="color:#55555F;transition:color 0.2s;" onmouseover="this.style.color='#F25A1C'" onmouseout="this.style.color='#55555F'">Services</a>
@@ -364,5 +390,34 @@
     }
     @view-transition { navigation: auto; }
   </style>
+
+  <div class="lp-drawer" id="lpDrawer" aria-hidden="true">
+    <div class="lp-drawer-veil" data-close></div>
+    <div class="lp-drawer-panel" role="dialog" aria-label="Menu">
+      <div class="lp-drawer-top">
+        <span class="lp-logo">NeuralFlow</span>
+        <button class="lp-drawer-close" aria-label="Close menu" data-close>&#10005;</button>
+      </div>
+      <a class="dl" href="/">Home</a>
+      <a class="dl" href="/services">Services</a>
+      <a class="dl" href="/services/ai-receptionist">AI Receptionist</a>
+      <a class="dl" href="/services/seo-optimization">SEO</a>
+      <a class="dl" href="/#work">Work</a>
+      <a class="dl" href="/#about">About</a>
+      <a class="lp-drawer-cta" href="/#contact">Book a Free Call &rarr;</a>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var d=document.getElementById('lpDrawer'), b=document.getElementById('lpBurger');
+    if(!d||!b) return;
+    function open(){ d.classList.add('open'); b.classList.add('open'); d.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; }
+    function close(){ d.classList.remove('open'); b.classList.remove('open'); d.setAttribute('aria-hidden','true'); document.body.style.overflow=''; }
+    b.addEventListener('click', function(){ d.classList.contains('open')?close():open(); });
+    d.addEventListener('click', function(e){ if(e.target.hasAttribute('data-close')) close(); });
+    d.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', close); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'&&d.classList.contains('open')) close(); });
+  })();
+  </script>
 </body>
 </html>

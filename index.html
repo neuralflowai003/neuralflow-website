@@ -8691,6 +8691,55 @@
     }
   </style>
 
+  <!-- ============================================================
+       MOBILE POLISH — measured fixes, last in <head> so it wins the
+       cascade without adding a body stylesheet (which would reintroduce
+       the post-paint layout shift fixed earlier).
+       ============================================================ -->
+  <style>
+    @media (max-width: 768px) {
+      /* 1. The hero opened with 120px of padding plus 134px of measured dead
+            space before the first element — 16% of an 844px screen spent on
+            nothing. Reclaim it so the headline and CTA land higher. */
+      .hero { padding-top: 68px !important; }
+      .hero .badge { margin-bottom: 18px !important; }
+
+      /* 2. The dot rail is a desktop scroll-spy. On a phone it cannot be
+            aimed at, and it sits over content near the right edge. */
+      .dot-rail { display: none !important; }
+
+      /* 3. Word-reveal staggered 35ms per word. Across a tall mobile block
+            you scroll past mid-stagger and the copy reads half-grey, like
+            broken text. Reveal as one block instead. */
+      .word-reveal .wr-word { transition-delay: 0s !important; }
+
+      /* 4. The page ran ~21 screens. Trim the heaviest vertical padding —
+            no content removed, just less air between bands. */
+      section, .stats-section { padding-top: 52px !important; padding-bottom: 52px !important; }
+      .manifesto-section, #manifesto { padding-top: 44px !important; padding-bottom: 44px !important; }
+      #story60 { padding-top: 44px !important; padding-bottom: 44px !important; }
+      .cta-band-section { padding-top: 48px !important; padding-bottom: 48px !important; }
+      footer { padding-top: 40px !important; }
+
+      /* 5. Remaining sub-44px touch targets: the 16 footer-nav links, the
+            demos link, and the chat header controls. Padding is absorbed by
+            negative margin so nothing moves visually. */
+      /* .skip-link is intentionally excluded: it is visually hidden until
+         keyboard focus, so it is never a touch target. */
+      nav .logo, .nav-link.magnetic,
+      .fnav-col a, .footer-meta a, .demos-cta, a.demos-cta {
+        min-height: 44px; display: inline-flex; align-items: center;
+        margin-top: -11px; margin-bottom: -11px;
+      }
+      .chat-mute-btn, .chat-close { min-width: 44px; min-height: 44px; }
+
+      /* 6. Four floating elements competed for a 390px screen. Keep the chat
+            button primary and tuck the back-to-top out of its way. */
+      .back-to-top { width: 40px !important; height: 40px !important; left: 16px !important; bottom: 16px !important; }
+    }
+  </style>
+
+
 </head>
 
 <body data-cursor="default">
