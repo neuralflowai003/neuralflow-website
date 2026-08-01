@@ -241,10 +241,24 @@ app.get('/sitemap.xml', (req, res) => {
   );
 });
 
+const ADMIN_LOGIN_HTML = `<!DOCTYPE html><html><head><title>NeuralFlow Bookings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#FAFAF7;color:#101014;font-family:-apple-system,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}form{background:#fff;padding:40px;border-radius:16px;border:1px solid #E6E4DE;box-shadow:0 24px 50px -32px rgba(16,16,20,.25);text-align:center;width:min(360px,90vw)}h2{margin:0 0 20px;font-size:20px}input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid #E6E4DE;background:#F3F2EE;color:#101014;font-size:16px;margin-bottom:12px}button{width:100%;padding:14px;background:linear-gradient(135deg,#FF6B2B,#7B61FF);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}</style></head><body><form method="POST" action="/bookings/login"><h2>NeuralFlow Bookings</h2><input type="password" name="p" placeholder="Password" autofocus autocomplete="current-password"><button type="submit">View Bookings</button></form></body></html>`;
+
+// Password is POSTed, never placed in a URL.
+app.post('/bookings/login', adminRateLimit, express.urlencoded({ extended: false }), (req, res) => {
+  const pw = process.env.BOOKINGS_PASSWORD;
+  res.setHeader('Cache-Control', 'no-store');
+  if (!pw || !safeEqual(pw, req.body && req.body.p)) return res.status(401).send(ADMIN_LOGIN_HTML);
+  setAdminCookie(res);
+  return res.redirect(302, '/bookings');
+});
+
 app.get('/bookings', adminRateLimit, (req, res) => {
-  const pass = process.env.BOOKINGS_PASSWORD;
-  if (!safeEqual(pass, req.query.p)) {
-    return res.send(`<!DOCTYPE html><html><head><title>NeuralFlow Bookings</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:#06060b;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh}form{background:#13131a;padding:40px;border-radius:12px;border:1px solid rgba(255,255,255,0.08);text-align:center}h2{color:#fff;margin:0 0 20px;font-size:20px}input{width:100%;padding:12px 16px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#0a0a0f;color:#fff;font-size:14px;margin-bottom:12px}button{width:100%;padding:12px;background:#FF6B2B;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer}</style></head><body><form method="GET"><h2>NeuralFlow Bookings</h2><input type="password" name="p" placeholder="Password" autofocus><button type="submit">View Bookings</button></form></body></html>`);
+  const auth = adminAuth(req, res);
+  if (auth === 'redirected') return;
+  // Client PII — never let a proxy or browser cache this response.
+  res.setHeader('Cache-Control', 'no-store');
+  if (!auth) {
+    return res.status(401).send(ADMIN_LOGIN_HTML);
   }
   let bookings = [];
   try { bookings = JSON.parse(fs.readFileSync(BOOKINGS_LOG, 'utf8')); } catch {}
@@ -271,7 +285,7 @@ app.get('/bookings', adminRateLimit, (req, res) => {
 });
 
 app.get('/api/test', adminRateLimit, async (req, res) => {
-  if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
+  { const a = adminAuth(req, res); if (a === 'redirected') return; if (!a) return res.status(401).json({ error: 'Unauthorized' }); }
 
   const results = {};
 
@@ -464,7 +478,15 @@ try {
   }
 } catch (e) { console.error('⚠️ Could not load pending-leads.json:', e.message); }
 
+// The full map was written synchronously on every lead-bearing request, which
+// blocks the event loop for every other visitor. Coalesce into one write.
+let pendingSaveTimer = null;
 function savePendingLeads() {
+  if (pendingSaveTimer) return;
+  pendingSaveTimer = setTimeout(() => { pendingSaveTimer = null; flushPendingLeads(); }, 1500);
+  if (pendingSaveTimer.unref) pendingSaveTimer.unref();
+}
+function flushPendingLeads() {
   try {
     const obj = {};
     for (const [k, v] of pendingLeads.entries()) obj[k] = v;
@@ -474,6 +496,82 @@ function savePendingLeads() {
     fs.writeFileSync(tmp, JSON.stringify(obj, null, 2));
     fs.renameSync(tmp, PENDING_LEADS_FILE);
   } catch (e) { console.error('⚠️ Could not save pending-leads.json:', e.message); }
+}
+
+// ─── Proposal links ───────────────────────────────────────────────────────────
+// PROPOSAL_SECRET used to be a single, never-expiring token shared by every
+// proposal ever sent, and the accepted amount came straight from the URL. Any
+// past client (or anyone forwarded a link) could therefore forge an acceptance
+// for an arbitrary business at an arbitrary price, firing a real Telegram alert
+// and a welcome email from danny@ to any address. Tokens are now bound by HMAC
+// to the specific proposal fields and carry an expiry, so the payload cannot be
+// swapped and old links age out.
+function proposalToken(businessName, email, amount, fee, expMs) {
+  const payload = [String(businessName || ''), String(email || '').toLowerCase(), String(amount || '0'), String(fee || '0'), String(expMs)].join('|');
+  const sig = crypto.createHmac('sha256', String(process.env.PROPOSAL_SECRET || '')).update(payload).digest('hex').slice(0, 32);
+  return expMs + '.' + sig;
+}
+function validProposalToken(tok, businessName, email, amount, fee) {
+  if (typeof tok !== 'string' || tok.indexOf('.') === -1) return false;
+  const exp = Number(tok.split('.')[0]);
+  if (!Number.isFinite(exp) || Date.now() > exp) return false;
+  return safeEqual(proposalToken(businessName, email, amount, fee, exp), tok);
+}
+
+// ─── Admin sessions ───────────────────────────────────────────────────────────
+// The password used to travel in ?p=, which lands verbatim in Railway access
+// logs, browser history, bookmark sync and any pasted/screenshotted URL. It is
+// now exchanged once for a signed, httpOnly cookie; the query form still works
+// so existing bookmarks do not break, but it immediately redirects to a clean
+// URL so the secret is not left sitting in the address bar or Referer.
+const ADMIN_COOKIE = 'nf_admin';
+const ADMIN_TTL_MS = 12 * 60 * 60 * 1000;
+
+function adminSecret() {
+  return String(process.env.BOOKINGS_PASSWORD || '') + '|' + String(process.env.PROPOSAL_SECRET || 'nf');
+}
+function mintAdminToken() {
+  const exp = Date.now() + ADMIN_TTL_MS;
+  const sig = crypto.createHmac('sha256', adminSecret()).update('admin.' + exp).digest('hex');
+  return exp + '.' + sig;
+}
+function validAdminToken(tok) {
+  if (typeof tok !== 'string' || tok.indexOf('.') === -1) return false;
+  const [expStr, sig] = tok.split('.');
+  const exp = Number(expStr);
+  if (!Number.isFinite(exp) || Date.now() > exp) return false;
+  const want = crypto.createHmac('sha256', adminSecret()).update('admin.' + exp).digest('hex');
+  return safeEqual(want, sig);
+}
+function readCookie(req, name) {
+  const raw = req.headers.cookie;
+  if (!raw) return null;
+  for (const part of raw.split(';')) {
+    const i = part.indexOf('=');
+    if (i === -1) continue;
+    if (part.slice(0, i).trim() === name) return decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return null;
+}
+function setAdminCookie(res) {
+  const flags = ['Path=/', 'HttpOnly', 'SameSite=Strict', 'Max-Age=' + Math.floor(ADMIN_TTL_MS / 1000)];
+  if (IS_PROD) flags.push('Secure');
+  res.setHeader('Set-Cookie', `${ADMIN_COOKIE}=${encodeURIComponent(mintAdminToken())}; ` + flags.join('; '));
+}
+// Returns true when the request is authenticated. If the caller supplied the
+// password in the query string, a cookie is set and the request is redirected
+// to the same path without it.
+function adminAuth(req, res) {
+  if (validAdminToken(readCookie(req, ADMIN_COOKIE))) return true;
+  const pw = process.env.BOOKINGS_PASSWORD;
+  if (pw && safeEqual(pw, req.query.p)) {
+    setAdminCookie(res);
+    const clean = req.path;
+    res.setHeader('Cache-Control', 'no-store');
+    res.redirect(302, clean);
+    return 'redirected';
+  }
+  return false;
 }
 
 // ─── Bookings write lock (prevents concurrent write corruption) ───────────────
@@ -502,7 +600,28 @@ function flushBookingQueue() {
 }
 
 // ─── Telegram Alert Helper ────────────────────────────────────────────────────
+// Telegram throttles a chat around 20 msg/min. Unauthenticated endpoints can
+// each emit an alert, so a flood would push genuine BOOKING / NO-SHOW / CRASH
+// notices out of the window. Identical alerts are collapsed within a short
+// window, and a hard per-minute ceiling protects the channel.
+const tgRecent = new Map(); // fingerprint -> lastSentAt
+let tgMinuteCount = 0, tgMinuteReset = Date.now() + 60000;
+const TG_MAX_PER_MIN = 18;
+function tgAllowed(msg) {
+  const now = Date.now();
+  if (now > tgMinuteReset) { tgMinuteCount = 0; tgMinuteReset = now + 60000; }
+  const fp = String(msg).slice(0, 80);
+  const last = tgRecent.get(fp);
+  if (last && now - last < 60000) return false;          // duplicate within a minute
+  if (tgMinuteCount >= TG_MAX_PER_MIN) return false;      // channel ceiling
+  if (tgRecent.size > 500) tgRecent.clear();
+  tgRecent.set(fp, now);
+  tgMinuteCount++;
+  return true;
+}
+
 function sendTelegramAlert(msg, attempt = 0) {
+  if (attempt === 0 && !tgAllowed(msg)) return;
   const tgToken = process.env.TELEGRAM_BOT_TOKEN;
   const tgChat = process.env.TELEGRAM_CHAT_ID;
   if (!tgToken || !tgChat) { console.error('⚠️ Telegram not configured — alert dropped:', msg); return; }
@@ -1783,7 +1902,7 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 app.get('/oauth/start', adminRateLimit, (req, res) => {
-  if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).send('Unauthorized');
+  { const a = adminAuth(req, res); if (a === 'redirected') return; if (!a) return res.status(401).send('Unauthorized'); }
   const state = crypto.randomBytes(24).toString('hex');
   oauthStates.set(state, Date.now() + 10 * 60 * 1000); // 10 min to complete
   res.redirect(oauth2Client.generateAuthUrl({ access_type: 'offline', prompt: 'consent', state, scope: ['https://www.googleapis.com/auth/calendar'] }));
@@ -1837,7 +1956,7 @@ LOCAL_PAGES.forEach(slug => {
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/api/test-email', adminRateLimit, async (req, res) => {
-  if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
+  { const a = adminAuth(req, res); if (a === 'redirected') return; if (!a) return res.status(401).json({ error: 'Unauthorized' }); }
   const results = { RESEND_API_KEY: process.env.RESEND_API_KEY ? 'SET' : 'MISSING' };
   try {
     const r = await fetch('https://api.resend.com/emails', {
@@ -1855,7 +1974,7 @@ app.get('/api/test-email', adminRateLimit, async (req, res) => {
 
 // ── Test booking emails (fires real email templates with dummy data) ───────────
 app.get('/api/test-booking-email', adminRateLimit, async (req, res) => {
-  if (!safeEqual(process.env.BOOKINGS_PASSWORD, req.query.p)) return res.status(401).json({ error: 'Unauthorized' });
+  { const a = adminAuth(req, res); if (a === 'redirected') return; if (!a) return res.status(401).json({ error: 'Unauthorized' }); }
   const slotStart = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
   const slotEnd   = new Date(Date.now() + 49 * 60 * 60 * 1000).toISOString();
   try {
@@ -2028,12 +2147,35 @@ app.post('/api/contact', chatRateLimit, async (req, res) => {
   res.json({ success: true });
 });
 
+// Mints a proposal link bound to this exact client and price.
+app.get('/admin/proposal-link', adminRateLimit, (req, res) => {
+  const a = adminAuth(req, res);
+  if (a === 'redirected') return;
+  res.setHeader('Cache-Control', 'no-store');
+  if (!a) return res.status(401).json({ error: 'Unauthorized' });
+  const { client = '', email = '', amount = '0', fee = '0', days = '14' } = req.query;
+  if (!client || !email) return res.status(400).json({ error: 'client and email are required' });
+  const dayCount = Math.min(Math.max(parseInt(days, 10) || 14, 1), 90);
+  const exp = Date.now() + dayCount * 24 * 60 * 60 * 1000;
+  const tok = proposalToken(client, email, amount, fee, exp);
+  const url = `https://neuralflowai.io/accept?client=${encodeURIComponent(client)}&amount=${encodeURIComponent(amount)}&fee=${encodeURIComponent(fee)}&t=${encodeURIComponent(tok)}`;
+  res.json({ url, expires: new Date(exp).toISOString(), boundTo: { client, email, amount, fee } });
+});
+
 app.post('/api/accept-proposal', chatRateLimit, async (req, res) => {
   const { name, businessName, email, phone, amount, fee, token } = req.body;
 
   const proposalSecret = process.env.PROPOSAL_SECRET;
-  if (!safeEqual(proposalSecret, token)) {
-    return res.status(403).json({ ok: false, error: 'Invalid proposal link. Please use the link sent to you by Danny.' });
+  const boundOk = validProposalToken(token, businessName, email, amount, fee);
+  // Legacy links (one shared secret, no binding) keep working only while
+  // PROPOSAL_ALLOW_LEGACY=1 is set, so outstanding proposals are not broken
+  // overnight — but each use raises an alert so they can be reissued.
+  const legacyOk = process.env.PROPOSAL_ALLOW_LEGACY === '1' && proposalSecret && safeEqual(proposalSecret, token);
+  if (!boundOk && !legacyOk) {
+    return res.status(403).json({ ok: false, error: 'Invalid or expired proposal link. Please ask Danny for a fresh link.' });
+  }
+  if (!boundOk && legacyOk) {
+    sendTelegramAlert(`⚠️ LEGACY PROPOSAL LINK USED\n${sanitizeTg(businessName)} (${sanitizeTg(email)})\nThis link is not bound to the proposal. Reissue via /admin/proposal-link and unset PROPOSAL_ALLOW_LEGACY.`);
   }
 
   if (!name || !businessName || !email) {
@@ -3561,9 +3703,26 @@ async function registerTelegramWebhook() {
   } catch (e) { console.error('⚠️ Telegram webhook registration failed:', e.message); }
 }
 
+// A debounced write must never outlive the process — flush on any exit path so
+// a restart or deploy cannot drop captured leads.
+let flushedOnExit = false;
+function flushOnExit() {
+  if (flushedOnExit) return;
+  flushedOnExit = true;
+  try { flushPendingLeads(); } catch (_) {}
+}
+process.on('SIGTERM', () => { flushOnExit(); setTimeout(() => process.exit(0), 300).unref(); });
+process.on('SIGINT', () => { flushOnExit(); setTimeout(() => process.exit(0), 300).unref(); });
+process.on('exit', flushOnExit);
+
 process.on('uncaughtException', (err) => {
   console.error('💥 Uncaught Exception:', err.message, err.stack);
-  sendTelegramAlert('🚨 SERVER CRASH\nuncaughtException: ' + err.message);
+  sendTelegramAlert('🚨 SERVER CRASH\nuncaughtException: ' + err.message + '\nRestarting.');
+  // Continuing after an uncaught throw means serving from indeterminate state
+  // (half-written files, dangling handles). Exit and let the platform restart
+  // clean; the delay gives the alert time to leave.
+  flushOnExit();
+  setTimeout(() => process.exit(1), 1500).unref();
 });
 process.on('unhandledRejection', (reason) => {
   console.error('💥 Unhandled Rejection:', reason);
