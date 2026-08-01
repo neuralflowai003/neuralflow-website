@@ -498,6 +498,37 @@ function flushPendingLeads() {
   } catch (e) { console.error('⚠️ Could not save pending-leads.json:', e.message); }
 }
 
+// ─── Paid-API spend guard ─────────────────────────────────────────────────────
+// /api/chat reaches paid models. Per-IP limiting alone is weak: an IPv6 client
+// controls a whole /64, so "30/min per IP" is effectively unlimited. These are
+// process-wide ceilings that hold regardless of how many source addresses an
+// attacker rotates through.
+const AI_CALLS_PER_MIN = 40;      // burst ceiling across every visitor
+const AI_CALLS_PER_DAY = 1500;    // daily circuit breaker
+let aiMinuteCount = 0, aiMinuteReset = Date.now() + 60000;
+let aiDayCount = 0, aiDayReset = Date.now() + 24 * 60 * 60 * 1000;
+let aiDayAlerted = false;
+
+function aiBudgetState() {
+  const now = Date.now();
+  if (now > aiMinuteReset) { aiMinuteCount = 0; aiMinuteReset = now + 60000; }
+  if (now > aiDayReset) { aiDayCount = 0; aiDayReset = now + 24 * 60 * 60 * 1000; aiDayAlerted = false; }
+  if (aiDayCount >= AI_CALLS_PER_DAY) {
+    if (!aiDayAlerted) {
+      aiDayAlerted = true;
+      sendTelegramAlert(`🚨 DAILY AI CALL CAP REACHED (${AI_CALLS_PER_DAY})\nARIA is replying without the model until reset. If unexpected, /api/chat may be under abuse.`);
+    }
+    return 'day';
+  }
+  if (aiMinuteCount >= AI_CALLS_PER_MIN) return 'minute';
+  return null;
+}
+function recordAiCall() { aiMinuteCount++; aiDayCount++; }
+
+// Total conversation size, not just per-message. The per-message cap of 4000
+// still allowed 60 x 4000 = 240KB (~60k tokens) of billable input per request.
+const MAX_CONVO_CHARS = 12000;
+
 // ─── Proposal links ───────────────────────────────────────────────────────────
 // PROPOSAL_SECRET used to be a single, never-expiring token shared by every
 // proposal ever sent, and the accepted amount came straight from the URL. Any
@@ -2311,6 +2342,10 @@ app.post('/api/chat', chatRateLimit, async (req, res) => {
         return res.status(400).json({ error: 'Invalid message role' });
       }
     }
+    const totalChars = messages.reduce((n, m) => n + m.content.length, 0);
+    if (totalChars > MAX_CONVO_CHARS) {
+      return res.status(413).json({ error: 'Conversation too large. Please start a new chat.' });
+    }
     const convId = (typeof conversationId === 'string' ? conversationId : 'default').slice(0, 100);
 
     const lastUserMsgRaw = [...messages].reverse().find(m => m.role === 'user')?.content || '';
@@ -2933,6 +2968,13 @@ ${slotsText}`;
     let aiReplyText = '';
     try {
       let resAnthropic;
+      const budget = aiBudgetState();
+      if (budget) {
+        // Answer like a receptionist and capture the lead rather than
+        // surfacing an error or spending past the ceiling.
+        return res.json({ reply: aiDownReply(messages, convId), booked: false });
+      }
+      recordAiCall();
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
           const controller = new AbortController();
@@ -3733,8 +3775,16 @@ app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, '404.html'));
 });
 
-app.listen(port, () => {
+const httpServer = app.listen(port, () => {
   console.log(`Server running on ${port}`);
+  // Socket timeouts. Without these a slowloris client can hold connections
+  // open indefinitely by dribbling headers, exhausting the server with almost
+  // no bandwidth. Node's defaults leave requestTimeout effectively unbounded
+  // for this workload.
+  httpServer.headersTimeout = 20000;   // must finish sending headers
+  httpServer.requestTimeout = 30000;   // must finish the whole request
+  httpServer.keepAliveTimeout = 15000; // idle keep-alive sockets are reaped
+  httpServer.setTimeout(45000);
   // Self-ping every 4 minutes to prevent Railway cold starts
   setInterval(() => {
     const pingReq = https.get('https://neuralflowai.io/api/availability', { timeout: 8000 }, (res) => {
