@@ -498,6 +498,32 @@ function flushPendingLeads() {
   } catch (e) { console.error('⚠️ Could not save pending-leads.json:', e.message); }
 }
 
+// ─── Global request backstop ──────────────────────────────────────────────────
+// Per-IP limiting is only as trustworthy as the proxy chain: req.ip derives
+// from X-Forwarded-For, and a misconfigured or absent proxy lets a client
+// present any address it likes (verified — 45 requests with rotating spoofed
+// XFF values never tripped the per-IP limiter). An attacker with a botnet or an
+// IPv6 /64 defeats per-IP limiting anyway. This ceiling is keyed on nothing at
+// all, so no amount of address rotation gets past it. It sits far above real
+// traffic for this site and only caps the blast radius of a flood.
+const globalBuckets = new Map(); // name -> { count, resetAt }
+function globalLimit(name, maxPerMin) {
+  return function (req, res, next) {
+    const now = Date.now();
+    let b = globalBuckets.get(name);
+    if (!b || now > b.resetAt) { b = { count: 0, resetAt: now + 60000, alerted: false }; globalBuckets.set(name, b); }
+    if (b.count >= maxPerMin) {
+      if (!b.alerted) {
+        b.alerted = true;
+        sendTelegramAlert(`🚨 GLOBAL RATE CEILING HIT (${name}: ${maxPerMin}/min)\nRequests are being shed site-wide. This usually means an automated flood.`);
+      }
+      return res.status(429).json({ error: 'Server is busy. Please try again shortly.' });
+    }
+    b.count++;
+    next();
+  };
+}
+
 // ─── Paid-API spend guard ─────────────────────────────────────────────────────
 // /api/chat reaches paid models. Per-IP limiting alone is weak: an IPv6 client
 // controls a whole /64, so "30/min per IP" is effectively unlimited. These are
@@ -2041,7 +2067,7 @@ app.get('/api/test-booking-email', adminRateLimit, async (req, res) => {
   }
 });
 
-app.get('/api/availability', chatRateLimit, async (req, res) => {
+app.get('/api/availability', globalLimit('availability', 180), chatRateLimit, async (req, res) => {
   const date = req.query.date || null;
   if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
@@ -2078,7 +2104,7 @@ function recordBooking(ip) {
   bookingGlobalCount++;
 }
 
-app.post('/api/book', chatRateLimit, async (req, res) => {
+app.post('/api/book', globalLimit('book', 30), chatRateLimit, async (req, res) => {
   const { name, email, slotStart, slotEnd, slotLabel, company, phone, notes } = req.body;
   const bookIp = clientIp(req);
   const quota = bookingQuotaExceeded(bookIp);
@@ -2134,7 +2160,7 @@ app.post('/api/book', chatRateLimit, async (req, res) => {
   }
 });
 
-app.post('/api/contact', chatRateLimit, async (req, res) => {
+app.post('/api/contact', globalLimit('contact', 40), chatRateLimit, async (req, res) => {
   const { name, email, scope } = req.body;
 
   if (!name || !email || !scope) {
@@ -2193,7 +2219,7 @@ app.get('/admin/proposal-link', adminRateLimit, (req, res) => {
   res.json({ url, expires: new Date(exp).toISOString(), boundTo: { client, email, amount, fee } });
 });
 
-app.post('/api/accept-proposal', chatRateLimit, async (req, res) => {
+app.post('/api/accept-proposal', globalLimit('accept', 20), chatRateLimit, async (req, res) => {
   const { name, businessName, email, phone, amount, fee, token } = req.body;
 
   const proposalSecret = process.env.PROPOSAL_SECRET;
@@ -2326,7 +2352,7 @@ function aiDownReply(messages, convId) {
   return "I'm having a brief technical hiccup on my end — but I don't want to lose you! Drop your name and email right here and Danny will personally follow up within a few hours to get you scheduled.";
 }
 
-app.post('/api/chat', chatRateLimit, async (req, res) => {
+app.post('/api/chat', globalLimit('chat', 120), chatRateLimit, async (req, res) => {
   try {
     const { messages, conversationId, clientTimezone } = req.body;
     if (!messages || !Array.isArray(messages) || messages.length === 0) return res.status(400).json({ error: 'Messages required' });
@@ -3470,7 +3496,7 @@ setInterval(async () => { try {
 }, 15 * 60 * 1000);
 
 // ─── ROI Calculator Lead Capture ──────────────────────────────────────────────
-app.post('/api/roi-lead', chatRateLimit, (req, res) => {
+app.post('/api/roi-lead', globalLimit('roi-lead', 40), chatRateLimit, (req, res) => {
   const { name, email, phone, roi, industry } = req.body || {};
 
   if (!name || !email || !phone) {
@@ -3498,7 +3524,7 @@ app.post('/api/roi-lead', chatRateLimit, (req, res) => {
 });
 
 // ─── SEO Audit Lead Capture ──────────────────────────────────────────────────
-app.post('/api/seo-audit', chatRateLimit, (req, res) => {
+app.post('/api/seo-audit', globalLimit('seo-audit', 40), chatRateLimit, (req, res) => {
   const { website, name, email, phone } = req.body || {};
 
   if (!website || !name || !email) {
@@ -3560,7 +3586,7 @@ app.post('/api/seo-audit', chatRateLimit, (req, res) => {
 });
 
 // ─── ROI Calculator Tracking ──────────────────────────────────────────────────
-app.post('/api/track', chatRateLimit, (req, res) => {
+app.post('/api/track', globalLimit('track', 120), chatRateLimit, (req, res) => {
   const { event, data } = req.body || {};
   if (typeof event !== 'string' || event.length > 100) return res.status(400).json({ error: 'Invalid event.' });
   const ALLOWED_EVENTS = ['roi_calculated', 'aria_handoff', 'roi_form_started', 'roi_form_step'];
