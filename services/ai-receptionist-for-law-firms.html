@@ -283,6 +283,39 @@
     }
     @view-transition { navigation: auto; }
   </style>
+
+  <!-- LIQUID GLASS — iOS 27 material on the floating layer. Head-only,
+       @supports-gated, contrast-safe, reduced-transparency fallback.
+       See index.html for the full rationale. -->
+  <style>
+  @supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+    :root{ --lg-tint:0.74; --lg-blur:16px; --lg-spec:0.88; --lg-edge:0.14; }
+    .lp-nav, .lp-drawer-panel, .intake-win, .local-card, .seo-search-mock {
+      background:
+        linear-gradient(120deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 34%),
+        linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.14)),
+        rgba(255,255,255, var(--lg-tint)) !important;
+      -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(185%) !important;
+      backdrop-filter: blur(var(--lg-blur)) saturate(185%) !important;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255, var(--lg-spec)),
+        inset 0 -1px 0 rgba(16,16,20,0.06),
+        0 0 0 0.5px rgba(16,16,20, var(--lg-edge)),
+        0 22px 48px -26px rgba(16,16,20,0.40) !important;
+    }
+    /* Product windows sit over the hero glow, so they can run clearer. */
+    .intake-win { --lg-tint:0.66; --lg-blur:20px; }
+    .lp-drawer-panel { --lg-blur:18px; }
+    @media (max-width:768px){ :root{ --lg-blur:12px; } }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .lp-nav, .lp-drawer-panel, .intake-win, .local-card, .seo-search-mock {
+      background:#fff !important; -webkit-backdrop-filter:none !important; backdrop-filter:none !important;
+      box-shadow:0 22px 48px -26px rgba(16,16,20,0.40), 0 0 0 1px var(--border,#E6E4DE) !important;
+    }
+  }
+  </style>
+
 </head>
 <body>
   <nav class="lp-nav">
