@@ -8845,6 +8845,54 @@
   }
   </style>
 
+
+  <!-- ============================================================
+       LIQUID GLASS — fluid morph (iOS 27 step 5). Overlays spring
+       and settle instead of hard cross-fading; the chat window grows
+       out of its launcher corner. CSS-only, head-only (no CLS),
+       fully disabled under prefers-reduced-motion.
+       ============================================================ -->
+  <style>
+  @media (prefers-reduced-motion: no-preference) {
+    /* Command palette: gentle overshoot spring, grows from the top edge
+       where it's anchored (14vh down). */
+    .cmdk {
+      transform-origin: top center;
+      animation: lgSpring 0.46s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+    }
+    @keyframes lgSpring {
+      0%   { opacity: 0; transform: scale(0.90) translateY(-10px); }
+      55%  { opacity: 1; }
+      70%  { transform: scale(1.028) translateY(0); }   /* overshoot */
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    /* The dim backdrop eases in rather than snapping. */
+    .cmdk-overlay.open { animation: lgFade 0.3s ease both; }
+    @keyframes lgFade { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Chat window: springs open growing from the launcher (bottom-right),
+       so it reads as morphing out of the button. The expand feature keeps
+       its own centered !important transform, so this only affects open/close. */
+    .chat-window { transform-origin: bottom right; }
+    .chat-window:not(.chat-expanded) {
+      transform: translateY(18px) scale(0.9);
+      transition: opacity 0.32s ease, visibility 0.32s,
+                  transform 0.46s cubic-bezier(0.34, 1.4, 0.64, 1),
+                  width 0.3s ease, height 0.3s ease, top 0.3s ease,
+                  left 0.3s ease, bottom 0.3s ease !important;
+    }
+    .chat-window.active:not(.chat-expanded) { transform: translateY(0) scale(1); }
+  }
+
+  /* Reduced motion: keep it a plain, quick fade — no spring, no scale. */
+  @media (prefers-reduced-motion: reduce) {
+    .cmdk { animation: none !important; }
+    .cmdk-overlay.open { animation: none !important; }
+    .chat-window:not(.chat-expanded),
+    .chat-window.active:not(.chat-expanded) { transform: translateY(0) !important; }
+  }
+  </style>
+
 </head>
 
 <body data-cursor="default">
