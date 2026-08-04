@@ -6017,7 +6017,6 @@
       /* Calm the atmosphere so the type and product own the frame */
       #neuralCanvas { opacity: 0.85; }
       .hero-grid-lines { opacity: 0.55; }
-      .orb-1 { opacity: 0.055; }
 
       .hero-aria-card {
         display: block;
@@ -6842,7 +6841,19 @@
     .hero-grid-lines {
       background-image: linear-gradient(to right, rgba(16, 16, 20, 0.045) 1px, transparent 1px);
     }
-    .orb-1 { opacity: 0.05; } .orb-2 { opacity: 0.04; } .orb-3 { opacity: 0.035; }
+    /* Ambient depth. These were at 0.05/0.04/0.035, which over #FAFAF7 paper
+       is a ~5-unit RGB shift — invisible, and it left the frosted surfaces
+       with nothing behind them to refract, so the glass read as flat white.
+       Orb 1 sits top-right under the nav and the ARIA card (no body copy
+       there) so it carries the most colour; orb 2 sits under the hero copy,
+       so it stays restrained and goes violet for brand duality rather than
+       stacking more warmth behind dark text. */
+    .orb-1 { opacity: 0.22; }
+    .orb-2 {
+      opacity: 0.10;
+      background: radial-gradient(circle, #7B61FF 0%, transparent 70%);
+    }
+    .orb-3 { opacity: 0.16; }
     .badge {
       background: #fff;
       border-color: var(--hairline);
@@ -8763,7 +8774,15 @@
     /* The material. A diagonal baked into the gradient gives the grazing
        sheen without a pseudo-element that could collide with a component's
        own ::before/::after. */
-    nav#nav,
+    /* `html nav#nav.scrolled` (1,1,1) is deliberate: earlier passes ship
+       `#nav.scrolled { ... !important }` at (1,1,0), which outranked a plain
+       `nav#nav` (1,0,1) and silently reverted the material — plus a
+       `#nav.scrolled { backdrop-filter: none !important }` perf rule that
+       killed the blur outright — the instant the page scrolled. Since the nav
+       is scrolled for nearly the whole visit, the glass was effectively
+       never seen. Do not lower this specificity. */
+    html nav#nav,
+    html nav#nav.scrolled,
     .cmdk,
     #chatWindow,
     .hac-window,
@@ -8786,8 +8805,8 @@
 
     /* Nav: keep it slightly clearer at rest, densify on scroll so text
        over white sections never loses contrast. */
-    nav#nav { border-bottom: 1px solid rgba(16,16,20,0.06) !important; }
-    nav#nav.scrolled { --lg-tint: 0.82; --lg-blur: 18px; }
+    html nav#nav { border-bottom: 1px solid rgba(16,16,20,0.06) !important; }
+    html nav#nav.scrolled { --lg-tint: 0.82; --lg-blur: 18px; }
 
     /* Command palette — the single best glass candidate (floating overlay
        over a dimmed backdrop). Clearer variant, keeps the ⌘K rows legible. */
@@ -8826,7 +8845,7 @@
     /* Lighter blur on phones — backdrop-filter is the main mobile paint cost. */
     @media (max-width: 768px){
       :root{ --lg-blur: 12px; }
-      nav#nav.scrolled { --lg-blur: 13px; }
+      html nav#nav.scrolled { --lg-blur: 13px; }
     }
   }
 
